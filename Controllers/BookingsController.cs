@@ -276,7 +276,10 @@ public sealed class BookingsController : ControllerBase
     }
 
     private static bool IsValidPaging(int page, int pageSize) =>
-        page >= 1 && pageSize >= 1 && pageSize <= 50;
+        page >= 1 &&
+        pageSize >= 1 &&
+        pageSize <= 50 &&
+        page <= int.MaxValue / pageSize;
 
     private async Task<IActionResult> CreatePagedResponse(
         IQueryable<Booking> query,
