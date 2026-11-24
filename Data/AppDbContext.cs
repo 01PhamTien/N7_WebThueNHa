@@ -49,6 +49,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).HasMaxLength(50).IsRequired();
             e.HasIndex(x => x.Name).IsUnique();
+            e.HasData(
+                new Role { Id = 1, Name = "Admin", Description = "Quản trị hệ thống" },
+                new Role { Id = 2, Name = "Landlord", Description = "Chủ nhà cho thuê" },
+                new Role { Id = 3, Name = "Tenant", Description = "Người thuê nhà" }
+            );
         });
 
         modelBuilder.Entity<UserRole>(e =>
@@ -83,6 +88,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).HasMaxLength(100).IsRequired();
             e.HasIndex(x => x.Name).IsUnique();
+            e.HasData(
+                new PropertyType { Id = 1, Name = "Phòng trọ", Description = "Phòng cho thuê trong nhà trọ hoặc nhà ở" },
+                new PropertyType { Id = 2, Name = "Căn hộ", Description = "Căn hộ chung cư độc lập" },
+                new PropertyType { Id = 3, Name = "Nhà nguyên căn", Description = "Nhà cho thuê nguyên căn" },
+                new PropertyType { Id = 4, Name = "Studio", Description = "Căn hộ studio" },
+                new PropertyType { Id = 5, Name = "Mặt bằng", Description = "Mặt bằng cho thuê" }
+            );
         });
 
         modelBuilder.Entity<PropertyImage>(e =>
@@ -100,6 +112,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).HasMaxLength(100).IsRequired();
             e.HasIndex(x => x.Name).IsUnique();
+            e.HasData(
+                new Amenity { Id = 1, Name = "Wi-Fi", Description = "Có kết nối Internet" },
+                new Amenity { Id = 2, Name = "Điều hòa", Description = "Có thiết bị điều hòa không khí" },
+                new Amenity { Id = 3, Name = "Máy giặt", Description = "Có máy giặt sử dụng chung hoặc riêng" },
+                new Amenity { Id = 4, Name = "Chỗ để xe", Description = "Có khu vực để xe" },
+                new Amenity { Id = 5, Name = "Thang máy", Description = "Có thang máy" },
+                new Amenity { Id = 6, Name = "Bảo vệ", Description = "Có dịch vụ bảo vệ" },
+                new Amenity { Id = 7, Name = "Ban công", Description = "Có ban công" },
+                new Amenity { Id = 8, Name = "Nội thất", Description = "Có trang bị nội thất" }
+            );
         });
 
         modelBuilder.Entity<PropertyAmenity>(e =>
