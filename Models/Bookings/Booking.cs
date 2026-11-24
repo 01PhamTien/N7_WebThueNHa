@@ -1,3 +1,4 @@
+using Web2_ThueNha.Models;
 using Web2_ThueNha.Models.Identity;
 using Web2_ThueNha.Models.Properties;
 
