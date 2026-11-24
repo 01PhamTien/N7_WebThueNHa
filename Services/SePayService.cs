@@ -20,8 +20,6 @@ public sealed class SePayService(
         "success_url", "error_url", "cancel_url"
     ];
 
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     public async Task<SePayCheckout> CreateCheckoutAsync(
         CreateSePayPaymentRequest request,
         CancellationToken cancellationToken)
@@ -155,6 +153,12 @@ public sealed class SePayService(
         var transferAmount = ReadDecimal(root, "transferAmount");
         var content = ReadString(root, "content") ?? ReadString(root, "description") ?? string.Empty;
         var reference = ReadString(root, "referenceCode");
+        var expectedAccount = RequiredSetting("SEPAY_BANK_ACCOUNT_NUMBER_PRODUCTION");
+        var actualAccount = ReadString(root, "accountNumber");
+        if (string.IsNullOrWhiteSpace(actualAccount) ||
+            !FixedTimeEquals(expectedAccount, actualAccount))
+            return false;
+
         var payloadHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawBody)));
         var eventKey = !string.IsNullOrWhiteSpace(eventId)
             ? $"bank:{eventId}"
