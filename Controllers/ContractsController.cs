@@ -123,7 +123,7 @@ public sealed class ContractsController(AppDbContext db, IContractService contra
     [ProducesResponseType(typeof(RentalContractResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> public async Task<IActionResult> CreateFromBooking(Guid bookingId, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateFromBooking(Guid bookingId, CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
             return Unauthorized();
@@ -142,7 +142,7 @@ public sealed class ContractsController(AppDbContext db, IContractService contra
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> public async Task<IActionResult> UpdateContract(
+    public async Task<IActionResult> UpdateContract(
         Guid id,
         [FromBody] UpdateRentalContractRequest request,
         CancellationToken cancellationToken)
@@ -159,7 +159,7 @@ public sealed class ContractsController(AppDbContext db, IContractService contra
     [ProducesResponseType(typeof(RentalContractResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> public async Task<IActionResult> SubmitForSignature(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> SubmitForSignature(Guid id, CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
             return Unauthorized();
@@ -174,7 +174,7 @@ public sealed class ContractsController(AppDbContext db, IContractService contra
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> public async Task<IActionResult> SignContract(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> SignContract(Guid id, CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
             return Unauthorized();
