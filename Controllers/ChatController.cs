@@ -334,6 +334,9 @@ public sealed class ChatController : ControllerBase
         if (!allowedContentTypes.Contains(contentType))
             return BadRequest(new { message = "Kiểu nội dung tệp không được hỗ trợ." });
 
+        if (!await HasExpectedFileSignatureAsync(file, extension, cancellationToken))
+            return BadRequest(new { message = "Nội dung thực tế của tệp không khớp với định dạng khai báo." });
+
         var safeOriginalName = Path.GetFileName(file.FileName);
         if (safeOriginalName.Length > 255)
             safeOriginalName = safeOriginalName[^255..];
@@ -443,6 +446,36 @@ public sealed class ChatController : ControllerBase
 
         var stream = System.IO.File.OpenRead(absolutePath);
         return File(stream, attachment.ContentType ?? "application/octet-stream", attachment.FileName);
+    }
+
+    private static async Task<bool> HasExpectedFileSignatureAsync(
+        IFormFile file, string extension, CancellationToken cancellationToken)
+    {
+        var header = new byte[12];
+        await using var stream = file.OpenReadStream();
+        var read = await stream.ReadAsync(header.AsMemory(), cancellationToken);
+
+        return extension.ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => read >= 3 &&
+                header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF,
+            ".png" => read >= 8 &&
+                header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47 &&
+                header[4] == 0x0D && header[5] == 0x0A && header[6] == 0x1A && header[7] == 0x0A,
+            ".webp" => read >= 12 &&
+                header[0] == (byte)'R' && header[1] == (byte)'I' && header[2] == (byte)'F' &&
+                header[3] == (byte)'F' && header[8] == (byte)'W' && header[9] == (byte)'E' &&
+                header[10] == (byte)'B' && header[11] == (byte)'P',
+            ".pdf" => read >= 5 &&
+                header[0] == (byte)'%' && header[1] == (byte)'P' && header[2] == (byte)'D' &&
+                header[3] == (byte)'F' && header[4] == (byte)'-',
+            ".doc" => read >= 8 &&
+                header[0] == 0xD0 && header[1] == 0xCF && header[2] == 0x11 && header[3] == 0xE0 &&
+                header[4] == 0xA1 && header[5] == 0xB1 && header[6] == 0x1A && header[7] == 0xE1,
+            ".docx" => read >= 4 &&
+                header[0] == 0x50 && header[1] == 0x4B && header[2] == 0x03 && header[3] == 0x04,
+            _ => false
+        };
     }
 
     private Guid? GetCurrentUserId()
