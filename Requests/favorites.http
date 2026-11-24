@@ -1,0 +1,31 @@
+@baseUrl = https://localhost:7295
+@accessToken = THAY_BANG_JWT
+@propertyId = THAY_BANG_GUID_TIN_DANG
+
+### 1. Them nha dang cong khai vao yeu thich
+POST {{baseUrl}}/api/favorites/{{propertyId}}
+Authorization: Bearer {{accessToken}}
+
+### 2. Gui lai request (idempotent, khong tao ban ghi trung)
+POST {{baseUrl}}/api/favorites/{{propertyId}}
+Authorization: Bearer {{accessToken}}
+
+### 3. Xem danh sach nha yeu thich, phan trang server-side
+GET {{baseUrl}}/api/favorites?page=1&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+### 4. Kiem tra mot tin da duoc yeu thich chua
+GET {{baseUrl}}/api/favorites/{{propertyId}}/status
+Authorization: Bearer {{accessToken}}
+
+### 5. Bo yeu thich (goi lap lai van an toan)
+DELETE {{baseUrl}}/api/favorites/{{propertyId}}
+Authorization: Bearer {{accessToken}}
+
+### 6. Kiem tra page khong hop le (mong doi 400)
+GET {{baseUrl}}/api/favorites?page=0&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+### 7. Kiem tra pageSize vuot gioi han (mong doi 400)
+GET {{baseUrl}}/api/favorites?page=1&pageSize=51
+Authorization: Bearer {{accessToken}}
