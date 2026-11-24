@@ -130,7 +130,14 @@ dotnet ef database update
 dotnet ef migrations list
 ```
 
-Dự án dùng SQL Server provider và EF Core Design-time package cho lệnh migration. Nếu dùng Package Manager Console trong Visual Studio, thống nhất phiên bản công cụ EF với phiên bản package của dự án.
+Các package/công cụ liên quan:
+- `Microsoft.EntityFrameworkCore`: API lõi EF Core; được provider SQL Server tham chiếu phụ thuộc.
+- `Microsoft.EntityFrameworkCore.SqlServer`: provider kết nối SQL Server.
+- `Microsoft.EntityFrameworkCore.Design`: hỗ trợ công cụ design-time và `dotnet ef`; dự án hiện đã tham chiếu package này.
+- `Microsoft.EntityFrameworkCore.Tools`: dùng khi chạy lệnh EF Core trong Package Manager Console của Visual Studio; chỉ thêm nếu nhóm dùng workflow PMC.
+- `dotnet-ef`: công cụ CLI cài riêng bằng `dotnet tool install --global dotnet-ef --version 10.0.15`.
+
+Không cài package/công cụ khác phiên bản major với EF Core của dự án. Hiện project đang dùng EF Core 10.0.15, SQL Server provider 10.0.15 và Design 10.0.15.
 
 ## 7. Dependency Injection và Service
 
