@@ -116,6 +116,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISePayService, SePayService>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<User>, Microsoft.AspNetCore.Identity.PasswordHasher<User>>();
 
 var app = builder.Build();
