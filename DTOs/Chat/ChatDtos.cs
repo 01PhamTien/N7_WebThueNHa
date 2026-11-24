@@ -23,6 +23,7 @@ public sealed record ConversationListItem(
     string LandlordName,
     string? LastMessageContent,
     DateTime? LastMessageAt,
+    int UnreadCount,
     DateTime CreatedAt,
     bool IsArchived);
 
