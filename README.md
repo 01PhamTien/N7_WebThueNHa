@@ -88,3 +88,21 @@ Không chia sẻ hoặc commit giá trị `Jwt:Key` lên Git. Mỗi máy phát t
 5. Gửi token dưới dạng `Authorization: Bearer <accessToken>` khi gọi `GET /api/auth/me`.
 
 Không dùng tài khoản hoặc dữ liệu thật của người dùng trong môi trường thử nghiệm.
+
+## API nha yeu thich
+
+Tat ca endpoint yeu cau JWT; UserId luon lay tu `ClaimTypes.NameIdentifier`, khong nhan tu client.
+
+| Phuong thuc | Endpoint | Chuc nang |
+|---|---|---|
+| GET | `/api/favorites?page=1&pageSize=20` | Danh sach nha yeu thich hien con cong khai, phan trang server-side |
+| POST | `/api/favorites/{propertyId}` | Them tin Approved + Published vao yeu thich |
+| DELETE | `/api/favorites/{propertyId}` | Bo yeu thich; request lap an toan |
+| GET | `/api/favorites/{propertyId}/status` | Kiem tra trang thai da luu |
+
+Khoa chinh kep `(UserId, PropertyId)` ngan ban ghi trung. Request POST trung tra 200 thay vi tao ban ghi moi; neu hai request dong thoi cung chen, unique constraint cua SQL Server duoc bat va xu ly nhu request lap an toan.
+
+Neu tin da yeu thich bi Admin an/dong hoac chuyen ve trang thai khong cong khai, tin se tam thoi khong hien trong danh sach yeu thich; ban ghi Favorite duoc giu lai va tu hien lai khi tin duoc khoi phuc ve Approved + Published. API status van tra trang thai ban ghi Favorite; nguoi dung co the DELETE de bo tin da an.
+
+Request mau: `Requests/favorites.http`.
+Checklist kiem thu: `docs/requests/favorites-test-cases.md`.
