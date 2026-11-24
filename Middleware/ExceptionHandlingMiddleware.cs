@@ -23,9 +23,19 @@ public sealed class ExceptionHandlingMiddleware(
         catch (Exception exception)
         {
             var traceId = context.TraceIdentifier;
-            logger.LogError(exception,
-                "Request thất bại. TraceId: {TraceId}, Method: {Method}, Path: {Path}",
-                traceId, context.Request.Method, context.Request.Path);
+            if (environment.IsDevelopment())
+            {
+                logger.LogError(exception,
+                    "Request thất bại. TraceId: {TraceId}, Method: {Method}, Path: {Path}",
+                    traceId, context.Request.Method, context.Request.Path);
+            }
+            else
+            {
+                // Không ghi nội dung exception/SQL có khả năng chứa dữ liệu nhạy cảm ở Production.
+                logger.LogError(
+                    "Request thất bại. TraceId: {TraceId}, Method: {Method}, Path: {Path}, ExceptionType: {ExceptionType}",
+                    traceId, context.Request.Method, context.Request.Path, exception.GetType().Name);
+            }
 
             if (context.Response.HasStarted)
                 throw;
