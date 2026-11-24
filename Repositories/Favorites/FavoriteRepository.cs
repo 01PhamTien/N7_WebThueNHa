@@ -50,8 +50,10 @@ public sealed class FavoriteRepository(AppDbContext db) : IFavoriteRepository
         }
     }
 
-    public async Task RemoveAsync(Guid userId, Guid propertyId, CancellationToken cancellationToken) =>
-        _ = await db.Favorites
+    public async Task RemoveAsync(Guid userId, Guid propertyId, CancellationToken cancellationToken)
+    {
+        await db.Favorites
             .Where(x => x.UserId == userId && x.PropertyId == propertyId)
             .ExecuteDeleteAsync(cancellationToken);
+    }
 }
