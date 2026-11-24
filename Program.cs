@@ -6,6 +6,7 @@ using Microsoft.OpenApi;
 using Web2_ThueNha.Services.Notifications;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.Hubs;
+using Web2_ThueNha.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -130,6 +131,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
