@@ -104,7 +104,9 @@ public sealed class ChatController : ControllerBase
 
     /// <summary>Danh sách hội thoại của tài khoản đang đăng nhập.</summary>
     [HttpGet("conversations")]
-    public async Task<IActionResult> GetConversations(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetConversations(
+        [FromQuery] bool includeArchived = false,
+        CancellationToken cancellationToken = default)
     {
         var currentUserId = GetCurrentUserId();
         if (currentUserId is null)
@@ -112,7 +114,8 @@ public sealed class ChatController : ControllerBase
 
         var items = await _db.ConversationParticipants
             .AsNoTracking()
-            .Where(x => x.UserId == currentUserId.Value)
+            .Where(x => x.UserId == currentUserId.Value &&
+                        (includeArchived || !x.IsArchived))
             .OrderByDescending(x => x.Conversation.LastMessageAt ?? x.Conversation.CreatedAt)
             .Select(x => new ConversationListItem(
                 x.Conversation.Id,
