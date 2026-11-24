@@ -111,3 +111,11 @@ Request mẫu và checklist chi tiết nằm tại `docs/requests/property-manag
 ### Quy tắc kiểm duyệt hình ảnh
 
 Khi chủ nhà thêm ảnh, xóa ảnh hoặc đổi ảnh chính, tin đăng được chuyển về `ModerationStatus=Pending` và `ListingStatus=Draft`. Thay đổi hình ảnh là thay đổi nội dung tin, vì vậy phải được Admin duyệt lại trước khi xuất hiện công khai. API danh sách nhà công khai trả metadata phân trang đầy đủ và dùng thứ tự ổn định theo `CreatedAt`/ `Id`.
+
+## Hồ sơ cá nhân và Swagger Bearer
+
+- `GET /api/auth/me`: xem hồ sơ tài khoản đang đăng nhập.
+- `PUT /api/auth/profile`: cập nhật họ tên, số điện thoại và URL ảnh đại diện.
+- Swagger UI có nút `Authorize`: dán Access Token nhận từ `POST /api/auth/login` (chỉ dán token, không thêm chữ Bearer).
+
+Các endpoint có `[Authorize]` yêu cầu JWT hợp lệ. Khi xây dựng API nghiệp vụ theo vai trò, dùng `[Authorize(Roles = "Admin")]`, `[Authorize(Roles = "Landlord")]` hoặc `[Authorize(Roles = "Tenant")]`. Không cấp quyền bằng dữ liệu gửi từ client; vai trò được lấy từ bảng UserRoles khi đăng nhập.
