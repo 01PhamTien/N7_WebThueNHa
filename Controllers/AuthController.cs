@@ -15,7 +15,6 @@ namespace Web2_ThueNha.Controllers;
 [Route("api/[controller]")]
 public sealed class AuthController : ControllerBase
 {
-    private const int TenantRoleId = 3;
     private readonly AppDbContext _db;
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly IConfiguration _configuration;
@@ -44,7 +43,7 @@ public sealed class AuthController : ControllerBase
         if (emailExists)
             return Conflict(new { message = "Email này đã được sử dụng." });
 
-        var tenantRole = await _db.Roles.SingleOrDefaultAsync(x => x.Id == TenantRoleId, cancellationToken);
+        var tenantRole = await _db.Roles.SingleOrDefaultAsync(x => x.Name == "Tenant", cancellationToken);
         if (tenantRole is null)
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "Chưa có dữ liệu vai trò Tenant. Hãy kiểm tra dữ liệu danh mục." });
@@ -145,6 +144,47 @@ public sealed class AuthController : ControllerBase
             user.FullName,
             user.Email,
             user.PhoneNumber,
+            user.AvatarUrl,
+            user.UserRoles.Select(x => x.Role.Name).ToArray()));
+    }
+
+
+    /// <summary>Cập nhật hồ sơ của tài khoản đang đăng nhập.</summary>
+    [HttpPut("profile")]
+    [Authorize]
+    [ProducesResponseType(typeof(CurrentUserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UpdateProfile(UpdateProfileRequest request, CancellationToken cancellationToken)
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdValue, out var userId))
+            return Unauthorized();
+
+        var user = await _db.Users
+            .Include(x => x.UserRoles)
+                .ThenInclude(x => x.Role)
+            .SingleOrDefaultAsync(x => x.Id == userId && x.IsActive, cancellationToken);
+
+        if (user is null)
+            return Unauthorized();
+
+        user.FullName = request.FullName.Trim();
+        user.PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber)
+            ? null
+            : request.PhoneNumber.Trim();
+        user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl)
+            ? null
+            : request.AvatarUrl.Trim();
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new CurrentUserResponse(
+            user.Id,
+            user.FullName,
+            user.Email,
+            user.PhoneNumber,
+            user.AvatarUrl,
             user.UserRoles.Select(x => x.Role.Name).ToArray()));
     }
 

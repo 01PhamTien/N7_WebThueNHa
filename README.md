@@ -88,3 +88,11 @@ Không chia sẻ hoặc commit giá trị `Jwt:Key` lên Git. Mỗi máy phát t
 5. Gửi token dưới dạng `Authorization: Bearer <accessToken>` khi gọi `GET /api/auth/me`.
 
 Không dùng tài khoản hoặc dữ liệu thật của người dùng trong môi trường thử nghiệm.
+
+## Hồ sơ cá nhân và Swagger Bearer
+
+- `GET /api/auth/me`: xem hồ sơ tài khoản đang đăng nhập.
+- `PUT /api/auth/profile`: cập nhật họ tên, số điện thoại và URL ảnh đại diện.
+- Swagger UI có nút `Authorize`: dán Access Token nhận từ `POST /api/auth/login` (chỉ dán token, không thêm chữ Bearer).
+
+Các endpoint có `[Authorize]` yêu cầu JWT hợp lệ. Khi xây dựng API nghiệp vụ theo vai trò, dùng `[Authorize(Roles = "Admin")]`, `[Authorize(Roles = "Landlord")]` hoặc `[Authorize(Roles = "Tenant")]`. Không cấp quyền bằng dữ liệu gửi từ client; vai trò được lấy từ bảng UserRoles khi đăng nhập.
