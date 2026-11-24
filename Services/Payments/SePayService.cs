@@ -230,9 +230,10 @@ public sealed class SePayService(
         var providerReference = $"SePay:Gateway:{transactionId}";
         if (payment.Status == PaymentStatus.Succeeded)
         {
-            var duplicate = payment.PaymentProvider == providerReference;
+            // Có thể Landlord/Admin đã xác nhận thủ công trước khi IPN tới.
+            // Không ghi nhận lần hai, nhưng ACK để SePay không retry vô hạn.
             await transaction.CommitAsync(cancellationToken);
-            return duplicate;
+            return true;
         }
 
         if (payment.Status != PaymentStatus.Pending ||
