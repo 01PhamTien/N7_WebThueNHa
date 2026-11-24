@@ -46,3 +46,13 @@ public sealed record BookingResponse(
     string? RejectionReason,
     DateTime CreatedAt,
     DateTime? UpdatedAt);
+
+
+public sealed record PagedResponse<T>(
+    IReadOnlyList<T> Items,
+    int Page,
+    int PageSize,
+    int TotalCount,
+    int TotalPages,
+    bool HasPrevious,
+    bool HasNext);
