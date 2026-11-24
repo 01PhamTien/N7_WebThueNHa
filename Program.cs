@@ -3,14 +3,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using Web2_ThueNha.Data;
 using Web2_ThueNha.Services.Notifications;
-using Web2_ThueNha.Hubs;
+using Web2_ThueNha.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Đăng ký dịch vụ API và Swagger.
 builder.Services.AddControllers();
-builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -20,36 +19,25 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "API cho hệ thống quản lý cho thuê nhà."
     });
-
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Nhập Access Token nhận được từ API đăng nhập. Không cần thêm tiền tố Bearer."
-    });
-
-    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-    {
-        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-    });
 });
 
+// Cấu hình Entity Framework Core và SQL Server.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Chưa cấu hình ConnectionStrings:DefaultConnection.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+// Cấu hình JWT từ User Secrets hoặc biến môi trường.
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("Chưa cấu hình Jwt:Key bằng User Secrets.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Web2_ThueNha";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Web2_ThueNhaClient";
 
 if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
     throw new InvalidOperationException("Jwt:Key phải có ít nhất 32 byte.");
+}
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -66,52 +54,6 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
-
-        // Kiểm tra trạng thái tài khoản ở mỗi request để token cũ không dùng được sau khi bị khóa.
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                var accessToken = context.Request.Query["access_token"];
-                var requestPath = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) && requestPath.StartsWithSegments("/hubs/chat"))
-                    context.Token = accessToken;
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = async context =>
-            {
-                var userIdValue = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                if (!Guid.TryParse(userIdValue, out var userId))
-                {
-                    context.Fail("Token không chứa mã người dùng hợp lệ.");
-                    return;
-                }
-
-                var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-                var user = await db.Users
-                    .AsNoTracking()
-                    .Include(x => x.UserRoles)
-                        .ThenInclude(x => x.Role)
-                    .SingleOrDefaultAsync(x => x.Id == userId);
-
-                if (user is null || !user.IsActive)
-                {
-                    context.Fail("Tài khoản không tồn tại hoặc đã bị khóa.");
-                    return;
-                }
-
-                // Vai trò trong JWT phải còn khớp với database để thu hồi quyền có hiệu lực ngay.
-                var tokenRoles = context.Principal?
-                    .FindAll(System.Security.Claims.ClaimTypes.Role)
-                    .Select(x => x.Value)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase)
-                    ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                var currentRoles = user.UserRoles.Select(x => x.Role.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                if (!tokenRoles.SetEquals(currentRoles))
-                    context.Fail("Vai trò tài khoản đã thay đổi. Vui lòng đăng nhập lại.");
-            }
-        };
     });
 
 builder.Services.AddAuthorization();
@@ -120,6 +62,7 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<User>, 
 
 var app = builder.Build();
 
+// Chỉ bật Swagger UI trong môi trường phát triển.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -134,6 +77,5 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();
