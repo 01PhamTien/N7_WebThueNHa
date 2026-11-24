@@ -107,3 +107,7 @@ Authorization: Bearer <landlordAccessToken>
 API lấy chủ nhà từ JWT Claims, không nhận `LandlordId` từ client. Bộ lọc được áp dụng trước `CountAsync`; dữ liệu được sắp xếp ổn định theo `CreatedAt` giảm dần và `Id` giảm dần, sau đó phân trang bằng `Skip/Take` trên truy vấn EF Core. Response gồm `items`, `page`, `pageSize`, `totalCount`, `totalPages`, `hasPrevious` và `hasNext`. Tham số không hợp lệ trả về `400`; trang vượt quá tổng số trang trả về danh sách rỗng và metadata tương ứng.
 
 Request mẫu và checklist chi tiết nằm tại `docs/requests/property-management.http.md` và `docs/requests/property-management-test-cases.md`.
+
+### Quy tắc kiểm duyệt hình ảnh
+
+Khi chủ nhà thêm ảnh, xóa ảnh hoặc đổi ảnh chính, tin đăng được chuyển về `ModerationStatus=Pending` và `ListingStatus=Draft`. Thay đổi hình ảnh là thay đổi nội dung tin, vì vậy phải được Admin duyệt lại trước khi xuất hiện công khai. API danh sách nhà công khai trả metadata phân trang đầy đủ và dùng thứ tự ổn định theo `CreatedAt`/ `Id`.
