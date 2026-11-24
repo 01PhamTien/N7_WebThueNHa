@@ -44,11 +44,22 @@ public sealed record ChatMessageItem(
     bool IsMine,
     IReadOnlyCollection<ChatAttachmentItem> Attachments);
 
+public sealed record PagedConversations(
+    int Page,
+    int PageSize,
+    int TotalItems,
+    int TotalPages,
+    bool HasPrevious,
+    bool HasNext,
+    IReadOnlyCollection<ConversationListItem> Items);
+
 public sealed record PagedChatMessages(
     int Page,
     int PageSize,
     int TotalItems,
     int TotalPages,
+    bool HasPrevious,
+    bool HasNext,
     IReadOnlyCollection<ChatMessageItem> Items);
 
 public sealed class EditMessageRequest
