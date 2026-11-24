@@ -149,7 +149,7 @@ Voi SignalR JavaScript client, cung cap `accessTokenFactory: () => token`. Backe
 - `DELETE /api/chat/conversations/{conversationId}/messages/{messageId}`: xoa mem tin nhan cua chinh nguoi gui; phat event SignalR `XoaTinNhan`.
 - Khi sua tin nhan, server phat event SignalR `SuaTinNhan`. Tin nhan da xoa khong hien trong lich su va tep cua tin da xoa khong con tai duoc qua API.
 
-Request mau cho cac API chat nam trong `Requests/chat.http`; SignalR event va cach ket noi duoc mo ta ngay trong file va phan SignalR ben tren.
+Request mau cho cac API chat nam trong `Requests/chat.http`; checklist kiem thu nam trong `docs/requests/chat-test-cases.md`. SignalR event va cach ket noi duoc mo ta ngay trong file va phan SignalR ben tren.
 
 - `GET /api/chat/conversations?includeArchived=true`: xem cả hội thoại đã ẩn để người dùng có thể hiện lại; mặc định API chỉ trả hội thoại chưa ẩn.
 
