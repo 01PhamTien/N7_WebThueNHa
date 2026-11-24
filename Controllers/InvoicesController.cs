@@ -8,6 +8,7 @@ using Web2_ThueNha.Data;
 using Web2_ThueNha.Models;
 using Web2_ThueNha.Models.Contracts;
 using Web2_ThueNha.Models.Payments;
+using Web2_ThueNha.Services.Notifications;
 using Web2_ThueNha.DTOs.Payments;
 
 namespace Web2_ThueNha.Controllers;
@@ -15,7 +16,7 @@ namespace Web2_ThueNha.Controllers;
 [ApiController]
 [Route("api/invoices")]
 [Authorize(Roles = "Landlord,Tenant")]
-public sealed class InvoicesController(AppDbContext db) : ControllerBase
+public sealed class InvoicesController(AppDbContext db, INotificationService notifications) : ControllerBase
 {
     private const int MaxPageSize = 50;
 
@@ -237,6 +238,13 @@ public sealed class InvoicesController(AppDbContext db) : ControllerBase
         try
         {
             await db.SaveChangesAsync(cancellationToken);
+            await notifications.CreateAsync(
+                contract.TenantId,
+                "Hóa đơn mới được phát hành",
+                $"Bạn có hóa đơn {invoice.InvoiceCode} cần thanh toán.",
+                NotificationType.Invoice,
+                invoice.Id,
+                cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (
