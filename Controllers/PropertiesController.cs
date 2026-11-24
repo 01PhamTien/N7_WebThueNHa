@@ -108,19 +108,50 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
 
     [HttpGet("mine")]
     [Authorize(Roles = "Landlord")]
-    public async Task<IActionResult> GetMyProperties(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedMyPropertiesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetMyProperties(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] PropertyListingStatus? status = null,
+        CancellationToken cancellationToken = default)
     {
         if (!TryGetUserId(out var userId))
             return Unauthorized();
 
-        var properties = await db.Properties.AsNoTracking()
-            .Where(x => x.LandlordId == userId)
+        if (page < 1 || pageSize < 1 || pageSize > MaxPageSize ||
+            (status.HasValue && !Enum.IsDefined(status.Value)))
+            return BadRequest(new { message = "Tham số phân trang hoặc trạng thái không hợp lệ." });
+
+        // Luôn giới hạn dữ liệu theo chủ nhà trong JWT; không nhận LandlordId từ client.
+        IQueryable<Property> query = db.Properties.AsNoTracking()
+            .Where(x => x.LandlordId == userId);
+
+        if (status.HasValue)
+            query = query.Where(x => x.ListingStatus == status.Value);
+
+        // Đếm sau khi áp dụng toàn bộ điều kiện lọc, trước khi phân trang.
+        var totalCount = await query.CountAsync(cancellationToken);
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        var skip = (int)Math.Min(((long)page - 1) * pageSize, int.MaxValue);
+
+        var properties = await query
             .OrderByDescending(x => x.CreatedAt)
+            .ThenByDescending(x => x.Id)
+            .Skip(skip)
+            .Take(pageSize)
             .Include(x => x.PropertyType)
             .Include(x => x.Images.OrderBy(i => i.DisplayOrder))
             .ToListAsync(cancellationToken);
 
-        return Ok(properties.Select(ToResponse));
+        return Ok(new PagedMyPropertiesResponse(
+            properties.Select(ToResponse).ToArray(),
+            page,
+            pageSize,
+            totalCount,
+            totalPages,
+            page > 1,
+            page < totalPages));
     }
 
     [HttpPost]
