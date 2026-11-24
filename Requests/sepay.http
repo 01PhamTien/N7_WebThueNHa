@@ -20,7 +20,7 @@ Content-Type: application/json
   "amount": 0
 }
 
-### 3. Người ngoài không có quyền tạo checkout (mong đợi 403)
+### 3. Người không sở hữu hóa đơn tạo checkout (mong đợi 404)
 POST {{baseUrl}}/api/sepay/invoices/{{invoiceId}}/checkout
 Authorization: Bearer THAY_BANG_JWT_NGUOI_KHAC
 Content-Type: application/json
