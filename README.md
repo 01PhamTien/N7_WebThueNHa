@@ -100,5 +100,5 @@ Cac endpoint yeu cau JWT va chi thao tac tren thong bao cua tai khoan hien tai:
 
 `page` bat dau tu 1, `pageSize` tu 1 den 50. Filter duoc ap dung truoc `CountAsync`; truy van sap xep CreatedAt giam dan va Id giam dan, sau do dung `Skip/Take` tren EF Core. UserId luon lay tu JWT Claims, khong nhan tu client. Thong bao cua tai khoan khac tra 404.
 
-Request mau: `Requests/notifications.http`.
+Controller chi xu ly HTTP, Claims va validation; truy van/nghiep vu duoc tach trong `INotificationService`/`NotificationService` va dang ky Scoped bang Dependency Injection. Request mau: `Requests/notifications.http`.
 Checklist: `docs/requests/notification-test-cases.md`.
