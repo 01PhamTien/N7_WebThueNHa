@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Web2_ThueNha.Services.Notifications;
+using Web2_ThueNha.Services.Payments;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.Hubs;
 
@@ -116,6 +117,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISePayService, SePayService>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<User>, Microsoft.AspNetCore.Identity.PasswordHasher<User>>();
 
 var app = builder.Build();
