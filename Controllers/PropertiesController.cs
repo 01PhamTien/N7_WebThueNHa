@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
-using Web2_ThueNHa.DTOs.Properties;
+using Web2_ThueNha.DTOs.Properties;
 
-namespace Web2_ThueNHa.Controllers;
+namespace Web2_ThueNha.Controllers;
 
 [ApiController]
 [Route("api/properties")]
