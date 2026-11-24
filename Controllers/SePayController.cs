@@ -49,6 +49,13 @@ public sealed class SePayController(
         {
             return BadRequest(new { message = exception.Message });
         }
+        catch (InvalidOperationException exception) when (
+            exception.Message.StartsWith("Thiếu cấu hình SePay:", StringComparison.Ordinal) ||
+            exception.Message.StartsWith("SePay:PublicUrl", StringComparison.Ordinal))
+        {
+            logger.LogError(exception, "Cấu hình SePay checkout chưa đầy đủ.");
+            return Problem("Cổng thanh toán chưa được cấu hình đầy đủ.", statusCode: 503);
+        }
         catch (InvalidOperationException exception)
         {
             return Conflict(new { message = exception.Message });
