@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
+using Web2_ThueNha.Models;
+using Web2_ThueNha.Models.Contracts;
+using Web2_ThueNha.Models.Payments;
 using Web2_ThueNha.DTOs.Payments;
 
 namespace Web2_ThueNha.Controllers;
