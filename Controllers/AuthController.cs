@@ -145,6 +145,47 @@ public sealed class AuthController : ControllerBase
             user.FullName,
             user.Email,
             user.PhoneNumber,
+            user.AvatarUrl,
+            user.UserRoles.Select(x => x.Role.Name).ToArray()));
+    }
+
+
+    /// <summary>Cập nhật hồ sơ của tài khoản đang đăng nhập.</summary>
+    [HttpPut("profile")]
+    [Authorize]
+    [ProducesResponseType(typeof(CurrentUserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UpdateProfile(UpdateProfileRequest request, CancellationToken cancellationToken)
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdValue, out var userId))
+            return Unauthorized();
+
+        var user = await _db.Users
+            .Include(x => x.UserRoles)
+                .ThenInclude(x => x.Role)
+            .SingleOrDefaultAsync(x => x.Id == userId && x.IsActive, cancellationToken);
+
+        if (user is null)
+            return Unauthorized();
+
+        user.FullName = request.FullName.Trim();
+        user.PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber)
+            ? null
+            : request.PhoneNumber.Trim();
+        user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl)
+            ? null
+            : request.AvatarUrl.Trim();
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new CurrentUserResponse(
+            user.Id,
+            user.FullName,
+            user.Email,
+            user.PhoneNumber,
+            user.AvatarUrl,
             user.UserRoles.Select(x => x.Role.Name).ToArray()));
     }
 
