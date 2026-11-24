@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Bookings;
+using Web2_ThueNha.Models;
+using Web2_ThueNha.Services.Notifications;
 
 namespace Web2_ThueNha.Controllers;
 
@@ -14,8 +16,13 @@ namespace Web2_ThueNha.Controllers;
 public sealed class BookingsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly INotificationService _notifications;
 
-    public BookingsController(AppDbContext db) => _db = db;
+    public BookingsController(AppDbContext db, INotificationService notifications)
+    {
+        _db = db;
+        _notifications = notifications;
+    }
 
     /// <summary>Người thuê gửi yêu cầu đặt thuê cho một căn nhà đang được đăng.</summary>
     [HttpPost]
@@ -69,8 +76,17 @@ public sealed class BookingsController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         _db.Bookings.Add(booking);
         await _db.SaveChangesAsync(cancellationToken);
+        await _notifications.CreateAsync(
+            property.LandlordId,
+            "Yêu cầu thuê mới",
+            $"Bạn có yêu cầu thuê mới cho căn nhà {property.Title}.",
+            NotificationType.Booking,
+            booking.Id,
+            cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         var response = await GetBookingResponseQuery()
             .SingleAsync(x => x.Id == booking.Id, cancellationToken);
@@ -207,6 +223,13 @@ public sealed class BookingsController : ControllerBase
         booking.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken);
+        await _notifications.CreateAsync(
+            booking.TenantId,
+            "Yêu cầu thuê đã được chấp nhận",
+            $"Chủ nhà đã chấp nhận yêu cầu thuê căn nhà {booking.Property.Title}.",
+            NotificationType.Booking,
+            booking.Id,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         return Ok(ToResponse(booking));
@@ -246,6 +269,13 @@ public sealed class BookingsController : ControllerBase
         booking.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken);
+        await _notifications.CreateAsync(
+            booking.TenantId,
+            "Yêu cầu thuê đã bị từ chối",
+            $"Chủ nhà đã từ chối yêu cầu thuê căn nhà {booking.Property.Title}.",
+            NotificationType.Booking,
+            booking.Id,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Ok(ToResponse(booking));
     }
@@ -281,6 +311,13 @@ public sealed class BookingsController : ControllerBase
         booking.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken);
+        await _notifications.CreateAsync(
+            booking.Property.LandlordId,
+            "Yêu cầu thuê đã bị hủy",
+            $"Người thuê đã hủy yêu cầu thuê căn nhà {booking.Property.Title}.",
+            NotificationType.Booking,
+            booking.Id,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Ok(ToResponse(booking));
     }
