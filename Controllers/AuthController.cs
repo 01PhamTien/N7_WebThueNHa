@@ -15,7 +15,6 @@ namespace Web2_ThueNha.Controllers;
 [Route("api/[controller]")]
 public sealed class AuthController : ControllerBase
 {
-    private const int TenantRoleId = 3;
     private readonly AppDbContext _db;
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly IConfiguration _configuration;
@@ -44,7 +43,7 @@ public sealed class AuthController : ControllerBase
         if (emailExists)
             return Conflict(new { message = "Email này đã được sử dụng." });
 
-        var tenantRole = await _db.Roles.SingleOrDefaultAsync(x => x.Id == TenantRoleId, cancellationToken);
+        var tenantRole = await _db.Roles.SingleOrDefaultAsync(x => x.Name == "Tenant", cancellationToken);
         if (tenantRole is null)
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "Chưa có dữ liệu vai trò Tenant. Hãy kiểm tra dữ liệu danh mục." });
