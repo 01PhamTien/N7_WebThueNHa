@@ -88,3 +88,22 @@ Không chia sẻ hoặc commit giá trị `Jwt:Key` lên Git. Mỗi máy phát t
 5. Gửi token dưới dạng `Authorization: Bearer <accessToken>` khi gọi `GET /api/auth/me`.
 
 Không dùng tài khoản hoặc dữ liệu thật của người dùng trong môi trường thử nghiệm.
+
+## Phân trang API danh sách nhà của chủ nhà
+
+Endpoint `GET /api/properties/mine` yêu cầu JWT có role `Landlord` và hỗ trợ query parameters:
+
+- `page`: số trang, mặc định `1`, phải lớn hơn hoặc bằng 1.
+- `pageSize`: số bản ghi mỗi trang, mặc định `10`, giới hạn từ 1 đến 50.
+- `status`: tùy chọn, lọc theo trạng thái tin đăng (`Draft`, `Published`, `Hidden`, `Closed`).
+
+Ví dụ:
+
+```http
+GET /api/properties/mine?page=1&pageSize=10&status=Draft
+Authorization: Bearer <landlordAccessToken>
+```
+
+API lấy chủ nhà từ JWT Claims, không nhận `LandlordId` từ client. Bộ lọc được áp dụng trước `CountAsync`; dữ liệu được sắp xếp ổn định theo `CreatedAt` giảm dần và `Id` giảm dần, sau đó phân trang bằng `Skip/Take` trên truy vấn EF Core. Response gồm `items`, `page`, `pageSize`, `totalCount`, `totalPages`, `hasPrevious` và `hasNext`. Tham số không hợp lệ trả về `400`; trang vượt quá tổng số trang trả về danh sách rỗng và metadata tương ứng.
+
+Request mẫu và checklist chi tiết nằm tại `docs/requests/property-management.http.md` và `docs/requests/property-management-test-cases.md`.
