@@ -1,3 +1,4 @@
+using Web2_ThueNha.Models;
 namespace Web2_ThueNha.Models.Chat;
 
 public class MessageAttachment
