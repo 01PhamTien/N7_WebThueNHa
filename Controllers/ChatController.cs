@@ -168,7 +168,13 @@ public sealed class ChatController : ControllerBase
                 x.MessageType.ToString(),
                 x.SentAt,
                 x.EditedAt,
-                x.SenderId == currentUserId.Value))
+                x.SenderId == currentUserId.Value,
+                x.Attachments.Select(a => new ChatAttachmentItem(
+                    a.Id,
+                    a.FileName,
+                    a.ContentType,
+                    a.FileSize,
+                    "/api/chat/attachments/" + a.Id)).ToArray()))
             .ToListAsync(cancellationToken);
 
         messages.Reverse();
