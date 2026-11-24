@@ -57,6 +57,7 @@ public sealed class SePayService(
             throw new SePayRequestException(StatusCodes.Status409Conflict, "Hóa đơn không ở trạng thái được phép thanh toán.");
 
         var existingSePayPayment = await db.Payments
+            .Include(x => x.Invoice)
             .Where(x => x.InvoiceId == invoiceId &&
                         x.PayerId == tenantId &&
                         x.PaymentProvider == "SePay" &&
@@ -66,7 +67,7 @@ public sealed class SePayService(
 
         if (existingSePayPayment is not null)
         {
-            var existingCheckout = BuildCheckout(existingSePayPayment, settings);
+            var existingCheckout = BuildCheckout(existingSePayPayment, invoice.InvoiceCode, settings);
             await transaction.CommitAsync(cancellationToken);
             return existingCheckout;
         }
@@ -117,7 +118,7 @@ public sealed class SePayService(
             cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
-        return BuildCheckout(payment, settings);
+        return BuildCheckout(payment, invoice.InvoiceCode, settings);
     }
 
     public async Task<bool> HandleGatewayIpnAsync(
@@ -382,13 +383,13 @@ public sealed class SePayService(
             : InvoiceStatus.Issued;
     }
 
-    private SePayCheckout BuildCheckout(Payment payment, PaymentCodeSettings settings)
+    private SePayCheckout BuildCheckout(Payment payment, string invoiceCode, PaymentCodeSettings settings)
     {
         if (payment.Amount != decimal.Truncate(payment.Amount))
             throw new SePayRequestException(StatusCodes.Status400BadRequest, "SePay chỉ nhận số tiền VND nguyên.");
 
         var orderInvoiceNumber = EncodePaymentCode(payment.Id);
-        var description = $"Thanh toan hoa don {payment.InvoiceId:N}";
+        var description = $"Thanh toan hoa don {invoiceCode}";
         var fields = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["order_amount"] = payment.Amount.ToString("0", CultureInfo.InvariantCulture),
@@ -409,9 +410,15 @@ public sealed class SePayService(
         var hash = HMACSHA256.HashData(
             Encoding.UTF8.GetBytes(settings.SecretKey),
             Encoding.UTF8.GetBytes(signedString));
-        fields["signature"] = Convert.ToBase64String(hash);
+        var signature = Convert.ToBase64String(hash);
 
-        return new SePayCheckout(payment.Id, orderInvoiceNumber, settings.CheckoutUrl, fields);
+        var orderedFields = SignedFields
+            .Where(fields.ContainsKey)
+            .Select(key => new SePayFormField(key, fields[key]))
+            .ToList();
+        orderedFields.Add(new SePayFormField("signature", signature));
+
+        return new SePayCheckout(payment.Id, orderInvoiceNumber, settings.CheckoutUrl, orderedFields);
     }
 
     private PaymentCodeSettings GetCheckoutSettings()
