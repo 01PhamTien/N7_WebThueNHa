@@ -1,5 +1,7 @@
 using System.Data;
 using System.Globalization;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -131,6 +133,8 @@ public sealed class SePayService(
 
         using var document = JsonDocument.Parse(rawBody);
         var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+            return false;
 
         if (!root.TryGetProperty("timestamp", out var timestampElement) ||
             !timestampElement.TryGetInt64(out var timestamp))
@@ -257,6 +261,8 @@ public sealed class SePayService(
 
         using var document = JsonDocument.Parse(rawBody);
         var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+            return false;
 
         var expectedAccount = RequiredSetting("SEPAY_BANK_ACCOUNT_NUMBER").Trim();
         var actualAccount = ReadString(root, "accountNumber")?.Trim();
@@ -438,8 +444,12 @@ public sealed class SePayService(
             throw new InvalidOperationException("SEPAY_CHECKOUT_INIT_URL phải là URL HTTPS của SePay.");
 
         if (!Uri.TryCreate(publicUrl, UriKind.Absolute, out var publicUri) ||
-            publicUri.Scheme != Uri.UriSchemeHttps)
-            throw new InvalidOperationException("SEPAY_PUBLIC_URL phải là domain HTTPS công khai.");
+            publicUri.Scheme != Uri.UriSchemeHttps ||
+            !string.IsNullOrEmpty(publicUri.UserInfo) ||
+            publicUri.IsLoopback ||
+            publicUri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+            IsNonPublicIpAddress(publicUri.Host))
+            throw new InvalidOperationException("SEPAY_PUBLIC_URL phải là domain/IP HTTPS công khai, không được là địa chỉ nội bộ.");
 
         return new PaymentCodeSettings(merchantId, secretKey, checkoutUri.ToString(), publicUri.GetLeftPart(UriPartial.Authority));
     }
@@ -447,6 +457,27 @@ public sealed class SePayService(
     private string RequiredSetting(string key) =>
         configuration[key] ??
         throw new InvalidOperationException($"Thiếu cấu hình {key}.");
+
+    private static bool IsNonPublicIpAddress(string host)
+    {
+        if (!IPAddress.TryParse(host, out var address))
+            return false;
+
+        if (IPAddress.IsLoopback(address) ||
+            address.IsIPv6LinkLocal ||
+            address.IsIPv6SiteLocal ||
+            address.IsIPv6UniqueLocal)
+            return true;
+
+        if (address.AddressFamily != AddressFamily.InterNetwork)
+            return false;
+
+        var bytes = address.GetAddressBytes();
+        return bytes[0] is 0 or 10 or 127 ||
+               (bytes[0] == 169 && bytes[1] == 254) ||
+               (bytes[0] == 172 && bytes[1] is >= 16 and <= 31) ||
+               (bytes[0] == 192 && bytes[1] == 168);
+    }
 
     private static bool VerifyBankWebhookSignature(
         string rawBody,
@@ -480,13 +511,16 @@ public sealed class SePayService(
     }
 
     private static string? ReadString(JsonElement element, string property) =>
-        element.TryGetProperty(property, out var value) && value.ValueKind != JsonValueKind.Null
+        element.ValueKind == JsonValueKind.Object &&
+        element.TryGetProperty(property, out var value) &&
+        value.ValueKind != JsonValueKind.Null
             ? value.ToString()
             : null;
 
     private static decimal? ReadDecimal(JsonElement element, string property)
     {
-        if (!element.TryGetProperty(property, out var value))
+        if (element.ValueKind != JsonValueKind.Object ||
+            !element.TryGetProperty(property, out var value))
             return null;
 
         return decimal.TryParse(value.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)
