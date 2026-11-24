@@ -1,4 +1,3 @@
-using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -126,9 +125,6 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
         if (!TryGetUserId(out var userId))
             return Unauthorized();
 
-        await using var transaction = await db.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable, cancellationToken);
-
         var booking = await db.Bookings
             .Include(x => x.Property)
             .SingleOrDefaultAsync(x => x.Id == bookingId, cancellationToken);
@@ -149,10 +145,7 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
             .SingleOrDefaultAsync(x => x.BookingId == bookingId, cancellationToken);
 
         if (existing is not null)
-        {
-            await transaction.CommitAsync(cancellationToken);
             return Ok(ToResponse(existing));
-        }
 
         var now = DateTime.UtcNow;
         var suffix = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
@@ -176,13 +169,12 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
         try
         {
             await db.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (
             exception.GetBaseException() is SqlException sqlException &&
             sqlException.Number is 2601 or 2627)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            // Unique index one-to-one trên BookingId là chốt cuối cùng chống tạo trùng đồng thời.
             db.Entry(contract).State = EntityState.Detached;
 
             var concurrentContract = await db.RentalContracts
