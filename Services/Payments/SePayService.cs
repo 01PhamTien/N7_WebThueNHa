@@ -23,7 +23,7 @@ public sealed class SePayService(
     private const string CheckoutUrl = "https://pay.sepay.vn/v1/checkout/init";
     private static readonly TimeSpan CallbackTolerance = TimeSpan.FromMinutes(5);
     private static readonly Regex PaymentCodePattern = new(
-        @"\bTN\d{8}\b",
+        @"^TN\d{8}$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly string[] SignedFields =
