@@ -66,6 +66,8 @@ Chữ ký được xác minh trên raw body theo công thức HMAC-SHA256 của 
 
 Bank Webhook không tạo thêm bảng event. Payment status và unique `TransactionCode` hiện có bảo vệ việc ghi nhận trùng. Giao dịch không khớp mã hoặc số tiền được bỏ qua và ghi log để đối soát thủ công.
 
+Trước Production, cấu hình whitelist IP SePay tại firewall/reverse proxy theo danh sách IP chính thức; không chỉ dựa vào secret. SePay khuyến nghị đối soát định kỳ 15–30 phút qua API giao dịch để phát hiện webhook bị bỏ lỡ. PR này chưa triển khai tác vụ đối soát tự động; cần lên lịch như một hạng mục vận hành riêng. Không ghi raw payload có dữ liệu tài khoản vào log ứng dụng; dùng Delivery Logs của SePay để tra payload, và chỉ bổ sung lưu trữ audit nếu nhóm duyệt phạm vi/schema riêng.
+
 ## API
 
 ### Tạo checkout
