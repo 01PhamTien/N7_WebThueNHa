@@ -2,6 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
+using Web2_ThueNha.Hubs;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Chat;
 
@@ -17,11 +19,13 @@ public sealed class ChatController : ControllerBase
         { ".jpg", ".jpeg", ".png", ".webp", ".pdf", ".doc", ".docx" };
     private readonly AppDbContext _db;
     private readonly IWebHostEnvironment _environment;
+    private readonly IHubContext<ChatHub> _chatHub;
 
-    public ChatController(AppDbContext db, IWebHostEnvironment environment)
+    public ChatController(AppDbContext db, IWebHostEnvironment environment, IHubContext<ChatHub> chatHub)
     {
         _db = db;
         _environment = environment;
+        _chatHub = chatHub;
     }
 
     /// <summary>Tạo hoặc lấy hội thoại riêng của người thuê với chủ nhà trên một căn nhà.</summary>
@@ -226,14 +230,20 @@ public sealed class ChatController : ControllerBase
         _db.Messages.Add(message);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return StatusCode(StatusCodes.Status201Created, new
+        var realtimePayload = new
         {
             messageId = message.Id,
             conversationId,
             senderId = message.SenderId,
+            senderName = User.Identity?.Name,
             content = message.Content,
+            messageType = message.MessageType.ToString(),
             sentAt = message.SentAt
-        });
+        };
+        await _chatHub.Clients.Group(ChatHub.GetGroupName(conversationId))
+            .SendAsync("NhanTinNhan", realtimePayload, cancellationToken);
+
+        return StatusCode(StatusCodes.Status201Created, realtimePayload);
     }
 
     /// <summary>Đánh dấu hội thoại đã đọc đến thời điểm hiện tại.</summary>
@@ -375,15 +385,28 @@ public sealed class ChatController : ControllerBase
         }
 
         var attachment = message.Attachments.Single();
-        return StatusCode(StatusCodes.Status201Created, new
+        var realtimePayload = new
         {
             messageId = message.Id,
-            attachmentId = attachment.Id,
-            fileName = attachment.FileName,
-            fileSize = attachment.FileSize,
-            contentType = attachment.ContentType,
-            downloadUrl = $"/api/chat/attachments/{attachment.Id}"
-        });
+            conversationId,
+            senderId = message.SenderId,
+            senderName = User.Identity?.Name,
+            content = message.Content,
+            messageType = message.MessageType.ToString(),
+            sentAt = message.SentAt,
+            attachment = new
+            {
+                attachmentId = attachment.Id,
+                fileName = attachment.FileName,
+                fileSize = attachment.FileSize,
+                contentType = attachment.ContentType,
+                downloadUrl = $"/api/chat/attachments/{attachment.Id}"
+            }
+        };
+        await _chatHub.Clients.Group(ChatHub.GetGroupName(conversationId))
+            .SendAsync("NhanTinNhan", realtimePayload, cancellationToken);
+
+        return StatusCode(StatusCodes.Status201Created, realtimePayload);
     }
 
     /// <summary>Tải tệp đính kèm; chỉ thành viên hội thoại được phép tải.</summary>
