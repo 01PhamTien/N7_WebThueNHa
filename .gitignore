@@ -6,3 +6,5 @@ obj/
 appsettings.Development.json
 .env
 *.log
+# Tep tai len trong moi truong local
+PrivateUploads/
