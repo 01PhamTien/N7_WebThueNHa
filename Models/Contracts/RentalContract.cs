@@ -21,6 +21,8 @@ public class RentalContract
     public string? Terms { get; set; }
     public string? ContractUrl { get; set; }
     public RentalContractStatus Status { get; set; } = RentalContractStatus.Draft;
+    public DateTime? LandlordSignedAt { get; set; }
+    public DateTime? TenantSignedAt { get; set; }
     public DateTime? SignedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
