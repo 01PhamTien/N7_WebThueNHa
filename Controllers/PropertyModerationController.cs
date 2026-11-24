@@ -5,13 +5,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Moderation;
+using Web2_ThueNha.Repositories.Moderation;
 
 namespace Web2_ThueNha.Controllers;
 
 [ApiController]
 [Route("api/admin/properties")]
 [Authorize(Roles = "Admin")]
-public sealed class PropertyModerationController(AppDbContext db) : ControllerBase
+public sealed class PropertyModerationController(AppDbContext db, IPropertyModerationRepository moderation) : ControllerBase
 {
     private const int MaxPageSize = 50;
 
@@ -36,28 +37,7 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
             (province is { Length: > 120 }))
             return BadRequest(new { message = "Tham số lọc hoặc phân trang không hợp lệ." });
 
-        IQueryable<Property> query = db.Properties.AsNoTracking()
-            .Where(x => x.ModerationStatus == status);
-
-        if (!string.IsNullOrWhiteSpace(keyword))
-        {
-            var term = keyword.Trim();
-            query = query.Where(x =>
-                x.Title.Contains(term) ||
-                x.AddressLine.Contains(term) ||
-                (x.WardName != null && x.WardName.Contains(term)) ||
-                x.Landlord.FullName.Contains(term) ||
-                x.Landlord.Email.Contains(term));
-        }
-
-        if (!string.IsNullOrWhiteSpace(province))
-        {
-            var provinceName = province.Trim();
-            query = query.Where(x => x.ProvinceName.Contains(provinceName));
-        }
-
-        if (propertyTypeId.HasValue)
-            query = query.Where(x => x.PropertyTypeId == propertyTypeId.Value);
+        var query = moderation.GetListQuery(status, keyword, province, propertyTypeId);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
@@ -95,23 +75,12 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetDetail(Guid propertyId, CancellationToken cancellationToken)
     {
-        var property = await db.Properties.AsNoTracking()
-            .Include(x => x.Landlord)
-            .Include(x => x.PropertyType)
-            .Include(x => x.Images.OrderBy(image => image.DisplayOrder))
-            .Include(x => x.PropertyAmenities)
-                .ThenInclude(x => x.Amenity)
-            .SingleOrDefaultAsync(x => x.Id == propertyId, cancellationToken);
+        var property = await moderation.GetDetailAsync(propertyId, cancellationToken);
 
         if (property is null)
             return NotFound(new { message = "Không tìm thấy tin đăng." });
 
-        var moderationLogs = await db.PropertyModerationLogs.AsNoTracking()
-            .Where(log => log.PropertyId == propertyId)
-            .Include(log => log.Admin)
-            .OrderByDescending(log => log.CreatedAt)
-            .ThenByDescending(log => log.Id)
-            .ToListAsync(cancellationToken);
+        var moderationLogs = await moderation.GetLogsAsync(propertyId, cancellationToken);
 
         var response = new ModerationPropertyDetailResponse(
             property.Id,
@@ -213,8 +182,7 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
         await using var transaction = await db.Database.BeginTransactionAsync(
             IsolationLevel.Serializable, cancellationToken);
 
-        var property = await db.Properties
-            .SingleOrDefaultAsync(x => x.Id == propertyId, cancellationToken);
+        var property = await moderation.GetForUpdateAsync(propertyId, cancellationToken);
 
         if (property is null)
             return NotFound(new { message = "Không tìm thấy tin đăng." });
@@ -264,8 +232,7 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
         await using var transaction = await db.Database.BeginTransactionAsync(
             IsolationLevel.Serializable, cancellationToken);
 
-        var property = await db.Properties
-            .SingleOrDefaultAsync(x => x.Id == propertyId, cancellationToken);
+        var property = await moderation.GetForUpdateAsync(propertyId, cancellationToken);
 
         if (property is null)
             return NotFound(new { message = "Không tìm thấy tin đăng." });
