@@ -63,6 +63,25 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
+
+        // Kiểm tra trạng thái tài khoản ở mỗi request để token cũ không dùng được sau khi bị khóa.
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userIdValue = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!Guid.TryParse(userIdValue, out var userId))
+                {
+                    context.Fail("Token không chứa mã người dùng hợp lệ.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                var isActive = await db.Users.AnyAsync(x => x.Id == userId && x.IsActive);
+                if (!isActive)
+                    context.Fail("Tài khoản không tồn tại hoặc đã bị khóa.");
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
