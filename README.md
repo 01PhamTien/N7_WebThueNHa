@@ -123,7 +123,7 @@ Dang ky mot tai khoan qua API register, sau do mo `Scripts/TaoAdminDauTien.sql` 
 Tat ca API chat deu yeu cau JWT:
 
 - `POST /api/chat/properties/{propertyId}/conversation`: nguoi co role Tenant tao/lay hoi thoai voi chu nha cua can nha da duoc duyet va dang cong khai.
-- `GET /api/chat/conversations`: danh sach hoi thoai cua nguoi dang dang nhap.
+- `GET /api/chat/conversations?page=1&pageSize=20&includeArchived=false`: danh sach hoi thoai phan trang; moi item co `unreadCount` tinh tu `LastReadAt` cua participant.
 - `GET /api/chat/conversations/{conversationId}/messages?page=1&pageSize=30`: lich su tin nhan co phan trang.
 - `POST /api/chat/conversations/{conversationId}/messages`: gui tin nhan van ban.
 - `POST /api/chat/conversations/{conversationId}/attachments`: gui tep multipart/form-data (toi da 10 MB; JPG/JPEG/PNG/WEBP/PDF/DOC/DOCX).
@@ -154,3 +154,4 @@ Request mau cho cac API chat nam trong `Requests/chat.http`; SignalR event va ca
 - `GET /api/chat/conversations?includeArchived=true`: xem cả hội thoại đã ẩn để người dùng có thể hiện lại; mặc định API chỉ trả hội thoại chưa ẩn.
 
 Request mẫu kiểm thử API quản trị tài khoản nằm tại `Requests/admin-users.http`, gồm tìm kiếm, phân trang, xem chi tiết, khóa/mở khóa và cập nhật vai trò.
+Danh sach hoi thoai va lich su tin nhan dung phan trang server-side; page/pageSize sai tra 400, trang vuot `totalPages` tra items rong. Thay doi hinh anh/tep trong chat chi tai duoc qua API co JWT va kiem tra participant; ten file duoc lam sach truoc khi luu.
