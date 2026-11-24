@@ -81,35 +81,58 @@ public sealed class BookingsController : ControllerBase
     /// <summary>Người thuê xem các yêu cầu đặt thuê do mình tạo.</summary>
     [HttpGet("mine")]
     [Authorize(Roles = "Tenant")]
-    [ProducesResponseType(typeof(IReadOnlyList<BookingResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetMine(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResponse<BookingResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMine(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] BookingStatus? status = null,
+        CancellationToken cancellationToken = default)
     {
         if (!TryGetCurrentUserId(out var tenantId))
             return Unauthorized();
 
-        var bookings = await GetBookingResponseQuery()
-            .Where(x => x.TenantId == tenantId)
-            .OrderByDescending(x => x.CreatedAt)
-            .ToListAsync(cancellationToken);
+        if (!IsValidPaging(page, pageSize))
+            return BadRequest(new { message = "page phải lớn hơn hoặc bằng 1; pageSize phải từ 1 đến 50." });
 
-        return Ok(bookings);
+        if (status.HasValue && !Enum.IsDefined(status.Value))
+            return BadRequest(new { message = "Trạng thái yêu cầu thuê không hợp lệ." });
+
+        var query = _db.Bookings.AsNoTracking()
+            .Where(x => x.TenantId == tenantId);
+
+        if (status.HasValue)
+            query = query.Where(x => x.Status == status.Value);
+
+        return await CreatePagedResponse(query, page, pageSize, cancellationToken);
     }
 
     /// <summary>Chủ nhà xem yêu cầu gửi đến các căn nhà thuộc sở hữu của mình.</summary>
     [HttpGet("incoming")]
     [Authorize(Roles = "Landlord")]
-    [ProducesResponseType(typeof(IReadOnlyList<BookingResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetIncoming(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResponse<BookingResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetIncoming(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] BookingStatus? status = null,
+        CancellationToken cancellationToken = default)
     {
         if (!TryGetCurrentUserId(out var landlordId))
             return Unauthorized();
 
-        var bookings = await GetBookingResponseQuery()
-            .Where(x => _db.Properties.Any(p => p.Id == x.PropertyId && p.LandlordId == landlordId))
-            .OrderByDescending(x => x.CreatedAt)
-            .ToListAsync(cancellationToken);
+        if (!IsValidPaging(page, pageSize))
+            return BadRequest(new { message = "page phải lớn hơn hoặc bằng 1; pageSize phải từ 1 đến 50." });
 
-        return Ok(bookings);
+        if (status.HasValue && !Enum.IsDefined(status.Value))
+            return BadRequest(new { message = "Trạng thái yêu cầu thuê không hợp lệ." });
+
+        var query = _db.Bookings.AsNoTracking()
+            .Where(x => _db.Properties.Any(p =>
+                p.Id == x.PropertyId && p.LandlordId == landlordId));
+
+        if (status.HasValue)
+            query = query.Where(x => x.Status == status.Value);
+
+        return await CreatePagedResponse(query, page, pageSize, cancellationToken);
     }
 
     /// <summary>Xem chi tiết yêu cầu nếu là người thuê tạo yêu cầu hoặc chủ nhà sở hữu căn nhà.</summary>
@@ -250,8 +273,42 @@ public sealed class BookingsController : ControllerBase
         return Ok(ToResponse(booking));
     }
 
+    private static bool IsValidPaging(int page, int pageSize) =>
+        page >= 1 && pageSize >= 1 && pageSize <= 50;
+
+    private async Task<IActionResult> CreatePagedResponse(
+        IQueryable<Booking> query,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        // Đếm sau khi đã áp dụng quyền sở hữu và bộ lọc trạng thái.
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await ToBookingResponseQuery(query)
+            .OrderByDescending(x => x.CreatedAt)
+            .ThenByDescending(x => x.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        return Ok(new PagedResponse<BookingResponse>(
+            items,
+            page,
+            pageSize,
+            totalCount,
+            totalPages,
+            page > 1 && page <= totalPages,
+            page < totalPages));
+    }
+
     private IQueryable<BookingResponse> GetBookingResponseQuery() =>
-        _db.Bookings.AsNoTracking().Select(x => new BookingResponse(
+        ToBookingResponseQuery(_db.Bookings.AsNoTracking());
+
+    private static IQueryable<BookingResponse> ToBookingResponseQuery(IQueryable<Booking> query) =>
+        query.Select(x => new BookingResponse(
             x.Id,
             x.PropertyId,
             x.Property.Title,
