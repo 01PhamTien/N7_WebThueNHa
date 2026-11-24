@@ -155,9 +155,10 @@ public sealed class SePayService(
         var transferAmount = ReadDecimal(root, "transferAmount");
         var content = ReadString(root, "content") ?? ReadString(root, "description") ?? string.Empty;
         var reference = ReadString(root, "referenceCode");
+        var payloadHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawBody)));
         var eventKey = !string.IsNullOrWhiteSpace(eventId)
             ? $"bank:{eventId}"
-            : $"bank:{reference}:{transferAmount}:{content.GetHashCode(StringComparison.Ordinal)}";
+            : $"bank:sha256:{payloadHash}";
 
         if (string.Equals(transferType, "out", StringComparison.OrdinalIgnoreCase) ||
             transferAmount is null || transferAmount <= 0)
