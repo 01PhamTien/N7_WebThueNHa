@@ -84,6 +84,45 @@ public sealed class NotificationService : INotificationService
         return true;
     }
 
+    public async Task<Guid> CreateAsync(
+        Guid userId,
+        string title,
+        string content,
+        NotificationType type,
+        Guid? referenceId,
+        CancellationToken cancellationToken)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId không hợp lệ.", nameof(userId));
+
+        var normalizedTitle = title?.Trim() ?? string.Empty;
+        var normalizedContent = content?.Trim() ?? string.Empty;
+
+        if (normalizedTitle.Length is 0 or > 200)
+            throw new ArgumentException("Tiêu đề thông báo phải từ 1 đến 200 ký tự.", nameof(title));
+
+        if (normalizedContent.Length is 0 or > 2000)
+            throw new ArgumentException("Nội dung thông báo phải từ 1 đến 2000 ký tự.", nameof(content));
+
+        if (!Enum.IsDefined(type))
+            throw new ArgumentOutOfRangeException(nameof(type), "Loại thông báo không hợp lệ.");
+
+        var notification = new Notification
+        {
+            UserId = userId,
+            Title = normalizedTitle,
+            Content = normalizedContent,
+            NotificationType = type,
+            ReferenceId = referenceId,
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Notifications.Add(notification);
+        await _db.SaveChangesAsync(cancellationToken);
+        return notification.Id;
+    }
+
     public Task<int> MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken) =>
         _db.Notifications
             .Where(x => x.UserId == userId && !x.IsRead)
