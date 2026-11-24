@@ -32,7 +32,13 @@
 | CT-18 | Cap nhat hop dong AwaitingSignature | 409 | Chua chay |
 | CT-19 | Landlord submit hop dong Draft | 200; Status=AwaitingSignature | Chua chay |
 | CT-20 | Submit hop dong khong con Draft | 409; khong tu dong chuyen Active | Chua chay |
-| CT-21 | Kiem tra chu ky hai ben | Hien tai chua co endpoint Active; cho schema co LandlordSignedAt/TenantSignedAt | Chua chay |
+| CT-21 | Landlord ky hop dong AwaitingSignature | 200; chi LandlordSignedAt co gia tri; Status van AwaitingSignature; SignedAt null | Chua chay |
+| CT-22 | Tenant ky sau khi Landlord da ky | 200; ca hai timestamp co gia tri; Status=Active; SignedAt bang timestamp muon hon | Chua chay |
+| CT-23 | Tenant ky truoc, Landlord ky sau | 200; chi Active khi ca hai timestamp co gia tri | Chua chay |
+| CT-24 | Cung mot ben gui lai request ky | 200; idempotent; khong ghi de timestamp lan dau | Chua chay |
+| CT-25 | Nguoi khong tham gia hop dong goi sign | 403; khong thay doi du lieu | Chua chay |
+| CT-26 | Landlord sua hop dong sau khi mot ben da ky | 200; xoa ca hai timestamp, SignedAt null, Status tro ve Draft; phai submit lai | Chua chay |
+| CT-27 | Ky hop dong Draft/Completed/Terminated/Cancelled | 409; khong ghi timestamp | Chua chay |
 
 ## Schema chữ ký hai bên
 - `RentalContract` có `LandlordSignedAt` và `TenantSignedAt` nullable; `SignedAt` vẫn giữ để lưu thời điểm hoàn tất.
