@@ -1,3 +1,4 @@
+using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -114,6 +115,10 @@ public sealed class AdminUsersController : ControllerBase
         if (currentUserId == userId && !request.IsActive)
             return BadRequest(new { message = "Bạn không thể tự khóa tài khoản đang đăng nhập." });
 
+        // Serializable bảo vệ quy tắc không khóa quản trị viên cuối cùng khi có request đồng thời.
+        await using var transaction = await _db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
+
         var user = await _db.Users
             .Include(x => x.UserRoles)
                 .ThenInclude(x => x.Role)
@@ -133,6 +138,7 @@ public sealed class AdminUsersController : ControllerBase
         user.IsActive = request.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return Ok(new { message = request.IsActive ? "Đã mở khóa tài khoản." : "Đã khóa tài khoản.", userId, user.IsActive });
     }
@@ -169,6 +175,10 @@ public sealed class AdminUsersController : ControllerBase
 
         if (roles.Count != requestedNames.Length)
             return BadRequest(new { message = "Có vai trò không hợp lệ. Chỉ dùng Admin, Landlord hoặc Tenant đã được cấu hình." });
+
+        // Serializable bảo vệ việc thu hồi quyền Admin cuối cùng trước các request cập nhật role đồng thời.
+        await using var transaction = await _db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
 
         var user = await _db.Users
             .Include(x => x.UserRoles)
@@ -209,6 +219,7 @@ public sealed class AdminUsersController : ControllerBase
 
         user.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return Ok(new
         {
