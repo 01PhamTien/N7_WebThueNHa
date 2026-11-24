@@ -17,4 +17,12 @@ public interface INotificationService
     Task<bool> MarkAsReadAsync(Guid notificationId, Guid userId, CancellationToken cancellationToken);
 
     Task<int> MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken);
+
+    Task<Guid> CreateAsync(
+        Guid userId,
+        string title,
+        string content,
+        NotificationType type,
+        Guid? referenceId,
+        CancellationToken cancellationToken);
 }
