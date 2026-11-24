@@ -1,5 +1,6 @@
 @baseUrl = https://localhost:7295
 @landlordToken = THAY_BANG_JWT_LANDLORD
+@adminToken = THAY_BANG_JWT_ADMIN
 @tenantToken = THAY_BANG_JWT_TENANT
 @otherToken = THAY_BANG_JWT_NGUOI_KHAC
 @contractId = THAY_BANG_GUID_HOP_DONG_ACTIVE
@@ -69,7 +70,7 @@ Authorization: Bearer {{landlordToken}}
 
 ### 7. Admin từ chối khoản thanh toán và lưu lý do
 PATCH {{baseUrl}}/api/payments/{{paymentId}}/reject
-Authorization: Bearer {{landlordToken}}
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
