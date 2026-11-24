@@ -27,12 +27,30 @@ GET /api/properties/{propertyId}
 
 Tin chưa công khai chỉ xem được bởi chủ sở hữu hoặc Admin.
 
-## 3. Danh sách tin của tôi
+## 3. Danh sách tin của tôi (có phân trang server-side)
+
+Mặc định `page=1`, `pageSize=10`; `pageSize` tối đa 50. Có thể lọc theo trạng thái tin bằng enum `status` (ví dụ `Draft`, `Published`, `Hidden`, `Closed`). Không truyền `LandlordId`: API luôn lấy chủ nhà từ JWT.
 
 ```http
-GET /api/properties/mine
+GET /api/properties/mine?page=1&pageSize=10&status=Draft
 Authorization: Bearer <landlordAccessToken>
 ```
+
+Ví dụ response thành công:
+
+```json
+{
+  "items": [],
+  "page": 1,
+  "pageSize": 10,
+  "totalCount": 0,
+  "totalPages": 0,
+  "hasPrevious": false,
+  "hasNext": false
+}
+```
+
+Tham số `page < 1`, `pageSize < 1`, `pageSize > 50` hoặc `status` không hợp lệ trả về `400`. Trang vượt quá `totalPages` trả danh sách `items` rỗng cùng metadata hợp lệ.
 
 ## 4. Tạo tin
 
