@@ -71,3 +71,20 @@ Khi chạy, ghi lại:
 - Kết quả từng nhóm A–E; kèm response/status code nếu thất bại.
 
 Checklist này là kịch bản cần chạy, không phải bằng chứng các ca kiểm thử đã chạy thành công.
+
+## F. Phân trang danh sách nhà của chủ nhà (Issue #19)
+
+| Mã | Thao tác | Kết quả mong đợi |
+|---|---|---|
+| F01 | Landlord gọi `GET /api/properties/mine` không truyền query | 200; page=1, pageSize=10; có metadata và tối đa 10 items |
+| F02 | Gọi `?page=1&pageSize=2`, sau đó `?page=2&pageSize=2` khi dữ liệu không đổi | 200; hai trang không trùng bản ghi; thứ tự ổn định theo CreatedAt giảm dần, Id giảm dần |
+| F03 | Chủ nhà A gọi API khi hệ thống có nhà của A và B | 200; chỉ có nhà thuộc A |
+| F04 | Gửi thêm query `landlordId` của chủ nhà B | 200; API vẫn chỉ trả nhà thuộc tài khoản trong JWT |
+| F05 | Gọi `?page=0` hoặc `?page=-1` | 400 |
+| F06 | Gọi `?pageSize=0` hoặc `?pageSize=51` | 400 |
+| F07 | Gọi `?page=1&pageSize=1&status=Draft` | 200; tất cả items có ListingStatus=Draft; totalCount chỉ đếm kết quả sau filter |
+| F08 | Gọi với status enum không tồn tại | 400 |
+| F09 | Gọi trang lớn hơn totalPages | 200; items rỗng, metadata hợp lệ |
+| F10 | Gọi API bằng Tenant hoặc không có JWT | 403 hoặc 401 tương ứng |
+| F11 | Kiểm tra truy vấn bằng log SQL/EF Core | Count và truy vấn lấy dữ liệu chạy trên SQL Server; Skip/Take được thực hiện ở database, không ToList trước phân trang |
+
