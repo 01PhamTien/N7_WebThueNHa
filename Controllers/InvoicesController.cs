@@ -185,8 +185,8 @@ public sealed class InvoicesController(AppDbContext db) : ControllerBase
         var totalAmount = request.Items.Sum(x =>
             decimal.Round(x.Quantity * x.UnitPrice, 2, MidpointRounding.AwayFromZero));
 
-        if (totalAmount <= 0)
-            return BadRequest(new { message = "Tổng hóa đơn phải lớn hơn 0." });
+        if (totalAmount <= 0 || totalAmount > 9999999999999999.99m)
+            return BadRequest(new { message = "Tổng hóa đơn phải lớn hơn 0 và không vượt giới hạn decimal(18,2)." });
 
         if (request.InvoiceType == InvoiceType.Deposit && totalAmount != contract.DepositAmount)
             return BadRequest(new { message = "Tổng hóa đơn tiền cọc phải bằng tiền cọc trong hợp đồng." });
