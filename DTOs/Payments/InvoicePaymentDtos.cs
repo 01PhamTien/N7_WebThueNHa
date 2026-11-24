@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Web2_ThueNha.Models;
 
 namespace Web2_ThueNha.DTOs.Payments;
 
