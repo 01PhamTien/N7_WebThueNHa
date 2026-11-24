@@ -46,6 +46,8 @@ Tài liệu này dùng cùng `Bookings.http` trên môi trường Development c�
 | Hủy | Hủy Booking đã Accepted/Rejected/Cancelled | 409 | Chưa chạy |
 | Trùng lịch | Hai Booking Pending trùng lịch; lần lượt chấp nhận | Chỉ một Booking được Accepted; lần còn lại 409 | Chưa chạy |
 | Trùng lịch | Hai request chấp nhận Booking trùng lịch gửi gần đồng thời | Không thể có cả hai cùng Accepted; ghi lại status của cả hai request | Chưa chạy |
+| Cạnh tranh trạng thái | Gửi Accept và Reject đồng thời cho cùng một Booking Pending | Chỉ một thao tác chuyển trạng thái thành công; thao tác còn lại nhận 409 | Chưa chạy |
+| Cạnh tranh trạng thái | Gửi Accept và Cancel đồng thời cho cùng một Booking Pending | Chỉ một thao tác chuyển trạng thái thành công; thao tác còn lại nhận 409 | Chưa chạy |
 
 ## Ghi nhận khi chạy
 
