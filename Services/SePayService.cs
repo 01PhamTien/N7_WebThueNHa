@@ -309,9 +309,12 @@ public sealed class SePayService(
 
         var eventId = ReadString(root, "id");
         var referenceCode = ReadString(root, "referenceCode");
-        var transactionCode = !string.IsNullOrWhiteSpace(referenceCode)
-            ? $"SEPAY-BANK-{referenceCode}"
-            : $"SEPAY-BANK-{eventId ?? Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawBody)))[..24]}";
+        var eventKey = eventId ??
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawBody)))[..24];
+        var transactionCode = $"SEPAY-BANK-{eventKey}";
+        logger.LogInformation(
+            "Đối soát SePay bank event {EventId}, reference {ReferenceCode}, payment {PaymentId}",
+            eventId, referenceCode, payment.Id);
 
         if (transactionCode.Length > 150)
             transactionCode = transactionCode[..150];
