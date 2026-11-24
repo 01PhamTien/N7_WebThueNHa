@@ -108,7 +108,7 @@ Cac API trong `AdminUsersController` chi danh cho nguoi co role `Admin`:
 
 Quy tac bao ve:
 - Khong cho tu khoa tai khoan dang dang nhap.
-- Khong cho khoa hoac go role Admin cua quan tri vien cuoi cung dang hoat dong.
+- Khong cho khoa hoac go role Admin cua quan tri vien cuoi cung dang hoat dong. Viec khoa tai khoan/cap nhat role duoc bao ve bang transaction Serializable de tranh hai request dong thoi cung xoa Admin cuoi cung.
 - Khong cho quan tri vien tu thay doi role cua chinh minh.
 - Role chi duoc chon tu bang Roles; client khong the tu cap role.
 - Khi tai khoan bi khoa, JWT cu bi tu choi o cac request tiep theo. Khi doi role, tai khoan can dang nhap lai de nhan role claim moi.
