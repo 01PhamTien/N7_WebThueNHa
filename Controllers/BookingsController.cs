@@ -82,6 +82,7 @@ public sealed class BookingsController : ControllerBase
     [HttpGet("mine")]
     [Authorize(Roles = "Tenant")]
     [ProducesResponseType(typeof(PagedResponse<BookingResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetMine(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
@@ -110,6 +111,7 @@ public sealed class BookingsController : ControllerBase
     [HttpGet("incoming")]
     [Authorize(Roles = "Landlord")]
     [ProducesResponseType(typeof(PagedResponse<BookingResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetIncoming(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
