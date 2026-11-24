@@ -222,6 +222,10 @@ public sealed class BookingsController : ControllerBase
         if (!TryGetCurrentUserId(out var landlordId))
             return Unauthorized();
 
+        // Dùng Serializable để hai thao tác Accept/Reject đồng thời không cùng chuyển một booking.
+        await using var transaction = await _db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
+
         var booking = await _db.Bookings
             .Include(x => x.Property)
             .Include(x => x.Tenant)
@@ -242,6 +246,7 @@ public sealed class BookingsController : ControllerBase
         booking.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Ok(ToResponse(booking));
     }
 
@@ -253,6 +258,10 @@ public sealed class BookingsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var tenantId))
             return Unauthorized();
+
+        // Đảm bảo Cancel không đua với thao tác Accept/Reject trên cùng yêu cầu.
+        await using var transaction = await _db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
 
         var booking = await _db.Bookings
             .Include(x => x.Property)
@@ -272,6 +281,7 @@ public sealed class BookingsController : ControllerBase
         booking.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Ok(ToResponse(booking));
     }
 
