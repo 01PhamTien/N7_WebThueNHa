@@ -465,14 +465,15 @@ public sealed class SePayService(
 
         if (IPAddress.IsLoopback(address) ||
             address.IsIPv6LinkLocal ||
-            address.IsIPv6SiteLocal ||
-            address.IsIPv6UniqueLocal)
+            address.IsIPv6SiteLocal)
             return true;
+
+        var bytes = address.GetAddressBytes();
+        if (address.AddressFamily == AddressFamily.InterNetworkV6)
+            return (bytes[0] & 0xFE) == 0xFC;
 
         if (address.AddressFamily != AddressFamily.InterNetwork)
             return false;
-
-        var bytes = address.GetAddressBytes();
         return bytes[0] is 0 or 10 or 127 ||
                (bytes[0] == 169 && bytes[1] == 254) ||
                (bytes[0] == 172 && bytes[1] is >= 16 and <= 31) ||
