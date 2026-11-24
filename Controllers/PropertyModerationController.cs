@@ -33,7 +33,7 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
             !Enum.IsDefined(status) ||
             (propertyTypeId.HasValue && propertyTypeId.Value < 1) ||
             (keyword is { Length: > 100 }) ||
-            (province is { Length: > 120 })
+            (province is { Length: > 120 }))
             return BadRequest(new { message = "Tham số lọc hoặc phân trang không hợp lệ." });
 
         IQueryable<Property> query = db.Properties.AsNoTracking()
