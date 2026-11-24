@@ -11,25 +11,35 @@ Backend hệ thống cho thuê nhà, xây dựng bằng ASP.NET Core Web API tr�
 
 ## Chạy dự án
 1. Cài .NET 10 SDK.
-2. Cài SQL Server LocalDB hoặc SQL Server phù hợp.
-3. Mở solution `Web2_ThueNha.slnx` bằng Visual Studio.
-4. Chạy `dotnet restore`.
-5. Chạy `dotnet build`.
-6. Chạy `dotnet run`.
+2. Cài SQL Server Database Engine (nhóm đang dùng SQL Server Express instance).
+3. Cài SQL Server Management Studio (SSMS) để quản lý dữ liệu.
+4. Mở solution bằng Visual Studio.
+5. Chạy `dotnet restore`.
+6. Cấu hình User Secrets theo hướng dẫn bên dưới.
+7. Chạy `dotnet build` và `dotnet run`.
 
-## Cấu hình Database
-Chuỗi kết nối mặc định trong `appsettings.json` dùng SQL Server LocalDB:
-`(localdb)\\MSSQLLocalDB`.
+## Cấu hình Database cho máy phát triển
 
-Nếu dùng SQL Server instance khác, thay `ConnectionStrings:DefaultConnection` trong cấu hình local hoặc dùng .NET User Secrets. Không commit mật khẩu, API key hoặc secret lên Git.
+Không lưu connection string riêng của từng máy trong Git. Project đã khai báo User Secrets ID: `Web2_ThueNha-Development`.
+
+Ví dụ cho SQL Server Express với Windows Authentication:
+
+```powershell
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=TEN_MAY\\SQLEXPRESS;Database=Web2_ThueNhaDb;Trusted_Connection=True;MultipleActiveResultSets=True;Encrypt=True;TrustServerCertificate=True"
+```
+
+Thay `TEN_MAY` bằng tên máy SQL Server thực tế. Không đưa mật khẩu, token hoặc secret lên Git.
 
 ## EF Core CLI
+
 Cài công cụ EF Core đúng phiên bản:
+
 ```bash
 dotnet tool install --global dotnet-ef --version 10.0.15
 ```
 
-Sau khi các Entity và cấu hình quan hệ hoàn tất, tạo migration:
+Sau khi Entity và cấu hình quan hệ hoàn tất, tạo migration:
+
 ```bash
 dotnet ef migrations add TaoCSDL_BanDau
 dotnet ef database update
