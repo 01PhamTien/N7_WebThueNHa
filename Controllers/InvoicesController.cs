@@ -191,21 +191,29 @@ public sealed class InvoicesController(AppDbContext db) : ControllerBase
         if (request.InvoiceType == InvoiceType.Deposit && totalAmount != contract.DepositAmount)
             return BadRequest(new { message = "Tổng hóa đơn tiền cọc phải bằng tiền cọc trong hợp đồng." });
 
-        var duplicate = await db.Invoices.AnyAsync(x =>
-            x.ContractId == contractId &&
-            x.InvoiceType == request.InvoiceType &&
-            x.Status != InvoiceStatus.Cancelled &&
-            (request.InvoiceType == InvoiceType.Deposit ||
-             (x.PeriodStart == request.PeriodStart && x.PeriodEnd == request.PeriodEnd)),
-            cancellationToken);
+        var duplicate = request.InvoiceType switch
+        {
+            InvoiceType.Deposit => await db.Invoices.AnyAsync(x =>
+                x.ContractId == contractId &&
+                x.InvoiceType == InvoiceType.Deposit &&
+                x.Status != InvoiceStatus.Cancelled, cancellationToken),
+            InvoiceType.MonthlyRent => await db.Invoices.AnyAsync(x =>
+                x.ContractId == contractId &&
+                x.InvoiceType == InvoiceType.MonthlyRent &&
+                x.PeriodStart == request.PeriodStart &&
+                x.PeriodEnd == request.PeriodEnd &&
+                x.Status != InvoiceStatus.Cancelled, cancellationToken),
+            _ => false
+        };
 
         if (duplicate)
             return Conflict(new { message = "Hóa đơn cùng loại và kỳ thanh toán đã tồn tại." });
 
+        var invoiceCode = $"INV-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}";
         var invoice = new Invoice
         {
             ContractId = contractId,
-            InvoiceCode = $"INV-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}"[..21].ToUpperInvariant(),
+            InvoiceCode = invoiceCode,
             InvoiceType = request.InvoiceType,
             PeriodStart = request.PeriodStart,
             PeriodEnd = request.PeriodEnd,
