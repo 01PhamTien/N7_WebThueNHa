@@ -305,18 +305,32 @@ public sealed class ChatController : ControllerBase
         if (currentUserId is null)
             return Unauthorized();
 
-        var message = await _db.Messages.SingleOrDefaultAsync(
-            x => x.Id == messageId &&
-                 x.ConversationId == conversationId &&
-                 x.SenderId == currentUserId.Value &&
-                 x.DeletedAt == null,
-            cancellationToken);
+        var message = await _db.Messages
+            .Include(x => x.Conversation)
+            .SingleOrDefaultAsync(
+                x => x.Id == messageId &&
+                     x.ConversationId == conversationId &&
+                     x.SenderId == currentUserId.Value &&
+                     x.DeletedAt == null,
+                cancellationToken);
 
         if (message is null)
             return NotFound(new { message = "Không tìm thấy tin nhắn hoặc bạn không có quyền xóa." });
 
         message.DeletedAt = DateTime.UtcNow;
         message.Content = null;
+
+        if (message.Conversation.LastMessageAt == message.SentAt)
+        {
+            message.Conversation.LastMessageAt = await _db.Messages
+                .Where(x => x.ConversationId == conversationId &&
+                            x.Id != messageId &&
+                            x.DeletedAt == null)
+                .OrderByDescending(x => x.SentAt)
+                .Select(x => (DateTime?)x.SentAt)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
 
         await _chatHub.Clients.Group(ChatHub.GetGroupName(conversationId))
