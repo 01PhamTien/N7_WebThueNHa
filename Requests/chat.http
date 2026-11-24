@@ -10,8 +10,12 @@
 POST {{baseUrl}}/api/chat/properties/{{propertyId}}/conversation
 Authorization: Bearer {{tenantToken}}
 
-### 2. Tenant/landlord xem danh sach hoi thoai cua minh
+### 2. Tenant/landlord xem danh sach hoi thoai chua an
 GET {{baseUrl}}/api/chat/conversations
+Authorization: Bearer {{tenantToken}}
+
+### 2b. Xem ca hoi thoai da an de hien lai neu can
+GET {{baseUrl}}/api/chat/conversations?includeArchived=true
 Authorization: Bearer {{tenantToken}}
 
 ### 3. Xem lich su tin nhan
