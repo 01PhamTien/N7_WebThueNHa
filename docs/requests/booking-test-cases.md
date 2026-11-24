@@ -57,3 +57,18 @@ Với mỗi ca, ghi lại:
 - Đạt/không đạt; nếu lỗi, cách tái hiện và log liên quan.
 
 Không đưa JWT, mật khẩu, connection string hoặc dữ liệu cá nhân thật vào GitHub.
+
+## Kiểm thử phân trang Issue #20
+
+| Nhóm | Ca kiểm thử | Kết quả mong đợi | Kết quả thực tế |
+|---|---|---|---|
+| Phân trang Tenant | Gọi `GET /api/bookings/mine` không truyền query | 200; page = 1, pageSize = 10; chỉ có booking của Tenant trong JWT | Chưa chạy |
+| Phân trang Tenant | Gọi page 1 và page 2 khi có đủ dữ liệu | Không trùng item giữa hai trang nếu dữ liệu không đổi; sắp xếp CreatedAt giảm dần, Id giảm dần khi trùng CreatedAt | Chưa chạy |
+| Phân trang Landlord | Gọi `GET /api/bookings/incoming?page=1&pageSize=10` | 200; chỉ có booking thuộc Property của Landlord trong JWT | Chưa chạy |
+| Lọc trạng thái | Gọi `?status=Pending` hoặc `?status=Accepted` | Chỉ trả booking đúng trạng thái; totalCount tính sau lọc | Chưa chạy |
+| Query không hợp lệ | page = 0 hoặc page = -1 | 400 | Chưa chạy |
+| Query không hợp lệ | pageSize = 0 hoặc pageSize = 51 | 400 | Chưa chạy |
+| Query không hợp lệ | status là giá trị enum không được định nghĩa | 400 | Chưa chạy |
+| Trang vượt giới hạn dữ liệu | page lớn hơn totalPages | 200; items rỗng, totalCount/totalPages giữ chính xác | Chưa chạy |
+| Phân quyền | Tenant gọi `/incoming`; Landlord gọi `/mine` | 403 | Chưa chạy |
+| Phân quyền | Hai Tenant hoặc hai Landlord gọi danh sách | Mỗi người chỉ thấy dữ liệu thuộc phạm vi JWT của mình | Chưa chạy |
