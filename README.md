@@ -130,3 +130,13 @@ Tat ca API chat deu yeu cau JWT:
 - `PATCH /api/chat/conversations/{conversationId}/archive`: an/hien hoi thoai trong danh sach ca nhan.
 
 Quy tac: moi Property + Tenant + Landlord chi co mot hoi thoai; unique index trong database chong tao trung. Chi participant moi doc/gửi tin va tai tep. Tep duoc luu ngoai wwwroot trong `PrivateUploads/chat`, khong phuc vu cong khai; thu muc nay duoc gitignore. Moi may dev can giu backup rieng neu muon giu tep tai len. Realtime SignalR se duoc bo sung sau khi API HTTP duoc kiem thu.
+
+### SignalR realtime
+
+- Hub endpoint: `/hubs/chat`.
+- Client ket noi bang JWT, sau do goi `JoinConversation(conversationId)` de vao group.
+- Server chi cho phep user la participant vao group cua hoi thoai.
+- Khi co tin nhan moi (van ban/tep), server phat event `NhanTinNhan` toi group.
+- Goi `LeaveConversation(conversationId)` khi roi man hinh chat.
+
+Voi SignalR JavaScript client, cung cap `accessTokenFactory: () => token`. Backend chi doc query `access_token` tren duong dan `/hubs/chat`; khong doc token query tren cac API khac. Nho dung HTTPS trong moi truong that.
