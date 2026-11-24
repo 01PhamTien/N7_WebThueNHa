@@ -17,7 +17,7 @@ Lấy token bằng `POST /api/auth/login`. Tài khoản gọi API ghi phải có
 GET /api/properties?keyword=phong&province=Hue&propertyTypeId=1&minPrice=1000000&maxPrice=5000000&minArea=15&maxArea=40&minBedrooms=1&page=1&pageSize=10
 ```
 
-Chỉ trả tin có `ListingStatus=Published` và `ModerationStatus=Approved`.
+Chỉ trả tin có `ListingStatus=Published` và `ModerationStatus=Approved`. Response gồm `items`, `page`, `pageSize`, `totalItems`, `totalPages`, `hasPrevious`, `hasNext`. Trang vượt `totalPages` trả `items=[]`; page/pageSize sai hoặc phép tính OFFSET có nguy cơ tràn số trả 400.
 
 ## 2. Chi tiết tin
 
@@ -124,7 +124,7 @@ Content-Type: application/json
 { "imageUrl": "https://example.com/property-1.jpg" }
 ```
 
-URL phải dùng HTTPS; mỗi tin tối đa 20 hình. Hình đầu tiên tự động là ảnh chính.
+URL phải dùng HTTPS; mỗi tin tối đa 20 hình. Hình đầu tiên tự động là ảnh chính. Mọi thay đổi thêm/xóa/chọn ảnh chính đều đưa tin về `Pending`/`Draft` để Admin duyệt lại, tránh thay nội dung hình ảnh của tin đã công khai mà bỏ qua kiểm duyệt.
 
 ## 8. Chọn ảnh chính
 
