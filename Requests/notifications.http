@@ -1,0 +1,39 @@
+@baseUrl = https://localhost:7295
+@accessToken = THAY_BANG_JWT
+@notificationId = THAY_BANG_GUID_THONG_BAO
+
+### 1. Danh sach thong bao, phan trang mac dinh
+GET {{baseUrl}}/api/notifications?page=1&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+### 2. Chi xem thong bao chua doc
+GET {{baseUrl}}/api/notifications?isRead=false&page=1&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+### 3. Loc theo loai thong bao
+GET {{baseUrl}}/api/notifications?type=Booking&page=1&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+### 4. Loc ket hop va sang trang tiep theo
+GET {{baseUrl}}/api/notifications?isRead=false&type=Payment&page=2&pageSize=10
+Authorization: Bearer {{accessToken}}
+
+### 5. Dem thong bao chua doc
+GET {{baseUrl}}/api/notifications/unread-count
+Authorization: Bearer {{accessToken}}
+
+### 6. Danh dau mot thong bao da doc
+PATCH {{baseUrl}}/api/notifications/{{notificationId}}/read
+Authorization: Bearer {{accessToken}}
+
+### 7. Danh dau tat ca thong bao da doc
+PATCH {{baseUrl}}/api/notifications/read-all
+Authorization: Bearer {{accessToken}}
+
+### 8. Kiem tra page khong hop le (mong doi 400)
+GET {{baseUrl}}/api/notifications?page=0&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+### 9. Kiem tra pageSize vuot gioi han (mong doi 400)
+GET {{baseUrl}}/api/notifications?page=1&pageSize=51
+Authorization: Bearer {{accessToken}}
