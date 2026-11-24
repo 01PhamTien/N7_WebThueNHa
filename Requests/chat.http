@@ -10,16 +10,28 @@
 POST {{baseUrl}}/api/chat/properties/{{propertyId}}/conversation
 Authorization: Bearer {{tenantToken}}
 
-### 2. Tenant/landlord xem danh sach hoi thoai chua an
-GET {{baseUrl}}/api/chat/conversations
+### 2. Tenant/landlord xem danh sach hoi thoai chua an (phan trang server-side)
+GET {{baseUrl}}/api/chat/conversations?page=1&pageSize=20
 Authorization: Bearer {{tenantToken}}
 
-### 2b. Xem ca hoi thoai da an de hien lai neu can
-GET {{baseUrl}}/api/chat/conversations?includeArchived=true
+### 2a. Xem trang tiep theo
+GET {{baseUrl}}/api/chat/conversations?page=2&pageSize=20
 Authorization: Bearer {{tenantToken}}
 
-### 3. Xem lich su tin nhan
+### 2b. Xem ca hoi thoai da an (van phan trang)
+GET {{baseUrl}}/api/chat/conversations?includeArchived=true&page=1&pageSize=20
+Authorization: Bearer {{tenantToken}}
+
+### 2c. Kiem tra tham so phan trang khong hop le (mong doi 400)
+GET {{baseUrl}}/api/chat/conversations?page=0&pageSize=20
+Authorization: Bearer {{tenantToken}}
+
+### 3. Xem lich su tin nhan (phan trang server-side)
 GET {{baseUrl}}/api/chat/conversations/{{conversationId}}/messages?page=1&pageSize=30
+Authorization: Bearer {{tenantToken}}
+
+### 3a. Kiem tra pageSize vuot gioi han (mong doi 400)
+GET {{baseUrl}}/api/chat/conversations/{{conversationId}}/messages?page=1&pageSize=101
 Authorization: Bearer {{tenantToken}}
 
 ### 4. Gui tin nhan van ban
