@@ -287,14 +287,17 @@ public sealed class BookingsController : ControllerBase
         // Đếm sau khi đã áp dụng quyền sở hữu và bộ lọc trạng thái.
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var items = await ToBookingResponseQuery(query)
-            .OrderByDescending(x => x.CreatedAt)
-            .ThenByDescending(x => x.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        // Trang vượt tổng số trang trả danh sách rỗng, không tính OFFSET có thể tràn số.
+        var items = page > totalPages
+            ? new List<BookingResponse>()
+            : await ToBookingResponseQuery(query)
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
 
         return Ok(new PagedResponse<BookingResponse>(
             items,
