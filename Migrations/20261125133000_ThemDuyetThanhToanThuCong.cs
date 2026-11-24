@@ -38,14 +38,14 @@ namespace Web2_ThueNha.Migrations
             migrationBuilder.CreateIndex(
                 name: "UX_Invoices_Contract_Deposit",
                 table: "Invoices",
-                column: "ContractId",
+                columns: new[] { "ContractId", "InvoiceType" },
                 unique: true,
                 filter: "[InvoiceType] = 0 AND [Status] <> 5");
 
             migrationBuilder.CreateIndex(
                 name: "UX_Invoices_Contract_MonthlyRent_Period",
                 table: "Invoices",
-                columns: new[] { "ContractId", "PeriodStart", "PeriodEnd" },
+                columns: new[] { "ContractId", "InvoiceType", "PeriodStart", "PeriodEnd" },
                 unique: true,
                 filter: "[InvoiceType] = 1 AND [PeriodStart] IS NOT NULL AND [PeriodEnd] IS NOT NULL AND [Status] <> 5");
         }
