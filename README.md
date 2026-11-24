@@ -115,3 +115,18 @@ Quy tac bao ve:
 
 ### Tao Admin dau tien
 Dang ky mot tai khoan qua API register, sau do mo `Scripts/TaoAdminDauTien.sql` trong SSMS, thay email mau bang email vua dang ky va chay script. Khong co API cong khai nao cap quyen Admin.
+
+## Chat rieng theo tung can nha
+
+Tat ca API chat deu yeu cau JWT:
+
+- `POST /api/chat/properties/{propertyId}/conversation`: nguoi co role Tenant tao/lay hoi thoai voi chu nha cua can nha da duoc duyet va dang cong khai.
+- `GET /api/chat/conversations`: danh sach hoi thoai cua nguoi dang dang nhap.
+- `GET /api/chat/conversations/{conversationId}/messages?page=1&pageSize=30`: lich su tin nhan co phan trang.
+- `POST /api/chat/conversations/{conversationId}/messages`: gui tin nhan van ban.
+- `POST /api/chat/conversations/{conversationId}/attachments`: gui tep multipart/form-data (toi da 10 MB; JPG/JPEG/PNG/WEBP/PDF/DOC/DOCX).
+- `GET /api/chat/attachments/{attachmentId}`: tai tep; chi thanh vien hoi thoai duoc tai.
+- `PATCH /api/chat/conversations/{conversationId}/read`: danh dau da doc.
+- `PATCH /api/chat/conversations/{conversationId}/archive`: an/hien hoi thoai trong danh sach ca nhan.
+
+Quy tac: moi Property + Tenant + Landlord chi co mot hoi thoai; unique index trong database chong tao trung. Chi participant moi doc/gửi tin va tai tep. Tep duoc luu ngoai wwwroot trong `PrivateUploads/chat`, khong phuc vu cong khai; thu muc nay duoc gitignore. Moi may dev can giu backup rieng neu muon giu tep tai len. Realtime SignalR se duoc bo sung sau khi API HTTP duoc kiem thu.
