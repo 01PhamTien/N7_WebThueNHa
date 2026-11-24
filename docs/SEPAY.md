@@ -15,6 +15,8 @@ Không commit bí mật vào Git. Cấu hình bằng biến môi trường trên
 - SEPAY_IPN_SECRET_PRODUCTION: Secret Key cấu hình cho IPN Gateway (header X-Secret-Key).
 - SEPAY_WEBHOOK_SECRET_PRODUCTION: Secret riêng cho webhook ngân hàng, chọn HMAC-SHA256 trong trang cấu hình Webhooks SePay.
 - SEPAY_PUBLIC_URL: domain HTTPS công khai, ví dụ https://api.example.com.
+- SEPAY_CHECKOUT_API_KEY: khóa nội bộ để gọi API checkout/tra cứu; không đặt trong frontend trình duyệt.
+- SEPAY_BANK_ACCOUNT_NUMBER_PRODUCTION: số tài khoản nhận tiền phải khớp payload webhook.
 
 Các khóa Gateway, IPN và Bank Webhook là ba mục đích khác nhau; không dùng chung một secret. Nếu secret đã được chia sẻ, thu hồi và tạo khóa mới trước khi vận hành.
 
@@ -36,13 +38,15 @@ Chạy database/sepay-payments.sql trên SQL Server. Tạo database và user có
 2. Chọn HMAC-SHA256. Secret lưu ở SEPAY_WEBHOOK_SECRET_PRODUCTION.
 3. Cấu hình URL https://<domain>/api/sepay/bank-webhook.
 4. Backend xác minh X-SePay-Signature theo HMAC-SHA256 của chuỗi timestamp + "." + raw body; từ chối timestamp quá 5 phút.
-5. Chỉ giao dịch tiền vào, có mã invoice và đúng số tiền mới được đánh dấu Paid. EventKey unique dùng chống xử lý trùng.
+5. Chỉ giao dịch tiền vào, đúng số tài khoản đã cấu hình, có mã invoice và đúng số tiền mới được đánh dấu Paid. EventKey unique dùng chống xử lý trùng.
 
 ## API
 
 ### Tạo checkout
 
 POST /api/sepay/checkout
+
+Gửi header `X-Payment-Api-Key: <SEPAY_CHECKOUT_API_KEY>`. Chỉ gọi endpoint này từ backend tin cậy; không nhúng khóa vào ứng dụng trình duyệt/mobile.
 
 ```json
 {
@@ -58,6 +62,8 @@ Response gồm invoiceNumber, checkoutUrl và formFields. Frontend phải submit
 
 GET /api/sepay/payments/{invoiceNumber}
 
+Cũng yêu cầu header `X-Payment-Api-Key`.
+
 Trạng thái: Pending, Paid, Cancelled.
 
 ## Kiểm thử và triển khai
@@ -66,4 +72,4 @@ Trạng thái: Pending, Paid, Cancelled.
 - Production yêu cầu HTTPS, đồng bộ thời gian NTP, SQL Server backup và giám sát webhook.
 - Kiểm tra lại payload thực tế của merchant với tài liệu SePay trước khi bật production.
 - API hiện không gắn payment với entity Booking/Lease vì repository tại thời điểm tích hợp chưa có mô hình đặt thuê.
-- Cần bổ sung authorization cho endpoint tạo checkout/tra cứu theo user và ràng buộc invoice với booking khi module nghiệp vụ thuê nhà được phát triển.
+- Endpoint checkout/tra cứu hiện dùng khóa nội bộ X-Payment-Api-Key. Trước khi tích hợp frontend, thay cơ chế này bằng authentication/authorization theo người dùng và ràng buộc invoice với booking.
