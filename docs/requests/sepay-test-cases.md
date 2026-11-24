@@ -24,7 +24,7 @@
 | SP-10 | Submit form Sandbox | SePay nhận form và chuyển hướng checkout | Chưa chạy |
 | SP-11 | Browser return success nhưng chưa có IPN | Payment vẫn Pending | Chưa chạy |
 | SP-12 | IPN sai X-Secret-Key | 401; không đổi Payment | Chưa chạy |
-| SP-13 | IPN timestamp cũ/quá xa tương lai | 401; không đổi Payment | Chưa chạy |
+| SP-13 | IPN timestamp thiếu/sai hoặc quá xa tương lai | 401; IPN cũ hợp lệ được retry vẫn xử lý idempotent | Chưa chạy |
 | SP-14 | IPN sai order code/PaymentId | 401; không đổi Payment | Chưa chạy |
 | SP-15 | IPN amount/currency/order_status sai | 401; không đổi Payment/Invoice | Chưa chạy |
 | SP-16 | IPN transaction_status không APPROVED | 401; không đổi Payment | Chưa chạy |
