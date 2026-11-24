@@ -88,3 +88,17 @@ Không chia sẻ hoặc commit giá trị `Jwt:Key` lên Git. Mỗi máy phát t
 5. Gửi token dưới dạng `Authorization: Bearer <accessToken>` khi gọi `GET /api/auth/me`.
 
 Không dùng tài khoản hoặc dữ liệu thật của người dùng trong môi trường thử nghiệm.
+
+## API thong bao ca nhan
+
+Cac endpoint yeu cau JWT va chi thao tac tren thong bao cua tai khoan hien tai:
+
+- `GET /api/notifications?page=1&pageSize=20&isRead=false&type=Booking`: danh sach thong bao, loc va phan trang server-side.
+- `GET /api/notifications/unread-count`: dem thong bao chua doc.
+- `PATCH /api/notifications/{id}/read`: danh dau mot thong bao da doc.
+- `PATCH /api/notifications/read-all`: danh dau tat ca thong bao chua doc.
+
+`page` bat dau tu 1, `pageSize` tu 1 den 50. Filter duoc ap dung truoc `CountAsync`; truy van sap xep CreatedAt giam dan va Id giam dan, sau do dung `Skip/Take` tren EF Core. UserId luon lay tu JWT Claims, khong nhan tu client. Thong bao cua tai khoan khac tra 404.
+
+Request mau: `Requests/notifications.http`.
+Checklist: `docs/requests/notification-test-cases.md`.
