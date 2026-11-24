@@ -174,7 +174,7 @@ public sealed class ChatController : ControllerBase
                     a.FileName,
                     a.ContentType,
                     a.FileSize,
-                    "/api/chat/attachments/" + a.Id)).ToArray()))
+                    "/api/chat/attachments/" + a.Id)).ToList()))
             .ToListAsync(cancellationToken);
 
         messages.Reverse();
