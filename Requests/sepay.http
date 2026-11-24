@@ -1,0 +1,49 @@
+@baseUrl = https://localhost:7295
+@tenantToken = THAY_BANG_JWT_TENANT
+@invoiceId = THAY_BANG_GUID_HOA_DON
+
+### 1. Tenant tạo checkout SePay cho số dư còn lại
+POST {{baseUrl}}/api/invoices/{{invoiceId}}/sepay-checkout
+Authorization: Bearer {{tenantToken}}
+
+### 2. IPN Gateway mẫu (chỉ chạy khi có chữ ký/secret test hợp lệ)
+# SePay gửi X-Secret-Key và JSON body có timestamp, notification_type, order, transaction, customer.
+POST {{baseUrl}}/api/sepay/ipn
+X-Secret-Key: THAY_BANG_SEPAY_IPN_SECRET
+Content-Type: application/json
+
+{
+  "timestamp": 1795600000,
+  "notification_type": "ORDER_PAID",
+  "order": {
+    "order_invoice_number": "SPTHAYBANGMA26KYTU",
+    "order_status": "CAPTURED",
+    "order_currency": "VND",
+    "order_amount": "1500000.00"
+  },
+  "transaction": {
+    "transaction_id": "SEPAY-TEST-TRANSACTION",
+    "transaction_status": "APPROVED",
+    "transaction_currency": "VND",
+    "transaction_amount": "1500000",
+    "payment_method": "BANK_TRANSFER"
+  }
+}
+
+### 3. Bank Webhook mẫu (chỉ chạy khi tạo HMAC đúng raw body)
+POST {{baseUrl}}/api/sepay/bank-webhook
+X-SePay-Timestamp: 1795600000
+X-SePay-Signature: sha256=THAY_BANG_HMAC_SHA256_HEX
+Content-Type: application/json
+
+{
+  "id": 92704001,
+  "gateway": "Vietcombank",
+  "transactionDate": "2026-11-25 11:08:33",
+  "accountNumber": "THAY_BANG_SO_TAI_KHOAN_TEST",
+  "code": "SPTHAYBANGMA26KYTU",
+  "content": "SPTHAYBANGMA26KYTU chuyen tien",
+  "transferType": "in",
+  "transferAmount": 1500000,
+  "referenceCode": "FT-TEST-001"
+}
