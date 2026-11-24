@@ -144,6 +144,9 @@ public sealed class AdminUsersController : ControllerBase
         if (currentUserId == userId)
             return BadRequest(new { message = "Không thể tự thay đổi vai trò của chính mình. Hãy nhờ một quản trị viên khác thực hiện." });
 
+        if (request.Roles is null)
+            return BadRequest(new { message = "Danh sách vai trò không được để trống." });
+
         var requestedNames = request.Roles
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x.Trim())
@@ -179,8 +182,16 @@ public sealed class AdminUsersController : ControllerBase
                 return Conflict(new { message = "Không thể gỡ vai trò Admin của quản trị viên cuối cùng đang hoạt động." });
         }
 
-        _db.UserRoles.RemoveRange(user.UserRoles);
-        foreach (var role in roles)
+        // Chỉ thêm/xóa phần chênh lệch để tránh tracking conflict khi role giữ nguyên.
+        var requestedRoleIds = roles.Select(x => x.Id).ToHashSet();
+        var currentRoleIds = user.UserRoles.Select(x => x.RoleId).ToHashSet();
+
+        var rolesToRemove = user.UserRoles
+            .Where(x => !requestedRoleIds.Contains(x.RoleId))
+            .ToArray();
+        _db.UserRoles.RemoveRange(rolesToRemove);
+
+        foreach (var role in roles.Where(x => !currentRoleIds.Contains(x.Id)))
         {
             user.UserRoles.Add(new UserRole
             {
