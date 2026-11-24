@@ -6,13 +6,15 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Contracts;
+using Web2_ThueNha.Models;
+using Web2_ThueNha.Services.Notifications;
 
 namespace Web2_ThueNha.Controllers;
 
 [ApiController]
 [Route("api/contracts")]
 [Authorize(Roles = "Landlord,Tenant")]
-public sealed class ContractsController(AppDbContext db) : ControllerBase
+public sealed class ContractsController(AppDbContext db, INotificationService notifications) : ControllerBase
 {
     private const int MaxPageSize = 50;
 
@@ -126,6 +128,9 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
         if (!TryGetUserId(out var userId))
             return Unauthorized();
 
+        await using var transaction = await db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
+
         var booking = await db.Bookings
             .Include(x => x.Property)
             .SingleOrDefaultAsync(x => x.Id == bookingId, cancellationToken);
@@ -175,6 +180,7 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
             exception.GetBaseException() is SqlException sqlException &&
             sqlException.Number is 2601 or 2627)
         {
+            await transaction.RollbackAsync(cancellationToken);
             // Unique index one-to-one trên BookingId là chốt cuối cùng chống tạo trùng đồng thời.
             db.Entry(contract).State = EntityState.Detached;
 
@@ -187,6 +193,18 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
 
             throw;
         }
+
+        var recipientId = booking.TenantId == userId
+            ? booking.Property.LandlordId
+            : booking.TenantId;
+        await notifications.CreateAsync(
+            recipientId,
+            "Hợp đồng thuê đã được tạo",
+            $"Một hợp đồng nháp đã được tạo cho căn nhà {booking.Property.Title}.",
+            NotificationType.Contract,
+            contract.Id,
+            cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return CreatedAtAction(
             nameof(GetContract),
@@ -255,6 +273,9 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
         if (!TryGetUserId(out var userId))
             return Unauthorized();
 
+        await using var transaction = await db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
+
         var contract = await db.RentalContracts
             .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
 
@@ -269,6 +290,14 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
 
         contract.Status = RentalContractStatus.AwaitingSignature;
         await db.SaveChangesAsync(cancellationToken);
+        await notifications.CreateAsync(
+            contract.TenantId,
+            "Hợp đồng đang chờ bạn xác nhận",
+            $"Chủ nhà đã gửi hợp đồng {contract.ContractCode} để bạn xem và xác nhận.",
+            NotificationType.Contract,
+            contract.Id,
+            cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return Ok(ToResponse(contract));
     }
@@ -332,6 +361,22 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        if (!alreadySignedByCurrentUser)
+        {
+            var recipientId = isLandlord ? contract.TenantId : contract.LandlordId;
+            var content = contract.Status == RentalContractStatus.Active
+                ? $"Hợp đồng {contract.ContractCode} đã được cả hai bên xác nhận và có hiệu lực."
+                : $"Bên còn lại đã xác nhận hợp đồng {contract.ContractCode}. Vui lòng hoàn tất chữ ký của bạn.";
+            await notifications.CreateAsync(
+                recipientId,
+                contract.Status == RentalContractStatus.Active
+                    ? "Hợp đồng đã có hiệu lực"
+                    : "Hợp đồng vừa được xác nhận",
+                content,
+                NotificationType.Contract,
+                contract.Id,
+                cancellationToken);
+        }
         await transaction.CommitAsync(cancellationToken);
 
         return Ok(ToResponse(contract));
