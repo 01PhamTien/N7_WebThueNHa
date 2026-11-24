@@ -177,3 +177,10 @@ API thông báo cá nhân dùng `INotificationService` và bảng `Notifications
 Request API đọc thông báo nằm trong `Requests/notifications.http`; checklist API thông báo nằm trong `docs/requests/notification-test-cases.md`; checklist tích hợp nghiệp vụ nằm trong `docs/requests/notification-integration-test-cases.md`.
 
 Thông báo không được tạo khi nghiệp vụ trả lỗi hoặc request lặp không làm thay đổi trạng thái. SignalR chỉ phát realtime sau khi transaction đã commit; retry SignalR không gọi lại thao tác tạo notification.
+
+
+## Tích hợp SePay
+
+SePay Gateway và Bank Webhook được gắn trực tiếp với `Invoice`/`Payment` trong `AppDbContext`; không có `PaymentDbContext` hoặc bảng `Payments` thứ hai. Tenant khởi tạo checkout tại `POST /api/invoices/{invoiceId}/sepay-checkout`; Payment chỉ chuyển `Succeeded` sau IPN/Bank Webhook đã xác thực. Cấu hình và test case nằm tại `docs/SEPAY.md` và `docs/requests/sepay-test-cases.md`.
+
+Chạy Sandbox trước Production; không commit merchant secret, IPN secret, webhook secret hoặc tài khoản ngân hàng.
