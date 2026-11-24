@@ -13,6 +13,9 @@ Dùng cùng môi trường đã cấu hình SQL Server và JWT. Các endpoint gh
 | A05 | `page=0`, `pageSize=0`, `pageSize=51` | 400 |
 | A06 | min lớn hơn max | 400 |
 | A07 | Không có kết quả | 200; Items rỗng, TotalItems = 0 |
+| A08 | `page=2147483647&pageSize=50` | 400; chặn tràn số khi tính OFFSET |
+| A09 | Trang vượt `totalPages` | 200; Items rỗng, metadata hợp lệ; không truy vấn OFFSET vô ích |
+| A10 | Page 1/page 2 khi dữ liệu không đổi | Không trùng bản ghi; thứ tự ổn định theo CreatedAt và Id |
 
 ## B. Chi tiết và quyền truy cập
 
@@ -61,6 +64,8 @@ Dùng cùng môi trường đã cấu hình SQL Server và JWT. Các endpoint gh
 | E07 | Xóa ảnh | 204 |
 | E08 | Xóa ảnh chính khi còn ảnh khác | 204; ảnh có DisplayOrder nhỏ nhất còn lại được đặt làm ảnh chính |
 | E09 | Xóa ảnh không tồn tại | 404 |
+| E10 | Thêm/xóa/chọn ảnh chính của tin đã Approved/Published | 201/204; tin chuyển về Pending/Draft để Admin duyệt lại trước khi công khai |
+| E11 | Thay đổi ảnh của tin Pending hoặc Rejected | 201/204; tin ở Pending/Draft và không xuất hiện công khai |
 
 ## Ghi nhận kết quả
 
