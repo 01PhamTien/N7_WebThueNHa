@@ -155,3 +155,25 @@ Request mau cho cac API chat nam trong `Requests/chat.http`; checklist kiem thu 
 
 Request mẫu kiểm thử API quản trị tài khoản nằm tại `Requests/admin-users.http`, gồm tìm kiếm, phân trang, xem chi tiết, khóa/mở khóa và cập nhật vai trò.
 Danh sach hoi thoai va lich su tin nhan dung phan trang server-side; page/pageSize sai tra 400, trang vuot `totalPages` tra items rong. Thay doi hinh anh/tep trong chat chi tai duoc qua API co JWT va kiem tra participant; ten file duoc lam sach truoc khi luu.
+
+
+## Thông báo tự động theo luồng nghiệp vụ
+
+API thông báo cá nhân dùng `INotificationService` và bảng `Notifications` hiện có. Các luồng nghiệp vụ phát thông báo sau khi lưu thay đổi thành công; nghiệp vụ và notification được lưu trong cùng transaction của `AppDbContext`.
+
+| Luồng | Người nhận | NotificationType | ReferenceId |
+|---|---|---|---|
+| Tenant tạo Booking | Landlord | Booking | BookingId |
+| Landlord Accept/Reject Booking | Tenant | Booking | BookingId |
+| Tenant Cancel Booking | Landlord | Booking | BookingId |
+| Tạo hợp đồng | Bên còn lại | Contract | ContractId |
+| Gửi hợp đồng chờ xác nhận | Tenant | Contract | ContractId |
+| Một bên ký hợp đồng | Bên còn lại | Contract | ContractId |
+| Gửi tin nhắn/tệp chat | Participant còn lại | Message | MessageId |
+| Phát hành hóa đơn | Tenant | Invoice | InvoiceId |
+| Tenant gửi yêu cầu thanh toán | Landlord | Payment | PaymentId |
+| Landlord/Admin xác nhận/từ chối thanh toán | Tenant | Payment | PaymentId |
+
+Request API đọc thông báo nằm trong `Requests/notifications.http`; checklist API thông báo nằm trong `docs/requests/notification-test-cases.md`; checklist tích hợp nghiệp vụ nằm trong `docs/requests/notification-integration-test-cases.md`.
+
+Thông báo không được tạo khi nghiệp vụ trả lỗi hoặc request lặp không làm thay đổi trạng thái. SignalR chỉ phát realtime sau khi transaction đã commit; retry SignalR không gọi lại thao tác tạo notification.
