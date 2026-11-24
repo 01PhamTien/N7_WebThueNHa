@@ -7,6 +7,8 @@ using Web2_ThueNha.Services.Notifications;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.Hubs;
 using Web2_ThueNha.Middleware;
+using Web2_ThueNha.Repositories.Favorites;
+using Web2_ThueNha.Repositories.Moderation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -117,6 +119,8 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
+builder.Services.AddScoped<IPropertyModerationRepository, PropertyModerationRepository>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<User>, Microsoft.AspNetCore.Identity.PasswordHasher<User>>();
 
 var app = builder.Build();
