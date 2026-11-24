@@ -564,6 +564,16 @@ namespace Web2_ThueNha.Migrations
 
                     b.HasIndex("ContractId");
 
+                    b.HasIndex("ContractId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Invoices_Contract_Deposit")
+                        .HasFilter("[InvoiceType] = 0 AND [Status] <> 5");
+
+                    b.HasIndex("ContractId", "PeriodStart", "PeriodEnd")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Invoices_Contract_MonthlyRent_Period")
+                        .HasFilter("[InvoiceType] = 1 AND [PeriodStart] IS NOT NULL AND [PeriodEnd] IS NOT NULL AND [Status] <> 5");
+
                     b.HasIndex("InvoiceCode")
                         .IsUnique();
 
@@ -636,6 +646,12 @@ namespace Web2_ThueNha.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReviewedById")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -648,6 +664,8 @@ namespace Web2_ThueNha.Migrations
                     b.HasIndex("InvoiceId");
 
                     b.HasIndex("PayerId");
+
+                    b.HasIndex("ReviewedById");
 
                     b.HasIndex("TransactionCode")
                         .IsUnique()
@@ -1168,9 +1186,16 @@ namespace Web2_ThueNha.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Web2_ThueNha.Models.Identity.User", "ReviewedBy")
+                        .WithMany()
+                        .HasForeignKey("ReviewedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Invoice");
 
                     b.Navigation("Payer");
+
+                    b.Navigation("ReviewedBy");
                 });
 
             modelBuilder.Entity("Web2_ThueNha.Models.Properties.Property", b =>
