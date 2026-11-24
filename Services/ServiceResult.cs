@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace Web2_ThueNha.Services;
 
 public sealed record ServiceResult<T>(int StatusCode, T? Data = default, string? Message = null)
