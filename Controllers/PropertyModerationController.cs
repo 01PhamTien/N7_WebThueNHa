@@ -1,3 +1,4 @@
+using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,35 +21,63 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetProperties(
         [FromQuery] PropertyModerationStatus status = PropertyModerationStatus.Pending,
+        [FromQuery] string? keyword = null,
+        [FromQuery] string? province = null,
+        [FromQuery] int? propertyTypeId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        if (page < 1 || pageSize < 1 || pageSize > MaxPageSize || !Enum.IsDefined(status))
+        if (page < 1 || pageSize < 1 || pageSize > MaxPageSize ||
+            page > int.MaxValue / pageSize ||
+            !Enum.IsDefined(status) ||
+            (propertyTypeId.HasValue && propertyTypeId.Value < 1) ||
+            keyword?.Length > 100 ||
+            province?.Length > 120)
             return BadRequest(new { message = "Tham số lọc hoặc phân trang không hợp lệ." });
 
-        var query = db.Properties.AsNoTracking()
+        IQueryable<Property> query = db.Properties.AsNoTracking()
             .Where(x => x.ModerationStatus == status);
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var term = keyword.Trim();
+            query = query.Where(x =>
+                x.Title.Contains(term) ||
+                x.AddressLine.Contains(term) ||
+                (x.WardName != null && x.WardName.Contains(term)) ||
+                x.Landlord.FullName.Contains(term) ||
+                x.Landlord.Email.Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(province))
+        {
+            var provinceName = province.Trim();
+            query = query.Where(x => x.ProvinceName.Contains(provinceName));
+        }
+
+        if (propertyTypeId.HasValue)
+            query = query.Where(x => x.PropertyTypeId == propertyTypeId.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-        var skip = (int)Math.Min(((long)page - 1) * pageSize, int.MaxValue);
-
-        var properties = await query
-            .OrderBy(x => x.CreatedAt)
-            .ThenBy(x => x.Id)
-            .Skip(skip)
-            .Take(pageSize)
-            .Select(x => new ModerationPropertyListItem(
-                x.Id,
-                x.Title,
-                x.Landlord.FullName,
-                x.ProvinceName,
-                x.PricePerMonth,
-                x.ModerationStatus,
-                x.ListingStatus,
-                x.CreatedAt))
-            .ToListAsync(cancellationToken);
+        var properties = page > totalPages
+            ? new List<ModerationPropertyListItem>()
+            : await query
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new ModerationPropertyListItem(
+                    x.Id,
+                    x.Title,
+                    x.Landlord.FullName,
+                    x.ProvinceName,
+                    x.PricePerMonth,
+                    x.ModerationStatus,
+                    x.ListingStatus,
+                    x.CreatedAt))
+                .ToListAsync(cancellationToken);
 
         return Ok(new PagedModerationPropertiesResponse(
             properties,
@@ -56,7 +85,7 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
             pageSize,
             totalCount,
             totalPages,
-            page > 1,
+            page > 1 && page <= totalPages,
             page < totalPages));
     }
 
@@ -81,6 +110,7 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
             .Where(log => log.PropertyId == propertyId)
             .Include(log => log.Admin)
             .OrderByDescending(log => log.CreatedAt)
+            .ThenByDescending(log => log.Id)
             .ToListAsync(cancellationToken);
 
         var response = new ModerationPropertyDetailResponse(
@@ -179,17 +209,25 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
         if (!TryGetAdminId(out var adminId))
             return Unauthorized();
 
+        // Serializable bảo vệ kiểm tra trạng thái và ghi log trước các thao tác đồng thời.
+        await using var transaction = await db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
+
         var property = await db.Properties
             .SingleOrDefaultAsync(x => x.Id == propertyId, cancellationToken);
 
         if (property is null)
             return NotFound(new { message = "Không tìm thấy tin đăng." });
 
+        if (property.LandlordId == adminId)
+            return Forbid();
+
         if (property.ModerationStatus != PropertyModerationStatus.Pending)
             return Conflict(new { message = "Chỉ tin đang chờ duyệt mới có thể được duyệt hoặc từ chối." });
 
         property.ModerationStatus = targetStatus;
-        property.UpdatedAt = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
+        property.UpdatedAt = now;
 
         if (targetStatus == PropertyModerationStatus.Rejected)
             property.ListingStatus = PropertyListingStatus.Draft;
@@ -200,10 +238,11 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
             AdminId = adminId,
             Action = action,
             Reason = reason,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now
         });
 
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Ok(new { message = action == ModerationAction.Approved ? "Đã duyệt tin đăng." : "Đã từ chối tin đăng.", propertyId = property.Id, property.ModerationStatus, property.ListingStatus });
     }
 
@@ -221,11 +260,18 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
         if (reason.Length < 5)
             return BadRequest(new { message = "Lý do phải có ít nhất 5 ký tự." });
 
+        // Serializable giữ thao tác đổi trạng thái và ghi log trong cùng transaction.
+        await using var transaction = await db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
+
         var property = await db.Properties
             .SingleOrDefaultAsync(x => x.Id == propertyId, cancellationToken);
 
         if (property is null)
             return NotFound(new { message = "Không tìm thấy tin đăng." });
+
+        if (property.LandlordId == adminId)
+            return Forbid();
 
         var isValidTransition =
             property.ModerationStatus == PropertyModerationStatus.Approved &&
@@ -235,8 +281,9 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
         if (!isValidTransition)
             return Conflict(new { message = "Trạng thái tin đăng hiện tại không cho phép thực hiện thao tác này." });
 
+        var now = DateTime.UtcNow;
         property.ListingStatus = targetStatus;
-        property.UpdatedAt = DateTime.UtcNow;
+        property.UpdatedAt = now;
 
         db.PropertyModerationLogs.Add(new PropertyModerationLog
         {
@@ -244,10 +291,11 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
             AdminId = adminId,
             Action = action,
             Reason = reason,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now
         });
 
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Ok(new { message = action == ModerationAction.Hidden ? "Đã ẩn tin đăng." : "Đã khôi phục tin đăng.", propertyId = property.Id, property.ModerationStatus, property.ListingStatus });
     }
 
