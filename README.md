@@ -140,3 +140,5 @@ Quy tac: moi Property + Tenant + Landlord chi co mot hoi thoai; unique index tro
 - Goi `LeaveConversation(conversationId)` khi roi man hinh chat.
 
 Voi SignalR JavaScript client, cung cap `accessTokenFactory: () => token`. Backend chi doc query `access_token` tren duong dan `/hubs/chat`; khong doc token query tren cac API khac. Nho dung HTTPS trong moi truong that.
+
+- Upload tep chat kiem tra ca extension, MIME va magic bytes (chu ky noi dung JPG/PNG/WEBP/PDF/DOC/DOCX), khong chi tin ten file va Content-Type do client gui.
