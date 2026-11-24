@@ -425,18 +425,27 @@ public sealed class ChatController : ControllerBase
         if (!AllowedExtensions.Contains(extension))
             return BadRequest(new { message = "Định dạng tệp không được hỗ trợ." });
 
-        var contentType = file.ContentType.ToLowerInvariant();
-        var allowedContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        var contentType = file.ContentType.Trim().ToLowerInvariant();
+        var expectedContentType = extension.ToLowerInvariant() switch
         {
-            "image/jpeg", "image/png", "image/webp", "application/pdf",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".pdf" => "application/pdf",
+            ".doc" => "application/msword",
+            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            _ => null
         };
-        if (!allowedContentTypes.Contains(contentType))
-            return BadRequest(new { message = "Kiểu nội dung tệp không được hỗ trợ." });
+
+        if (expectedContentType is null ||
+            !string.Equals(contentType, expectedContentType, StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Phần mở rộng và kiểu nội dung của tệp không khớp." });
 
         if (!await HasExpectedFileSignatureAsync(file, extension, cancellationToken))
             return BadRequest(new { message = "Nội dung thực tế của tệp không khớp với định dạng khai báo." });
+
+        if (caption?.Length > 4000)
+            return BadRequest(new { message = "Chú thích tệp không được vượt quá 4000 ký tự." });
 
         var safeOriginalName = Path.GetFileName(file.FileName);
         if (safeOriginalName.Length > 255)
