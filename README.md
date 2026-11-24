@@ -96,3 +96,26 @@ Không dùng tài khoản hoặc dữ liệu thật của người dùng trong m
 - Swagger UI có nút `Authorize`: dán Access Token nhận từ `POST /api/auth/login` (chỉ dán token, không thêm chữ Bearer).
 
 Các endpoint có `[Authorize]` yêu cầu JWT hợp lệ. Khi xây dựng API nghiệp vụ theo vai trò, dùng `[Authorize(Roles = "Admin")]`, `[Authorize(Roles = "Landlord")]` hoặc `[Authorize(Roles = "Tenant")]`. Không cấp quyền bằng dữ liệu gửi từ client; vai trò được lấy từ bảng UserRoles khi đăng nhập.
+
+## Quan ly tai khoan danh cho Admin
+
+Cac API trong `AdminUsersController` chi danh cho nguoi co role `Admin`:
+
+- `GET /api/admin/users?keyword=&isActive=&page=1&pageSize=20`: danh sach tai khoan, tim kiem va phan trang.
+- `GET /api/admin/users/{userId}`: xem chi tiet tai khoan (khong tra PasswordHash).
+- `PATCH /api/admin/users/{userId}/status`: khoa/mo khoa tai khoan.
+- `PUT /api/admin/users/{userId}/roles`: cap nhat vai tro.
+
+Quy tac bao ve:
+- Khong cho tu khoa tai khoan dang dang nhap.
+- Khong cho khoa hoac go role Admin cua quan tri vien cuoi cung dang hoat dong. Viec khoa tai khoan/cap nhat role duoc bao ve bang transaction Serializable de tranh hai request dong thoi cung xoa Admin cuoi cung.
+- Khong cho quan tri vien tu thay doi role cua chinh minh.
+- Role chi duoc chon tu bang Roles; client khong the tu cap role.
+- Khi tai khoan bi khoa, JWT cu bi tu choi o cac request tiep theo. Khi doi role, tai khoan can dang nhap lai de nhan role claim moi.
+
+### Tao Admin dau tien
+Dang ky mot tai khoan qua API register, sau do mo `Scripts/TaoAdminDauTien.sql` trong SSMS, thay email mau bang email vua dang ky va chay script. Khong co API cong khai nao cap quyen Admin.
+
+- JWT cu bi tu choi neu tai khoan bi khoa hoac tap role trong token khong con khop voi UserRoles trong database. Khi cap/thu hoi role, token cu khong the tiep tuc dung quyen cu; nguoi dung can dang nhap lai.
+
+Request mẫu kiểm thử API quản trị tài khoản nằm tại `Requests/admin-users.http`, gồm tìm kiếm, phân trang, xem chi tiết, khóa/mở khóa và cập nhật vai trò.

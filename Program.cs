@@ -63,6 +63,44 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
+
+        // Kiểm tra trạng thái tài khoản ở mỗi request để token cũ không dùng được sau khi bị khóa.
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userIdValue = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!Guid.TryParse(userIdValue, out var userId))
+                {
+                    context.Fail("Token không chứa mã người dùng hợp lệ.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                var user = await db.Users
+                    .AsNoTracking()
+                    .Include(x => x.UserRoles)
+                        .ThenInclude(x => x.Role)
+                    .SingleOrDefaultAsync(x => x.Id == userId);
+
+                if (user is null || !user.IsActive)
+                {
+                    context.Fail("Tài khoản không tồn tại hoặc đã bị khóa.");
+                    return;
+                }
+
+                // Vai trò trong JWT phải còn khớp với database để thu hồi quyền có hiệu lực ngay.
+                var tokenRoles = context.Principal?
+                    .FindAll(System.Security.Claims.ClaimTypes.Role)
+                    .Select(x => x.Value)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase)
+                    ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                var currentRoles = user.UserRoles.Select(x => x.Role.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                if (!tokenRoles.SetEquals(currentRoles))
+                    context.Fail("Vai trò tài khoản đã thay đổi. Vui lòng đăng nhập lại.");
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
