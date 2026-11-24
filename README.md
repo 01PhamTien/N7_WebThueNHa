@@ -155,26 +155,3 @@ Request mau cho cac API chat nam trong `Requests/chat.http`; checklist kiem thu 
 
 Request mẫu kiểm thử API quản trị tài khoản nằm tại `Requests/admin-users.http`, gồm tìm kiếm, phân trang, xem chi tiết, khóa/mở khóa và cập nhật vai trò.
 Danh sach hoi thoai va lich su tin nhan dung phan trang server-side; page/pageSize sai tra 400, trang vuot `totalPages` tra items rong. Thay doi hinh anh/tep trong chat chi tai duoc qua API co JWT va kiem tra participant; ten file duoc lam sach truoc khi luu.
-
-## Phân trang API danh sách nhà của chủ nhà
-
-Endpoint `GET /api/properties/mine` yêu cầu JWT có role `Landlord` và hỗ trợ query parameters:
-
-- `page`: số trang, mặc định `1`, phải lớn hơn hoặc bằng 1.
-- `pageSize`: số bản ghi mỗi trang, mặc định `10`, giới hạn từ 1 đến 50.
-- `status`: tùy chọn, lọc theo trạng thái tin đăng (`Draft`, `Published`, `Hidden`, `Closed`).
-
-Ví dụ:
-
-```http
-GET /api/properties/mine?page=1&pageSize=10&status=Draft
-Authorization: Bearer <landlordAccessToken>
-```
-
-API lấy chủ nhà từ JWT Claims, không nhận `LandlordId` từ client. Bộ lọc được áp dụng trước `CountAsync`; dữ liệu được sắp xếp ổn định theo `CreatedAt` giảm dần và `Id` giảm dần, sau đó phân trang bằng `Skip/Take` trên truy vấn EF Core. Response gồm `items`, `page`, `pageSize`, `totalCount`, `totalPages`, `hasPrevious` và `hasNext`. Tham số không hợp lệ trả về `400`; trang vượt quá tổng số trang trả về danh sách rỗng và metadata tương ứng.
-
-Request mẫu và checklist chi tiết nằm tại `docs/requests/property-management.http.md` và `docs/requests/property-management-test-cases.md`.
-
-### Quy tắc kiểm duyệt hình ảnh
-
-Khi chủ nhà thêm ảnh, xóa ảnh hoặc đổi ảnh chính, tin đăng được chuyển về `ModerationStatus=Pending` và `ListingStatus=Draft`. Thay đổi hình ảnh là thay đổi nội dung tin, vì vậy phải được Admin duyệt lại trước khi xuất hiện công khai. API danh sách nhà công khai trả metadata phân trang đầy đủ và dùng thứ tự ổn định theo `CreatedAt`/ `Id`.
