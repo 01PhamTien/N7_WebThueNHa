@@ -34,11 +34,12 @@
 | CT-20 | Submit hop dong khong con Draft | 409; khong tu dong chuyen Active | Chua chay |
 | CT-21 | Kiem tra chu ky hai ben | Hien tai chua co endpoint Active; cho schema co LandlordSignedAt/TenantSignedAt | Chua chay |
 
-## Gioi han schema da thong nhat
-- RentalContract hien chi co mot cot SignedAt chung, khong xac dinh rieng ben nao da ky.
-- Khong them cot/migration trong PR nay.
-- API chi tao Draft, cap nhat Draft va chuyen AwaitingSignature.
-- Khong co API tu dong chuyen Active cho den khi schema luu duoc xac nhan cua ca Landlord va Tenant.
+## Schema chữ ký hai bên
+- `RentalContract` có `LandlordSignedAt` và `TenantSignedAt` nullable; `SignedAt` vẫn giữ để lưu thời điểm hoàn tất.
+- Mỗi bên chỉ được ghi timestamp của chính mình khi hợp đồng ở `AwaitingSignature`.
+- Chỉ khi cả hai timestamp có giá trị mới chuyển `Active`; `SignedAt` bằng thời điểm ký sau cùng.
+- Migration chỉ thêm hai cột nullable, không tạo bảng mới và không suy diễn chữ ký lịch sử từ `SignedAt` cũ.
+- Khi chỉnh sửa nội dung hợp đồng trước khi Active, phải reset hai timestamp; quy tắc cập nhật chi tiết được kiểm tra ở PR hợp đồng.
 
 ## Ghi nhan
 - Ghi commit SHA, .NET SDK, SQL Server va status code thuc te.
