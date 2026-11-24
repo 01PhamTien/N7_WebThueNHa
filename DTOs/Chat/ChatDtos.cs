@@ -50,3 +50,9 @@ public sealed record PagedChatMessages(
     int TotalItems,
     int TotalPages,
     IReadOnlyCollection<ChatMessageItem> Items);
+
+public sealed class EditMessageRequest
+{
+    [Required, StringLength(4000, MinimumLength = 1)]
+    public string Content { get; set; } = string.Empty;
+}
