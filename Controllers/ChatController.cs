@@ -106,17 +106,28 @@ public sealed class ChatController : ControllerBase
     [HttpGet("conversations")]
     public async Task<IActionResult> GetConversations(
         [FromQuery] bool includeArchived = false,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         var currentUserId = GetCurrentUserId();
         if (currentUserId is null)
             return Unauthorized();
 
-        var items = await _db.ConversationParticipants
+        if (!IsValidPaging(page, pageSize, 50))
+            return BadRequest(new { message = "Tham số page phải từ 1, pageSize phải từ 1 đến 50." });
+
+        var query = _db.ConversationParticipants
             .AsNoTracking()
             .Where(x => x.UserId == currentUserId.Value &&
-                        (includeArchived || !x.IsArchived))
+                        (includeArchived || !x.IsArchived));
+
+        var totalItems = await query.CountAsync(cancellationToken);
+        var items = await query
             .OrderByDescending(x => x.Conversation.LastMessageAt ?? x.Conversation.CreatedAt)
+            .ThenByDescending(x => x.Conversation.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(x => new ConversationListItem(
                 x.Conversation.Id,
                 x.Conversation.PropertyId,
@@ -135,7 +146,14 @@ public sealed class ChatController : ControllerBase
                 x.IsArchived))
             .ToListAsync(cancellationToken);
 
-        return Ok(items);
+        return Ok(new PagedConversations(
+            page,
+            pageSize,
+            totalItems,
+            (int)Math.Ceiling(totalItems / (double)pageSize),
+            page > 1,
+            page < (int)Math.Ceiling(totalItems / (double)pageSize),
+            items));
     }
 
     /// <summary>Lấy lịch sử tin nhắn theo trang; chỉ thành viên hội thoại được truy cập.</summary>
@@ -156,15 +174,17 @@ public sealed class ChatController : ControllerBase
         if (!isParticipant)
             return NotFound(new { message = "Không tìm thấy hội thoại hoặc bạn không có quyền truy cập." });
 
-        page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        if (!IsValidPaging(page, pageSize, 100))
+            return BadRequest(new { message = "Tham số page phải từ 1, pageSize phải từ 1 đến 100." });
 
         var query = _db.Messages.AsNoTracking()
             .Where(x => x.ConversationId == conversationId && x.DeletedAt == null);
 
         var totalItems = await query.CountAsync(cancellationToken);
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
         var messages = await query
             .OrderByDescending(x => x.SentAt)
+            .ThenByDescending(x => x.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(x => new ChatMessageItem(
@@ -190,7 +210,9 @@ public sealed class ChatController : ControllerBase
             page,
             pageSize,
             totalItems,
-            (int)Math.Ceiling(totalItems / (double)pageSize),
+            totalPages,
+            page > 1,
+            page < totalPages,
             messages));
     }
 
@@ -588,6 +610,12 @@ public sealed class ChatController : ControllerBase
             _ => false
         };
     }
+
+    private static bool IsValidPaging(int page, int pageSize, int maxPageSize) =>
+        page >= 1 &&
+        pageSize >= 1 &&
+        pageSize <= maxPageSize &&
+        page <= int.MaxValue / pageSize;
 
     private Guid? GetCurrentUserId()
     {
