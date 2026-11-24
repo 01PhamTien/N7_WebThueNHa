@@ -20,6 +20,7 @@ Content-Type: application/json
 
 ### Tenant - xem yêu cầu của mình (phân trang mặc định page=1, pageSize=10)
 GET {{baseUrl}}/api/bookings/mine?page=1&pageSize=10
+Authorization: Bearer {{tenantToken}}
 
 ### Tenant - lọc yêu cầu theo trạng thái
 GET {{baseUrl}}/api/bookings/mine?page=1&pageSize=10&status=Pending
@@ -27,6 +28,7 @@ Authorization: Bearer {{tenantToken}}
 
 ### Landlord - xem yêu cầu gửi đến nhà của mình (phân trang)
 GET {{baseUrl}}/api/bookings/incoming?page=1&pageSize=10
+Authorization: Bearer {{landlordToken}}
 
 ### Landlord - lọc yêu cầu gửi đến theo trạng thái
 GET {{baseUrl}}/api/bookings/incoming?page=1&pageSize=10&status=Accepted
