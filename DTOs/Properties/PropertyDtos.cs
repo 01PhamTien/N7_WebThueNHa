@@ -124,7 +124,9 @@ public sealed record PagedPropertyResponse(
     int Page,
     int PageSize,
     int TotalItems,
-    int TotalPages);
+    int TotalPages,
+    bool HasPrevious,
+    bool HasNext);
 
 public sealed record PagedMyPropertiesResponse(
     IReadOnlyCollection<PropertyResponse> Items,
