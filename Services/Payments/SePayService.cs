@@ -171,6 +171,8 @@ public sealed class SePayService(
 
         using var document = JsonDocument.Parse(rawBody);
         var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+            return false;
 
         if (!TryReadInt64(root, "timestamp", out var timestamp) ||
             !IsTimestampValid(timestamp) ||
@@ -286,6 +288,8 @@ public sealed class SePayService(
 
         using var document = JsonDocument.Parse(rawBody);
         var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+            return false;
 
         if (!TryReadInt64(root, "id", out var eventId) ||
             !TryReadString(root, "transferType", out var transferType) ||
@@ -442,7 +446,9 @@ public sealed class SePayService(
         var value = RequiredSetting(name).TrimEnd('/');
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
             uri.Scheme != Uri.UriSchemeHttps ||
-            !string.IsNullOrEmpty(uri.UserInfo))
+            !string.IsNullOrEmpty(uri.UserInfo) ||
+            uri.IsLoopback ||
+            uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException($"SePay:{name} phải là URL HTTPS công khai hợp lệ.");
 
         return value;
@@ -462,7 +468,8 @@ public sealed class SePayService(
     private static bool TryReadString(JsonElement element, string property, out string value)
     {
         value = string.Empty;
-        if (!element.TryGetProperty(property, out var item) ||
+        if (element.ValueKind != JsonValueKind.Object ||
+            !element.TryGetProperty(property, out var item) ||
             item.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
             return false;
 
@@ -473,14 +480,16 @@ public sealed class SePayService(
     private static bool TryReadDecimal(JsonElement element, string property, out decimal value)
     {
         value = 0;
-        return element.TryGetProperty(property, out var item) &&
+        return element.ValueKind == JsonValueKind.Object &&
+               element.TryGetProperty(property, out var item) &&
                decimal.TryParse(item.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out value);
     }
 
     private static bool TryReadInt64(JsonElement element, string property, out long value)
     {
         value = 0;
-        return element.TryGetProperty(property, out var item) &&
+        return element.ValueKind == JsonValueKind.Object &&
+               element.TryGetProperty(property, out var item) &&
                long.TryParse(item.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
     }
 
