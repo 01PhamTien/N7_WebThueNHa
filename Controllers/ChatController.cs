@@ -544,9 +544,9 @@ public sealed class ChatController : ControllerBase
         participant.LastReadAt = now;
         _db.Messages.Add(message);
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         try
         {
+            await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
             var recipientId = participant.Conversation.TenantId == currentUserId.Value
                 ? participant.Conversation.LandlordId
@@ -562,7 +562,6 @@ public sealed class ChatController : ControllerBase
         }
         catch
         {
-            await transaction.RollbackAsync(cancellationToken);
             System.IO.File.Delete(absolutePath);
             throw;
         }
