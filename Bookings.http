@@ -18,12 +18,18 @@ Content-Type: application/json
   "message": "Tôi muốn thuê căn nhà này."
 }
 
-### Tenant - xem yêu cầu của mình
-GET {{baseUrl}}/api/bookings/mine
+### Tenant - xem yêu cầu của mình (phân trang mặc định page=1, pageSize=10)
+GET {{baseUrl}}/api/bookings/mine?page=1&pageSize=10
+
+### Tenant - lọc yêu cầu theo trạng thái
+GET {{baseUrl}}/api/bookings/mine?page=1&pageSize=10&status=Pending
 Authorization: Bearer {{tenantToken}}
 
-### Landlord - xem yêu cầu gửi đến nhà của mình
-GET {{baseUrl}}/api/bookings/incoming
+### Landlord - xem yêu cầu gửi đến nhà của mình (phân trang)
+GET {{baseUrl}}/api/bookings/incoming?page=1&pageSize=10
+
+### Landlord - lọc yêu cầu gửi đến theo trạng thái
+GET {{baseUrl}}/api/bookings/incoming?page=1&pageSize=10&status=Accepted
 Authorization: Bearer {{landlordToken}}
 
 ### Tenant hoặc chủ nhà sở hữu - xem chi tiết
