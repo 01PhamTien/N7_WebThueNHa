@@ -1,9 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Notifications;
+using Web2_ThueNha.Services.Notifications;
 
 namespace Web2_ThueNha.Controllers;
 
@@ -13,9 +12,10 @@ namespace Web2_ThueNha.Controllers;
 public sealed class NotificationsController : ControllerBase
 {
     private const int MaxPageSize = 50;
-    private readonly AppDbContext _db;
+    private readonly INotificationService _notificationService;
 
-    public NotificationsController(AppDbContext db) => _db = db;
+    public NotificationsController(INotificationService notificationService) =>
+        _notificationService = notificationService;
 
     /// <summary>Lấy danh sách thông báo của tài khoản hiện tại, có lọc và phân trang server-side.</summary>
     [HttpGet]
@@ -39,44 +39,10 @@ public sealed class NotificationsController : ControllerBase
         if (type.HasValue && !Enum.IsDefined(type.Value))
             return BadRequest(new { message = "Loại thông báo không hợp lệ." });
 
-        IQueryable<Notification> query = _db.Notifications
-            .AsNoTracking()
-            .Where(x => x.UserId == userId);
+        var result = await _notificationService.GetNotificationsAsync(
+            userId, isRead, type, page, pageSize, cancellationToken);
 
-        if (isRead.HasValue)
-            query = query.Where(x => x.IsRead == isRead.Value);
-
-        if (type.HasValue)
-            query = query.Where(x => x.NotificationType == type.Value);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
-        var items = page > totalPages
-            ? new List<NotificationItem>()
-            : await query
-                .OrderByDescending(x => x.CreatedAt)
-                .ThenByDescending(x => x.Id)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(x => new NotificationItem(
-                    x.Id,
-                    x.Title,
-                    x.Content,
-                    x.NotificationType,
-                    x.ReferenceId,
-                    x.IsRead,
-                    x.CreatedAt))
-                .ToListAsync(cancellationToken);
-
-        return Ok(new PagedNotificationsResponse(
-            items,
-            page,
-            pageSize,
-            totalCount,
-            totalPages,
-            page > 1 && page <= totalPages,
-            page < totalPages));
+        return Ok(result);
     }
 
     /// <summary>Đếm số thông báo chưa đọc của tài khoản hiện tại.</summary>
@@ -88,9 +54,7 @@ public sealed class NotificationsController : ControllerBase
         if (!TryGetCurrentUserId(out var userId))
             return Unauthorized();
 
-        var count = await _db.Notifications
-            .CountAsync(x => x.UserId == userId && !x.IsRead, cancellationToken);
-
+        var count = await _notificationService.GetUnreadCountAsync(userId, cancellationToken);
         return Ok(new { unreadCount = count });
     }
 
@@ -104,20 +68,10 @@ public sealed class NotificationsController : ControllerBase
         if (!TryGetCurrentUserId(out var userId))
             return Unauthorized();
 
-        var notification = await _db.Notifications.SingleOrDefaultAsync(
-            x => x.Id == id && x.UserId == userId,
-            cancellationToken);
-
-        if (notification is null)
-            return NotFound(new { message = "Không tìm thấy thông báo." });
-
-        if (!notification.IsRead)
-        {
-            notification.IsRead = true;
-            await _db.SaveChangesAsync(cancellationToken);
-        }
-
-        return NoContent();
+        var updated = await _notificationService.MarkAsReadAsync(id, userId, cancellationToken);
+        return updated
+            ? NoContent()
+            : NotFound(new { message = "Không tìm thấy thông báo." });
     }
 
     /// <summary>Đánh dấu tất cả thông báo chưa đọc của tài khoản hiện tại là đã đọc.</summary>
@@ -129,12 +83,7 @@ public sealed class NotificationsController : ControllerBase
         if (!TryGetCurrentUserId(out var userId))
             return Unauthorized();
 
-        var updatedCount = await _db.Notifications
-            .Where(x => x.UserId == userId && !x.IsRead)
-            .ExecuteUpdateAsync(
-                setters => setters.SetProperty(x => x.IsRead, true),
-                cancellationToken);
-
+        var updatedCount = await _notificationService.MarkAllAsReadAsync(userId, cancellationToken);
         return Ok(new { updatedCount });
     }
 
