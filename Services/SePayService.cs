@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Microsoft.Data.SqlClient;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.Models;
@@ -382,19 +382,20 @@ public sealed class SePayService(
             : InvoiceStatus.Issued;
     }
 
-    private SePayCheckout BuildCheckout(Payment payment, SePayCheckoutSettings settings)
+    private SePayCheckout BuildCheckout(Payment payment, PaymentCodeSettings settings)
     {
         if (payment.Amount != decimal.Truncate(payment.Amount))
             throw new SePayRequestException(StatusCodes.Status400BadRequest, "SePay chỉ nhận số tiền VND nguyên.");
 
         var orderInvoiceNumber = EncodePaymentCode(payment.Id);
+        var description = $"Thanh toan hoa don {payment.InvoiceId:N}";
         var fields = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["order_amount"] = payment.Amount.ToString("0", CultureInfo.InvariantCulture),
             ["merchant"] = settings.MerchantId,
             ["currency"] = "VND",
             ["operation"] = "PURCHASE",
-            ["order_description"] = $"Thanh toan hoa don {payment.InvoiceId:N}"[..Math.Min(80, $"Thanh toan hoa don {payment.InvoiceId:N}".Length)],
+            ["order_description"] = description,
             ["order_invoice_number"] = orderInvoiceNumber,
             ["customer_id"] = payment.PayerId.ToString("N"),
             ["payment_method"] = "BANK_TRANSFER",
@@ -428,7 +429,7 @@ public sealed class SePayService(
             publicUri.Scheme != Uri.UriSchemeHttps)
             throw new InvalidOperationException("SEPAY_PUBLIC_URL phải là domain HTTPS công khai.");
 
-        return new PaymentCodeSettings(merchantId, secretKey, checkoutUri.ToString(), publicUri);
+        return new PaymentCodeSettings(merchantId, secretKey, checkoutUri.ToString(), publicUri.GetLeftPart(UriPartial.Authority));
     }
 
     private string RequiredSetting(string key) =>
@@ -549,5 +550,5 @@ public sealed class SePayService(
         string MerchantId,
         string SecretKey,
         string CheckoutUrl,
-        Uri PublicUrl);
+        string PublicUrl);
 }
