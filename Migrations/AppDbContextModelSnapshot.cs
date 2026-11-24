@@ -564,12 +564,12 @@ namespace Web2_ThueNha.Migrations
 
                     b.HasIndex("ContractId");
 
-                    b.HasIndex("ContractId")
+                    b.HasIndex("ContractId", "InvoiceType")
                         .IsUnique()
                         .HasDatabaseName("UX_Invoices_Contract_Deposit")
                         .HasFilter("[InvoiceType] = 0 AND [Status] <> 5");
 
-                    b.HasIndex("ContractId", "PeriodStart", "PeriodEnd")
+                    b.HasIndex("ContractId", "InvoiceType", "PeriodStart", "PeriodEnd")
                         .IsUnique()
                         .HasDatabaseName("UX_Invoices_Contract_MonthlyRent_Period")
                         .HasFilter("[InvoiceType] = 1 AND [PeriodStart] IS NOT NULL AND [PeriodEnd] IS NOT NULL AND [Status] <> 5");
