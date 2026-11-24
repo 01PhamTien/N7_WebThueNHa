@@ -123,36 +123,44 @@ public sealed class ChatController : ControllerBase
                         (includeArchived || !x.IsArchived));
 
         var totalItems = await query.CountAsync(cancellationToken);
-        var items = await query
-            .OrderByDescending(x => x.Conversation.LastMessageAt ?? x.Conversation.CreatedAt)
-            .ThenByDescending(x => x.Conversation.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(x => new ConversationListItem(
-                x.Conversation.Id,
-                x.Conversation.PropertyId,
-                x.Conversation.Property.Title,
-                x.Conversation.TenantId,
-                x.Conversation.Tenant.FullName,
-                x.Conversation.LandlordId,
-                x.Conversation.Landlord.FullName,
-                x.Conversation.Messages
-                    .Where(m => m.DeletedAt == null)
-                    .OrderByDescending(m => m.SentAt)
-                    .Select(m => m.Content)
-                    .FirstOrDefault(),
-                x.Conversation.LastMessageAt,
-                x.Conversation.CreatedAt,
-                x.IsArchived))
-            .ToListAsync(cancellationToken);
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+        var items = page > totalPages
+            ? new List<ConversationListItem>()
+            : await query
+                .OrderByDescending(x => x.Conversation.LastMessageAt ?? x.Conversation.CreatedAt)
+                .ThenByDescending(x => x.Conversation.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new ConversationListItem(
+                    x.Conversation.Id,
+                    x.Conversation.PropertyId,
+                    x.Conversation.Property.Title,
+                    x.Conversation.TenantId,
+                    x.Conversation.Tenant.FullName,
+                    x.Conversation.LandlordId,
+                    x.Conversation.Landlord.FullName,
+                    x.Conversation.Messages
+                        .Where(m => m.DeletedAt == null)
+                        .OrderByDescending(m => m.SentAt)
+                        .ThenByDescending(m => m.Id)
+                        .Select(m => m.Content)
+                        .FirstOrDefault(),
+                    x.Conversation.LastMessageAt,
+                    x.Conversation.Messages.Count(m =>
+                        m.DeletedAt == null &&
+                        m.SenderId != currentUserId.Value &&
+                        m.SentAt > (x.LastReadAt ?? DateTime.MinValue)),
+                    x.Conversation.CreatedAt,
+                    x.IsArchived))
+                .ToListAsync(cancellationToken);
 
         return Ok(new PagedConversations(
             page,
             pageSize,
             totalItems,
-            (int)Math.Ceiling(totalItems / (double)pageSize),
-            page > 1,
-            page < (int)Math.Ceiling(totalItems / (double)pageSize),
+            totalPages,
+            page > 1 && page <= totalPages,
+            page < totalPages,
             items));
     }
 
@@ -182,27 +190,29 @@ public sealed class ChatController : ControllerBase
 
         var totalItems = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-        var messages = await query
-            .OrderByDescending(x => x.SentAt)
-            .ThenByDescending(x => x.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(x => new ChatMessageItem(
-                x.Id,
-                x.SenderId,
-                x.Sender.FullName,
-                x.Content,
-                x.MessageType.ToString(),
-                x.SentAt,
-                x.EditedAt,
-                x.SenderId == currentUserId.Value,
-                x.Attachments.Select(a => new ChatAttachmentItem(
-                    a.Id,
-                    a.FileName,
-                    a.ContentType,
-                    a.FileSize,
-                    "/api/chat/attachments/" + a.Id)).ToList()))
-            .ToListAsync(cancellationToken);
+        var messages = page > totalPages
+            ? new List<ChatMessageItem>()
+            : await query
+                .OrderByDescending(x => x.SentAt)
+                .ThenByDescending(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new ChatMessageItem(
+                    x.Id,
+                    x.SenderId,
+                    x.Sender.FullName,
+                    x.Content,
+                    x.MessageType.ToString(),
+                    x.SentAt,
+                    x.EditedAt,
+                    x.SenderId == currentUserId.Value,
+                    x.Attachments.Select(a => new ChatAttachmentItem(
+                        a.Id,
+                        a.FileName,
+                        a.ContentType,
+                        a.FileSize,
+                        "/api/chat/attachments/" + a.Id)).ToList()))
+                .ToListAsync(cancellationToken);
 
         messages.Reverse();
 
@@ -352,6 +362,7 @@ public sealed class ChatController : ControllerBase
                             x.Id != messageId &&
                             x.DeletedAt == null)
                 .OrderByDescending(x => x.SentAt)
+                .ThenByDescending(x => x.Id)
                 .Select(x => (DateTime?)x.SentAt)
                 .FirstOrDefaultAsync(cancellationToken);
         }
@@ -418,6 +429,7 @@ public sealed class ChatController : ControllerBase
     /// <summary>Tải tệp đính kèm vào hội thoại (tối đa 10 MB, chỉ nhận ảnh/PDF/Word).</summary>
     [HttpPost("conversations/{conversationId:guid}/attachments")]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(11 * 1024 * 1024)]
     public async Task<IActionResult> UploadAttachment(
         Guid conversationId,
         [FromForm] IFormFile file,
@@ -447,7 +459,7 @@ public sealed class ChatController : ControllerBase
         if (!AllowedExtensions.Contains(extension))
             return BadRequest(new { message = "Định dạng tệp không được hỗ trợ." });
 
-        var contentType = file.ContentType.Trim().ToLowerInvariant();
+        var contentType = file.ContentType?.Trim().ToLowerInvariant() ?? string.Empty;
         var expectedContentType = extension.ToLowerInvariant() switch
         {
             ".jpg" or ".jpeg" => "image/jpeg",
@@ -469,7 +481,7 @@ public sealed class ChatController : ControllerBase
         if (caption?.Length > 4000)
             return BadRequest(new { message = "Chú thích tệp không được vượt quá 4000 ký tự." });
 
-        var safeOriginalName = Path.GetFileName(file.FileName);
+        var safeOriginalName = Path.GetFileName(file.FileName.Replace('\\', '/'));
         if (safeOriginalName.Length > 255)
             safeOriginalName = safeOriginalName[^255..];
 
