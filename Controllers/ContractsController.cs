@@ -1,3 +1,4 @@
+using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -220,8 +221,17 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
         if (contract.LandlordId != userId)
             return Forbid();
 
-        if (contract.Status != RentalContractStatus.Draft)
-            return Conflict(new { message = "Chỉ hợp đồng Draft mới được chỉnh sửa." });
+        if (contract.Status is not (RentalContractStatus.Draft or RentalContractStatus.AwaitingSignature))
+            return Conflict(new { message = "Không thể chỉnh sửa hợp đồng đã Active hoặc đã kết thúc." });
+
+        // Nếu một bên đã ký, mọi thay đổi điều khoản làm mất hiệu lực cả hai xác nhận.
+        if (contract.Status == RentalContractStatus.AwaitingSignature)
+        {
+            contract.LandlordSignedAt = null;
+            contract.TenantSignedAt = null;
+            contract.SignedAt = null;
+            contract.Status = RentalContractStatus.Draft;
+        }
 
         contract.StartDate = request.StartDate;
         contract.EndDate = request.EndDate;
@@ -263,6 +273,70 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
         return Ok(ToResponse(contract));
     }
 
+
+    /// <summary>Mỗi bên chỉ xác nhận một lần; hợp đồng chỉ Active khi cả Landlord và Tenant đã ký.</summary>
+    [HttpPost("{id:guid}/sign")]
+    [ProducesResponseType(typeof(RentalContractResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SignContract(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+            return Unauthorized();
+
+        // Serializable bảo vệ thao tác ký đồng thời của hai bên trên cùng một hợp đồng.
+        await using var transaction = await db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
+
+        var contract = await db.RentalContracts
+            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        if (contract is null)
+            return NotFound(new { message = "Không tìm thấy hợp đồng." });
+
+        var isLandlord = contract.LandlordId == userId;
+        var isTenant = contract.TenantId == userId;
+        if (!isLandlord && !isTenant)
+            return Forbid();
+
+        if (isLandlord && isTenant)
+            return Conflict(new { message = "Một tài khoản không thể xác nhận thay cả hai bên." });
+
+        // Retry từ cùng một bên là idempotent, không ghi đè thời điểm xác nhận đầu tiên.
+        var alreadySignedByCurrentUser = isLandlord
+            ? contract.LandlordSignedAt.HasValue
+            : contract.TenantSignedAt.HasValue;
+
+        if (contract.Status == RentalContractStatus.Active && alreadySignedByCurrentUser)
+            return Ok(ToResponse(contract));
+
+        if (contract.Status != RentalContractStatus.AwaitingSignature)
+            return Conflict(new { message = "Chỉ hợp đồng đang chờ xác nhận mới được ký." });
+
+        if (!alreadySignedByCurrentUser)
+        {
+            var signedAt = DateTime.UtcNow;
+            if (isLandlord)
+                contract.LandlordSignedAt = signedAt;
+            else
+                contract.TenantSignedAt = signedAt;
+        }
+
+        if (contract.LandlordSignedAt.HasValue && contract.TenantSignedAt.HasValue)
+        {
+            contract.SignedAt = contract.LandlordSignedAt.Value >= contract.TenantSignedAt.Value
+                ? contract.LandlordSignedAt.Value
+                : contract.TenantSignedAt.Value;
+            contract.Status = RentalContractStatus.Active;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return Ok(ToResponse(contract));
+    }
+
     private bool TryGetUserId(out Guid userId) =>
         Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId);
 
@@ -282,6 +356,8 @@ public sealed class ContractsController(AppDbContext db) : ControllerBase
             contract.Terms,
             contract.ContractUrl,
             contract.Status.ToString(),
+            contract.LandlordSignedAt,
+            contract.TenantSignedAt,
             contract.SignedAt,
             contract.CreatedAt);
 }

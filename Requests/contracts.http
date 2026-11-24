@@ -50,3 +50,16 @@ Authorization: Bearer {{tenantToken}}
 ### 9. Kiem tra pageSize vuot gioi han (mong doi 400)
 GET {{baseUrl}}/api/contracts?page=1&pageSize=51
 Authorization: Bearer {{tenantToken}}
+
+
+### 10. Landlord xác nhận hợp đồng
+POST {{baseUrl}}/api/contracts/{{contractId}}/sign
+Authorization: Bearer {{landlordToken}}
+
+### 11. Tenant xác nhận hợp đồng
+POST {{baseUrl}}/api/contracts/{{contractId}}/sign
+Authorization: Bearer {{tenantToken}}
+
+### 12. Người ngoài không được xác nhận hợp đồng (mong đợi 403)
+POST {{baseUrl}}/api/contracts/{{contractId}}/sign
+Authorization: Bearer {{otherToken}}
