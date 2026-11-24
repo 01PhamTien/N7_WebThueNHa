@@ -23,8 +23,8 @@ Không commit secret hoặc connection string. Dùng User Secrets ở local và 
 
 URL checkout theo môi trường:
 
-- Sandbox: `https://pgapi-sandbox.sepay.vn/v1/checkout/init`
-- Production: `https://pgapi.sepay.vn/v1/checkout/init`
+- Sandbox: `https://pay-sandbox.sepay.vn/v1/checkout/init`
+- Production: `https://pay.sepay.vn/v1/checkout/init`
 
 Dùng sandbox trước. Chỉ chuyển Production sau khi merchant, IPN và webhook đã được kiểm thử thật.
 
@@ -48,7 +48,7 @@ Cấu hình IPN URL:
 
 `https://<domain>/api/sepay/ipn`
 
-SePay gửi header `X-Secret-Key`. Backend xác minh secret, timestamp trong body (±5 phút), `notification_type=ORDER_PAID`, `order_status=CAPTURED`, `transaction_status=APPROVED`, currency VND, mã Payment và số tiền khớp database.
+SePay gửi header `X-Secret-Key`. Backend xác minh secret, timestamp trong body (hợp lệ và không nằm quá xa trong tương lai; vẫn chấp nhận IPN cũ được gửi lại khi SePay retry), `notification_type=ORDER_PAID`, `order_status=CAPTURED`, `transaction_status=APPROVED`, currency VND, mã Payment và số tiền khớp database.
 
 Chỉ IPN hợp lệ mới cập nhật Payment/Invoice. IPN gửi lại cho Payment đã Succeeded được ACK idempotent và không tạo notification lần nữa.
 
