@@ -1,3 +1,4 @@
+using Web2_ThueNha.Models;
 using Web2_ThueNha.Models.Identity;
 
 namespace Web2_ThueNha.Models.Notifications;
