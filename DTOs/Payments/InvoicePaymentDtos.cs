@@ -80,7 +80,6 @@ public sealed class CreateInvoiceRequest
 
     [Required]
     [MinLength(1)]
-    [MaxLength(20)]
     public List<CreateInvoiceItemRequest> Items { get; set; } = [];
 }
 
