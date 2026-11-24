@@ -83,7 +83,8 @@ public sealed class SePayService(
         using var document = JsonDocument.Parse(rawBody);
         var root = document.RootElement;
         var timestamp = root.GetProperty("timestamp").GetInt64();
-        if (Math.Abs(DateTimeOffset.UtcNow.ToUnixTimeSeconds() - timestamp) > 300)
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        if (timestamp < now - 300 || timestamp > now + 300)
             return false;
 
         var notificationType = root.GetProperty("notification_type").GetString();
@@ -222,7 +223,8 @@ public sealed class SePayService(
             !long.TryParse(timestamp, NumberStyles.Integer, CultureInfo.InvariantCulture, out var unixTime))
             return false;
 
-        if (Math.Abs(DateTimeOffset.UtcNow.ToUnixTimeSeconds() - unixTime) > 300)
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        if (unixTime < now - 300 || unixTime > now + 300)
             return false;
 
         var signedContent = $"{timestamp}.{rawBody}";
