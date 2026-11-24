@@ -26,6 +26,13 @@ public sealed record ConversationListItem(
     DateTime CreatedAt,
     bool IsArchived);
 
+public sealed record ChatAttachmentItem(
+    Guid AttachmentId,
+    string FileName,
+    string? ContentType,
+    long FileSize,
+    string DownloadUrl);
+
 public sealed record ChatMessageItem(
     Guid MessageId,
     Guid SenderId,
@@ -34,7 +41,8 @@ public sealed record ChatMessageItem(
     string MessageType,
     DateTime SentAt,
     DateTime? EditedAt,
-    bool IsMine);
+    bool IsMine,
+    IReadOnlyCollection<ChatAttachmentItem> Attachments);
 
 public sealed record PagedChatMessages(
     int Page,
