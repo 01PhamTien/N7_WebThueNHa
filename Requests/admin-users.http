@@ -1,0 +1,56 @@
+@baseUrl = https://localhost:7295
+@adminToken = THAY_BANG_JWT_ADMIN
+@userId = THAY_BANG_GUID_TAI_KHOAN
+
+### 1. Danh sach tai khoan
+GET {{baseUrl}}/api/admin/users?page=1&pageSize=20
+Authorization: Bearer {{adminToken}}
+
+### 2. Tim kiem tai khoan theo ten/email/so dien thoai
+GET {{baseUrl}}/api/admin/users?keyword=nguyen&isActive=true&page=1&pageSize=20
+Authorization: Bearer {{adminToken}}
+
+### 3. Xem chi tiet tai khoan (khong tra PasswordHash)
+GET {{baseUrl}}/api/admin/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+
+### 4. Khoa tai khoan
+PATCH {{baseUrl}}/api/admin/users/{{userId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+### 5. Mo khoa tai khoan
+PATCH {{baseUrl}}/api/admin/users/{{userId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isActive": true
+}
+
+### 6. Cap nhat vai tro
+PUT {{baseUrl}}/api/admin/users/{{userId}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "roles": ["Tenant"]
+}
+
+### 7. Gan nhieu vai tro neu nghiep vu cho phep
+PUT {{baseUrl}}/api/admin/users/{{userId}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "roles": ["Tenant", "Landlord"]
+}
+
+### Kiem thu phan quyen
+# Thu lai cac request tren bang JWT Tenant/Landlord: phai nhan 403.
+# Thu khoa tai khoan hoac thay doi role, sau do goi API bang JWT cu: token phai bi tu choi.
+# Khong duoc tu khoa minh, tu thay doi role, hoac khoa/go Admin cua Admin cuoi cung.

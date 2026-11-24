@@ -152,3 +152,5 @@ Voi SignalR JavaScript client, cung cap `accessTokenFactory: () => token`. Backe
 Request mau cho cac API chat nam trong `Requests/chat.http`; SignalR event va cach ket noi duoc mo ta ngay trong file va phan SignalR ben tren.
 
 - `GET /api/chat/conversations?includeArchived=true`: xem cả hội thoại đã ẩn để người dùng có thể hiện lại; mặc định API chỉ trả hội thoại chưa ẩn.
+
+Request mẫu kiểm thử API quản trị tài khoản nằm tại `Requests/admin-users.http`, gồm tìm kiếm, phân trang, xem chi tiết, khóa/mở khóa và cập nhật vai trò.
