@@ -11,6 +11,7 @@ namespace Web2_ThueNha.Controllers;
 public sealed class SePayController(
     ISePayService sePayService,
     PaymentDbContext db,
+    IConfiguration configuration,
     ILogger<SePayController> logger) : ControllerBase
 {
     [HttpPost("checkout")]
@@ -18,6 +19,9 @@ public sealed class SePayController(
         [FromBody] CreateSePayPaymentRequest request,
         CancellationToken cancellationToken)
     {
+        if (!IsInternalRequestAuthorized())
+            return Unauthorized(new { message = "Thiếu hoặc sai khóa truy cập dịch vụ thanh toán." });
+
         try
         {
             var checkout = await sePayService.CreateCheckoutAsync(request, cancellationToken);
@@ -83,6 +87,9 @@ public sealed class SePayController(
         string invoiceNumber,
         CancellationToken cancellationToken)
     {
+        if (!IsInternalRequestAuthorized())
+            return Unauthorized(new { message = "Thiếu hoặc sai khóa truy cập dịch vụ thanh toán." });
+
         var payment = await db.Payments.AsNoTracking()
             .Where(x => x.InvoiceNumber == invoiceNumber)
             .Select(x => new
@@ -97,6 +104,20 @@ public sealed class SePayController(
             .SingleOrDefaultAsync(cancellationToken);
 
         return payment is null ? NotFound() : Ok(payment);
+    }
+
+    private bool IsInternalRequestAuthorized()
+    {
+        var expected = configuration["SEPAY_CHECKOUT_API_KEY"]
+            ?? Environment.GetEnvironmentVariable("SEPAY_CHECKOUT_API_KEY");
+        var supplied = Request.Headers["X-Payment-Api-Key"].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(expected) || string.IsNullOrWhiteSpace(supplied))
+            return false;
+
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+        var suppliedBytes = Encoding.UTF8.GetBytes(supplied);
+        return expectedBytes.Length == suppliedBytes.Length &&
+            System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(expectedBytes, suppliedBytes);
     }
 
     [HttpGet("return/{result}")]
