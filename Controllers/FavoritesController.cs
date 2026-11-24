@@ -61,7 +61,8 @@ public sealed class FavoritesController(AppDbContext db) : ControllerBase
                     x.Property.WardName,
                     x.Property.ProvinceName,
                     x.Property.Images
-                        .OrderBy(image => image.DisplayOrder)
+                        .OrderByDescending(image => image.IsPrimary)
+                        .ThenBy(image => image.DisplayOrder)
                         .ThenBy(image => image.Id)
                         .Select(image => image.ImageUrl)
                         .FirstOrDefault(),
