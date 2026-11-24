@@ -88,22 +88,3 @@ Không chia sẻ hoặc commit giá trị `Jwt:Key` lên Git. Mỗi máy phát t
 5. Gửi token dưới dạng `Authorization: Bearer <accessToken>` khi gọi `GET /api/auth/me`.
 
 Không dùng tài khoản hoặc dữ liệu thật của người dùng trong môi trường thử nghiệm.
-
-## API hop dong thue
-
-Cac API yeu cau JWT role `Tenant` hoac `Landlord`. Tenant/Landlord va Property duoc lay tu Booking Accepted tren server, khong nhan ID doi tac tu client.
-
-| Phuong thuc | Endpoint | Chuc nang |
-|---|---|---|
-| POST | `/api/contracts/from-booking/{bookingId}` | Tao hop dong Draft tu Booking Accepted; request lap tra lai hop dong hien co |
-| GET | `/api/contracts?page=1&pageSize=20&status=Draft` | Danh sach hop dong cua tai khoan hien tai, loc va phan trang server-side |
-| GET | `/api/contracts/{id}` | Chi tiet hop dong chi cho Tenant/Landlord tham gia |
-| PUT | `/api/contracts/{id}` | Landlord cap nhat hop dong khi con Draft |
-| POST | `/api/contracts/{id}/submit` | Landlord chuyen Draft sang AwaitingSignature |
-
-Hop dong duoc tao tu Booking Accepted voi MonthlyRent = ProposedPrice, DepositAmount mac dinh 0 va PaymentDueDay mac dinh 1; Landlord co the cap nhat cac truong truoc khi submit. Unique one-to-one BookingId ngan tao hop dong trung.
-
-**Gioi han chu ky:** Entity RentalContract hien chi co SignedAt chung, khong luu rieng thoi diem Landlord va Tenant xac nhan. Vi vay API hien tai khong co thao tac ky va khong tu dong chuyen AwaitingSignature sang Active. Issue #24 theo doi de xuat bo sung hai timestamp rieng; khong sua schema/migration trong PR nay.
-
-Request mau: `Requests/contracts.http`.
-Checklist kiem thu: `docs/requests/contracts-test-cases.md`.
