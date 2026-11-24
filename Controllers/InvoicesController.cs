@@ -8,6 +8,7 @@ using Web2_ThueNha.Models.Contracts;
 using Web2_ThueNha.Models.Payments;
 using Web2_ThueNha.DTOs.Payments;
 
+using Web2_ThueNha.Services;
 using Web2_ThueNha.Services.Payments;
 
 namespace Web2_ThueNha.Controllers;
@@ -39,12 +40,53 @@ public sealed class InvoicesController(AppDbContext db, IPaymentService paymentS
             (type.HasValue && !Enum.IsDefined(type.Value)))
             return BadRequest(new { message = "Bộ lọc hoặc tham số phân trang không hợp lệ." });
 
-        await private Task MarkOverdueInvoicesAsync(Guid userId, CancellationToken cancellationToken) =>
-        paymentService.MarkOverdueInvoicesAsync(
-            userId,
-            User.IsInRole("Landlord"),
-            User.IsInRole("Tenant"),
-            cancellationToken);")]
+        await MarkOverdueInvoicesAsync(userId, cancellationToken);
+
+        var isLandlord = User.IsInRole("Landlord");
+        var isTenant = User.IsInRole("Tenant");
+        var query = db.Invoices.AsNoTracking().Where(x =>
+            (isLandlord && x.Contract.LandlordId == userId) ||
+            (isTenant && x.Contract.TenantId == userId));
+
+        if (status.HasValue)
+            query = query.Where(x => x.Status == status.Value);
+        if (type.HasValue)
+            query = query.Where(x => x.InvoiceType == type.Value);
+
+        var totalItems = await query.CountAsync(cancellationToken);
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+        var items = page > totalPages
+            ? new List<InvoiceListItem>()
+            : await query
+                .OrderByDescending(x => x.IssueDate)
+                .ThenByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new InvoiceListItem(
+                    x.Id,
+                    x.InvoiceCode,
+                    x.ContractId,
+                    x.Contract.ContractCode,
+                    x.Contract.PropertyId,
+                    x.Contract.Property.Title,
+                    x.Contract.LandlordId,
+                    x.Contract.TenantId,
+                    x.InvoiceType.ToString(),
+                    x.IssueDate,
+                    x.DueDate,
+                    x.TotalAmount,
+                    x.Status.ToString(),
+                    x.CreatedAt))
+                .ToListAsync(cancellationToken);
+
+        return Ok(new PagedInvoicesResponse(
+            items, page, pageSize, totalItems, totalPages,
+            page > 1 && page <= totalPages, page < totalPages));
+    }
+
+    /// <summary>Xem chi tiết hóa đơn, dòng hóa đơn và các lần ghi nhận thanh toán.</summary>
+    [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(InvoiceDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetInvoice(Guid id, CancellationToken cancellationToken)
@@ -77,7 +119,7 @@ public sealed class InvoicesController(AppDbContext db, IPaymentService paymentS
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> public async Task<IActionResult> CreateInvoice(
+    public async Task<IActionResult> CreateInvoice(
         Guid contractId,
         [FromBody] CreateInvoiceRequest request,
         CancellationToken cancellationToken)
@@ -92,21 +134,12 @@ public sealed class InvoicesController(AppDbContext db, IPaymentService paymentS
         return ToActionResult(result);
     }
 
-    private async Task MarkOverdueInvoicesAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        var isLandlord = User.IsInRole("Landlord");
-        var isTenant = User.IsInRole("Tenant");
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        await db.Invoices
-            .Where(x =>
-                ((isLandlord && x.Contract.LandlordId == userId) ||
-                 (isTenant && x.Contract.TenantId == userId)) &&
-                x.DueDate < today &&
-                (x.Status == InvoiceStatus.Issued || x.Status == InvoiceStatus.PartiallyPaid))
-            .ExecuteUpdateAsync(
-                setters => setters.SetProperty(x => x.Status, InvoiceStatus.Overdue),
-                cancellationToken);
-    }
+    private Task MarkOverdueInvoicesAsync(Guid userId, CancellationToken cancellationToken) =>
+        paymentService.MarkOverdueInvoicesAsync(
+            userId,
+            User.IsInRole("Landlord"),
+            User.IsInRole("Tenant"),
+            cancellationToken);
 
 
     private IActionResult ToActionResult<T>(ServiceResult<T> result) =>
