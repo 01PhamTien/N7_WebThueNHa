@@ -30,6 +30,8 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
         CancellationToken cancellationToken = default)
     {
         if (page < 1 || pageSize < 1 || pageSize > MaxPageSize ||
+            page > int.MaxValue / pageSize ||
+            (propertyTypeId.HasValue && propertyTypeId.Value < 1) ||
             minPrice < 0 || maxPrice < 0 || minArea < 0 || maxArea < 0 ||
             minBedrooms < 0 || (minPrice.HasValue && maxPrice.HasValue && minPrice > maxPrice) ||
             (minArea.HasValue && maxArea.HasValue && minArea > maxArea))
@@ -68,19 +70,26 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
             query = query.Where(x => x.Bedrooms >= minBedrooms.Value);
 
         var totalItems = await query.CountAsync(cancellationToken);
-        var items = await query.OrderByDescending(x => x.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Include(x => x.PropertyType)
-            .Include(x => x.Images.OrderBy(i => i.DisplayOrder))
-            .ToListAsync(cancellationToken);
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+        var items = page > totalPages
+            ? new List<Property>()
+            : await query
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Include(x => x.PropertyType)
+                .Include(x => x.Images.OrderBy(i => i.DisplayOrder))
+                .ToListAsync(cancellationToken);
 
         return Ok(new PagedPropertyResponse(
             items.Select(ToResponse).ToArray(),
             page,
             pageSize,
             totalItems,
-            (int)Math.Ceiling(totalItems / (double)pageSize)));
+            totalPages,
+            page > 1 && page <= totalPages,
+            page < totalPages));
     }
 
     [HttpGet("{id:guid}")]
@@ -120,6 +129,7 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
             return Unauthorized();
 
         if (page < 1 || pageSize < 1 || pageSize > MaxPageSize ||
+            page > int.MaxValue / pageSize ||
             (status.HasValue && !Enum.IsDefined(status.Value)))
             return BadRequest(new { message = "Tham số phân trang hoặc trạng thái không hợp lệ." });
 
@@ -133,16 +143,16 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
         // Đếm sau khi áp dụng toàn bộ điều kiện lọc, trước khi phân trang.
         var totalCount = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-        var skip = (int)Math.Min(((long)page - 1) * pageSize, int.MaxValue);
-
-        var properties = await query
-            .OrderByDescending(x => x.CreatedAt)
-            .ThenByDescending(x => x.Id)
-            .Skip(skip)
-            .Take(pageSize)
-            .Include(x => x.PropertyType)
-            .Include(x => x.Images.OrderBy(i => i.DisplayOrder))
-            .ToListAsync(cancellationToken);
+        var properties = page > totalPages
+            ? new List<Property>()
+            : await query
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Include(x => x.PropertyType)
+                .Include(x => x.Images.OrderBy(i => i.DisplayOrder))
+                .ToListAsync(cancellationToken);
 
         return Ok(new PagedMyPropertiesResponse(
             properties.Select(ToResponse).ToArray(),
@@ -150,7 +160,7 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
             pageSize,
             totalCount,
             totalPages,
-            page > 1,
+            page > 1 && page <= totalPages,
             page < totalPages));
     }
 
@@ -287,6 +297,7 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
             DisplayOrder = imageCount
         };
         db.PropertyImages.Add(image);
+        RequireModerationAfterImageChange(property);
         await db.SaveChangesAsync(cancellationToken);
         return Created($"/api/properties/{id}", new PropertyImageResponse(
             image.Id, image.ImageUrl, image.IsPrimary, image.DisplayOrder));
@@ -320,6 +331,7 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
             if (nextImage is not null)
                 nextImage.IsPrimary = true;
         }
+        RequireModerationAfterImageChange(property);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -348,8 +360,17 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
         foreach (var item in images)
             item.IsPrimary = item.Id == imageId;
 
+        RequireModerationAfterImageChange(property);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
+    }
+
+    private static void RequireModerationAfterImageChange(Property property)
+    {
+        // Thay đổi hình ảnh cũng là thay đổi nội dung tin đăng, cần Admin duyệt lại.
+        property.ModerationStatus = PropertyModerationStatus.Pending;
+        property.ListingStatus = PropertyListingStatus.Draft;
+        property.UpdatedAt = DateTime.UtcNow;
     }
 
     private bool TryGetUserId(out Guid userId) =>
