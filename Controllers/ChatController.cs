@@ -1,3 +1,4 @@
+using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,6 +7,8 @@ using Microsoft.AspNetCore.SignalR;
 using Web2_ThueNha.Hubs;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Chat;
+using Web2_ThueNha.Models;
+using Web2_ThueNha.Services.Notifications;
 
 namespace Web2_ThueNha.Controllers;
 
@@ -20,12 +23,18 @@ public sealed class ChatController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IWebHostEnvironment _environment;
     private readonly IHubContext<ChatHub> _chatHub;
+    private readonly INotificationService _notifications;
 
-    public ChatController(AppDbContext db, IWebHostEnvironment environment, IHubContext<ChatHub> chatHub)
+    public ChatController(
+        AppDbContext db,
+        IWebHostEnvironment environment,
+        IHubContext<ChatHub> chatHub,
+        INotificationService notifications)
     {
         _db = db;
         _environment = environment;
         _chatHub = chatHub;
+        _notifications = notifications;
     }
 
     /// <summary>Tạo hoặc lấy hội thoại riêng của người thuê với chủ nhà trên một căn nhà.</summary>
@@ -262,8 +271,22 @@ public sealed class ChatController : ControllerBase
         participant.Conversation.LastMessageAt = message.SentAt;
         participant.LastReadAt = message.SentAt;
 
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         _db.Messages.Add(message);
         await _db.SaveChangesAsync(cancellationToken);
+
+        var recipientId = participant.Conversation.TenantId == currentUserId.Value
+            ? participant.Conversation.LandlordId
+            : participant.Conversation.TenantId;
+        var notificationText = content.Length > 180 ? content[..180] + "…" : content;
+        await _notifications.CreateAsync(
+            recipientId,
+            "Tin nhắn mới",
+            notificationText,
+            NotificationType.Message,
+            message.Id,
+            cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         var realtimePayload = new
         {
@@ -523,7 +546,19 @@ public sealed class ChatController : ControllerBase
 
         try
         {
+            await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
+            var recipientId = participant.Conversation.TenantId == currentUserId.Value
+                ? participant.Conversation.LandlordId
+                : participant.Conversation.TenantId;
+            await _notifications.CreateAsync(
+                recipientId,
+                "Tệp đính kèm mới",
+                $"Bạn có tệp đính kèm mới: {safeOriginalName}.",
+                NotificationType.Message,
+                message.Id,
+                cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
         catch
         {

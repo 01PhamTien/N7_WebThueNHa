@@ -8,13 +8,14 @@ using Web2_ThueNha.Data;
 using Web2_ThueNha.Models;
 using Web2_ThueNha.Models.Payments;
 using Web2_ThueNha.DTOs.Payments;
+using Web2_ThueNha.Services.Notifications;
 
 namespace Web2_ThueNha.Controllers;
 
 [ApiController]
 [Route("api")]
 [Authorize]
-public sealed class PaymentsController(AppDbContext db) : ControllerBase
+public sealed class PaymentsController(AppDbContext db, INotificationService notifications) : ControllerBase
 {
     /// <summary>Người thuê gửi yêu cầu ghi nhận thanh toán tiền mặt hoặc chuyển khoản.</summary>
     [HttpPost("invoices/{invoiceId:guid}/payments")]
@@ -83,6 +84,13 @@ public sealed class PaymentsController(AppDbContext db) : ControllerBase
         try
         {
             await db.SaveChangesAsync(cancellationToken);
+            await notifications.CreateAsync(
+                invoice.Contract.LandlordId,
+                "Có yêu cầu xác nhận thanh toán",
+                $"Người thuê đã gửi yêu cầu thanh toán cho hóa đơn {invoice.InvoiceCode}.",
+                NotificationType.Payment,
+                payment.Id,
+                cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (
@@ -145,6 +153,13 @@ public sealed class PaymentsController(AppDbContext db) : ControllerBase
         payment.Invoice.Status = CalculateInvoiceStatus(payment.Invoice, totalPaid);
 
         await db.SaveChangesAsync(cancellationToken);
+        await notifications.CreateAsync(
+            payment.Invoice.Contract.TenantId,
+            "Thanh toán đã được xác nhận",
+            $"Khoản thanh toán cho hóa đơn {payment.Invoice.InvoiceCode} đã được xác nhận.",
+            NotificationType.Payment,
+            payment.Id,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         return Ok(ToResponse(payment));
@@ -202,6 +217,13 @@ public sealed class PaymentsController(AppDbContext db) : ControllerBase
         payment.Invoice.Status = CalculateInvoiceStatus(payment.Invoice, totalPaid);
 
         await db.SaveChangesAsync(cancellationToken);
+        await notifications.CreateAsync(
+            payment.Invoice.Contract.TenantId,
+            "Thanh toán bị từ chối",
+            $"Khoản thanh toán cho hóa đơn {payment.Invoice.InvoiceCode} bị từ chối: {reason}",
+            NotificationType.Payment,
+            payment.Id,
+            cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         return Ok(ToResponse(payment));
