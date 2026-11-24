@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Web2_ThueNha.Services;
 using Web2_ThueNha.Services.Notifications;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.Hubs;
