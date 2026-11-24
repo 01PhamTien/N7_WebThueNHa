@@ -14,8 +14,11 @@ public class Payment
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
     public DateTime? PaidAt { get; set; }
     public string? FailureReason { get; set; }
+    public Guid? ReviewedById { get; set; }
+    public DateTime? ReviewedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Invoice Invoice { get; set; } = null!;
     public User Payer { get; set; } = null!;
+    public User? ReviewedBy { get; set; }
 }

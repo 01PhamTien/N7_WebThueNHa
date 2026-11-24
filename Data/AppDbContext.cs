@@ -166,6 +166,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.HasKey(x => x.Id);
             e.Property(x => x.InvoiceCode).HasMaxLength(50).IsRequired();
             e.HasIndex(x => x.InvoiceCode).IsUnique();
+            e.HasIndex(x => new { x.ContractId, x.InvoiceType })
+                .IsUnique()
+                .HasDatabaseName("UX_Invoices_Contract_Deposit")
+                .HasFilter("[InvoiceType] = 0 AND [Status] <> 5");
+            e.HasIndex(x => new { x.ContractId, x.InvoiceType, x.PeriodStart, x.PeriodEnd })
+                .IsUnique()
+                .HasDatabaseName("UX_Invoices_Contract_MonthlyRent_Period")
+                .HasFilter("[InvoiceType] = 1 AND [PeriodStart] IS NOT NULL AND [PeriodEnd] IS NOT NULL AND [Status] <> 5");
             e.Property(x => x.TotalAmount).HasPrecision(18, 2);
             e.HasOne(x => x.Contract).WithMany(x => x.Invoices).HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Restrict);
         });
@@ -191,6 +199,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.FailureReason).HasMaxLength(1000);
             e.HasOne(x => x.Invoice).WithMany(x => x.Payments).HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Payer).WithMany().HasForeignKey(x => x.PayerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ReviewedBy).WithMany().HasForeignKey(x => x.ReviewedById).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.ReviewedById);
             e.HasIndex(x => x.TransactionCode).IsUnique().HasFilter("[TransactionCode] IS NOT NULL");
         });
 

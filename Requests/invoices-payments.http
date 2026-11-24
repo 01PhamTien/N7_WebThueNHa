@@ -1,0 +1,90 @@
+@baseUrl = https://localhost:7295
+@landlordToken = THAY_BANG_JWT_LANDLORD
+@adminToken = THAY_BANG_JWT_ADMIN
+@tenantToken = THAY_BANG_JWT_TENANT
+@otherToken = THAY_BANG_JWT_NGUOI_KHAC
+@contractId = THAY_BANG_GUID_HOP_DONG_ACTIVE
+@invoiceId = THAY_BANG_GUID_HOA_DON
+@paymentId = THAY_BANG_GUID_THANH_TOAN
+
+### 1. Landlord phát hành hóa đơn tiền cọc (InvoiceType Deposit = 0)
+POST {{baseUrl}}/api/contracts/{{contractId}}/invoices
+Authorization: Bearer {{landlordToken}}
+Content-Type: application/json
+
+{
+  "invoiceType": 0,
+  "issueDate": "2026-11-25",
+  "dueDate": "2026-12-05",
+  "items": [
+    {
+      "description": "Tiền đặt cọc",
+      "quantity": 1,
+      "unitPrice": 4500000
+    }
+  ]
+}
+
+### 2. Landlord phát hành hóa đơn tiền thuê tháng (InvoiceType MonthlyRent = 1)
+POST {{baseUrl}}/api/contracts/{{contractId}}/invoices
+Authorization: Bearer {{landlordToken}}
+Content-Type: application/json
+
+{
+  "invoiceType": 1,
+  "periodStart": "2026-12-01",
+  "periodEnd": "2026-12-31",
+  "issueDate": "2026-11-25",
+  "dueDate": "2026-12-05",
+  "items": [
+    {
+      "description": "Tiền thuê tháng 12/2026",
+      "quantity": 1,
+      "unitPrice": 4500000
+    }
+  ]
+}
+
+### 3. Tenant xem danh sách hóa đơn
+GET {{baseUrl}}/api/invoices?page=1&pageSize=20
+Authorization: Bearer {{tenantToken}}
+
+### 4. Tenant xem chi tiết hóa đơn và dòng thanh toán
+GET {{baseUrl}}/api/invoices/{{invoiceId}}
+Authorization: Bearer {{tenantToken}}
+
+### 5. Tenant gửi yêu cầu ghi nhận chuyển khoản (PaymentMethod BankTransfer = 1)
+POST {{baseUrl}}/api/invoices/{{invoiceId}}/payments
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{
+  "paymentMethod": 1,
+  "amount": 1500000,
+  "transactionCode": "BANK-REF-20261125-001"
+}
+
+### 6. Landlord xác nhận khoản thanh toán
+PATCH {{baseUrl}}/api/payments/{{paymentId}}/confirm
+Authorization: Bearer {{landlordToken}}
+
+### 7. Admin từ chối khoản thanh toán và lưu lý do
+PATCH {{baseUrl}}/api/payments/{{paymentId}}/reject
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "reason": "Không tìm thấy giao dịch tương ứng trên sao kê."
+}
+
+### 8. Kiểm tra lọc hóa đơn theo trạng thái và loại
+GET {{baseUrl}}/api/invoices?status=Issued&type=MonthlyRent&page=1&pageSize=10
+Authorization: Bearer {{landlordToken}}
+
+### 9. Kiểm tra phân trang không hợp lệ (mong đợi 400)
+GET {{baseUrl}}/api/invoices?page=0&pageSize=20
+Authorization: Bearer {{tenantToken}}
+
+### 10. Người không tham gia hợp đồng xem hóa đơn (mong đợi 404)
+GET {{baseUrl}}/api/invoices/{{invoiceId}}
+Authorization: Bearer {{otherToken}}
