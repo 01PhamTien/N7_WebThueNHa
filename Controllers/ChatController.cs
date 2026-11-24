@@ -12,12 +12,21 @@ namespace Web2_ThueNha.Controllers;
 [Authorize]
 public sealed class ChatController : ControllerBase
 {
+    private const long MaxAttachmentBytes = 10 * 1024 * 1024;
+    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
+        { ".jpg", ".jpeg", ".png", ".webp", ".pdf", ".doc", ".docx" };
     private readonly AppDbContext _db;
+    private readonly IWebHostEnvironment _environment;
 
-    public ChatController(AppDbContext db) => _db = db;
+    public ChatController(AppDbContext db, IWebHostEnvironment environment)
+    {
+        _db = db;
+        _environment = environment;
+    }
 
     /// <summary>Tạo hoặc lấy hội thoại riêng của người thuê với chủ nhà trên một căn nhà.</summary>
     [HttpPost("properties/{propertyId:guid}/conversation")]
+    [Authorize(Roles = "Tenant")]
     public async Task<IActionResult> GetOrCreateConversation(Guid propertyId, CancellationToken cancellationToken)
     {
         var currentUserId = GetCurrentUserId();
@@ -264,6 +273,147 @@ public sealed class ChatController : ControllerBase
         await _db.SaveChangesAsync(cancellationToken);
 
         return Ok(new { conversationId, isArchived = participant.IsArchived });
+    }
+
+
+    /// <summary>Tải tệp đính kèm vào hội thoại (tối đa 10 MB, chỉ nhận ảnh/PDF/Word).</summary>
+    [HttpPost("conversations/{conversationId:guid}/attachments")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadAttachment(
+        Guid conversationId,
+        [FromForm] IFormFile file,
+        [FromForm] string? caption,
+        CancellationToken cancellationToken)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null)
+            return Unauthorized();
+
+        var participant = await _db.ConversationParticipants
+            .Include(x => x.Conversation)
+            .SingleOrDefaultAsync(
+                x => x.ConversationId == conversationId && x.UserId == currentUserId.Value,
+                cancellationToken);
+
+        if (participant is null)
+            return NotFound(new { message = "Không tìm thấy hội thoại hoặc bạn không có quyền gửi tệp." });
+
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "Vui lòng chọn tệp cần tải lên." });
+
+        if (file.Length > MaxAttachmentBytes)
+            return BadRequest(new { message = "Tệp đính kèm không được vượt quá 10 MB." });
+
+        var extension = Path.GetExtension(file.FileName);
+        if (!AllowedExtensions.Contains(extension))
+            return BadRequest(new { message = "Định dạng tệp không được hỗ trợ." });
+
+        var contentType = file.ContentType.ToLowerInvariant();
+        var allowedContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg", "image/png", "image/webp", "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        };
+        if (!allowedContentTypes.Contains(contentType))
+            return BadRequest(new { message = "Kiểu nội dung tệp không được hỗ trợ." });
+
+        var safeOriginalName = Path.GetFileName(file.FileName);
+        if (safeOriginalName.Length > 255)
+            safeOriginalName = safeOriginalName[^255..];
+
+        var storedName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+        var relativeFolder = Path.Combine("PrivateUploads", "chat", conversationId.ToString("N"));
+        var absoluteFolder = Path.Combine(_environment.ContentRootPath, relativeFolder);
+        Directory.CreateDirectory(absoluteFolder);
+
+        var absolutePath = Path.Combine(absoluteFolder, storedName);
+        await using (var stream = System.IO.File.Create(absolutePath))
+            await file.CopyToAsync(stream, cancellationToken);
+
+        var now = DateTime.UtcNow;
+        var message = new Message
+        {
+            ConversationId = conversationId,
+            SenderId = currentUserId.Value,
+            Content = string.IsNullOrWhiteSpace(caption) ? null : caption.Trim(),
+            MessageType = contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
+                ? MessageType.Image
+                : MessageType.File,
+            SentAt = now,
+            Attachments =
+            [
+                new MessageAttachment
+                {
+                    FileUrl = Path.Combine(relativeFolder, storedName).Replace('\\\\', '/'),
+                    FileName = safeOriginalName,
+                    ContentType = contentType,
+                    FileSize = file.Length,
+                    CreatedAt = now
+                }
+            ]
+        };
+
+        participant.Conversation.LastMessageAt = now;
+        participant.LastReadAt = now;
+        _db.Messages.Add(message);
+
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            System.IO.File.Delete(absolutePath);
+            throw;
+        }
+
+        var attachment = message.Attachments.Single();
+        return StatusCode(StatusCodes.Status201Created, new
+        {
+            messageId = message.Id,
+            attachmentId = attachment.Id,
+            fileName = attachment.FileName,
+            fileSize = attachment.FileSize,
+            contentType = attachment.ContentType,
+            downloadUrl = $"/api/chat/attachments/{attachment.Id}"
+        });
+    }
+
+    /// <summary>Tải tệp đính kèm; chỉ thành viên hội thoại được phép tải.</summary>
+    [HttpGet("attachments/{attachmentId:guid}")]
+    public async Task<IActionResult> DownloadAttachment(Guid attachmentId, CancellationToken cancellationToken)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null)
+            return Unauthorized();
+
+        var attachment = await _db.MessageAttachments
+            .AsNoTracking()
+            .Where(x => x.Id == attachmentId &&
+                x.Message.Conversation.Participants.Any(p => p.UserId == currentUserId.Value))
+            .Select(x => new
+            {
+                x.FileUrl,
+                x.FileName,
+                x.ContentType
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (attachment is null)
+            return NotFound(new { message = "Không tìm thấy tệp hoặc bạn không có quyền truy cập." });
+
+        var relativePath = attachment.FileUrl.Replace('/', Path.DirectorySeparatorChar);
+        var absolutePath = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, relativePath));
+        var privateRoot = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, "PrivateUploads", "chat"));
+        if (!absolutePath.StartsWith(privateRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Đường dẫn tệp không hợp lệ." });
+
+        if (!System.IO.File.Exists(absolutePath))
+            return NotFound(new { message = "Tệp không còn tồn tại trên máy chủ." });
+
+        var stream = System.IO.File.OpenRead(absolutePath);
+        return File(stream, attachment.ContentType ?? "application/octet-stream", attachment.FileName);
     }
 
     private Guid? GetCurrentUserId()
