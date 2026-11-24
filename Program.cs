@@ -88,13 +88,10 @@ builder.Services
 
                 var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
                 var user = await db.Users
-                    .Where(x => x.Id == userId)
-                    .Select(x => new
-                    {
-                        x.IsActive,
-                        Roles = x.UserRoles.Select(ur => ur.Role.Name).ToArray()
-                    })
-                    .SingleOrDefaultAsync();
+                    .AsNoTracking()
+                    .Include(x => x.UserRoles)
+                        .ThenInclude(x => x.Role)
+                    .SingleOrDefaultAsync(x => x.Id == userId);
 
                 if (user is null || !user.IsActive)
                 {
@@ -109,7 +106,7 @@ builder.Services
                     .ToHashSet(StringComparer.OrdinalIgnoreCase)
                     ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                var currentRoles = user.Roles.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var currentRoles = user.UserRoles.Select(x => x.Role.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
                 if (!tokenRoles.SetEquals(currentRoles))
                     context.Fail("Vai trò tài khoản đã thay đổi. Vui lòng đăng nhập lại.");
             }
