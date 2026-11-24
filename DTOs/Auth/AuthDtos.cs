@@ -39,6 +39,7 @@ public sealed record CurrentUserResponse(
     string FullName,
     string Email,
     string? PhoneNumber,
+    string? AvatarUrl,
     IReadOnlyCollection<string> Roles);
 
 public sealed class UpdateProfileRequest
