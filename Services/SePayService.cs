@@ -137,7 +137,9 @@ public sealed class SePayService(
             return false;
 
         var nowSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        if (timestamp < nowSeconds - 300 || timestamp > nowSeconds + 300)
+        // IPN có thể được SePay gửi lại sau thời gian retry; không loại IPN cũ hợp lệ.
+        // Trạng thái Payment + TransactionCode unique đảm bảo callback cũ không ghi nhận hai lần.
+        if (timestamp <= 0 || timestamp > nowSeconds + 300)
             return false;
 
         var notificationType = ReadString(root, "notification_type");
