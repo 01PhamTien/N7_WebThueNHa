@@ -1,10 +1,12 @@
 namespace Web2_ThueNha.Services;
 
+public sealed record SePayFormField(string Name, string Value);
+
 public sealed record SePayCheckout(
     Guid PaymentId,
     string OrderInvoiceNumber,
     string CheckoutUrl,
-    IReadOnlyDictionary<string, string> FormFields);
+    IReadOnlyList<SePayFormField> FormFields);
 
 public sealed class SePayRequestException(int statusCode, string message) : Exception(message)
 {
