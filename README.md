@@ -117,3 +117,5 @@ Quy tac bao ve:
 Dang ky mot tai khoan qua API register, sau do mo `Scripts/TaoAdminDauTien.sql` trong SSMS, thay email mau bang email vua dang ky va chay script. Khong co API cong khai nao cap quyen Admin.
 
 - JWT cu bi tu choi neu tai khoan bi khoa hoac tap role trong token khong con khop voi UserRoles trong database. Khi cap/thu hoi role, token cu khong the tiep tuc dung quyen cu; nguoi dung can dang nhap lai.
+
+Request mẫu kiểm thử API quản trị tài khoản nằm tại `Requests/admin-users.http`, gồm tìm kiếm, phân trang, xem chi tiết, khóa/mở khóa và cập nhật vai trò.
