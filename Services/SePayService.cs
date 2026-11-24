@@ -91,8 +91,9 @@ public sealed class SePayService(
         var order = root.GetProperty("order");
         var invoice = order.GetProperty("order_invoice_number").GetString();
         var amountText = order.GetProperty("order_amount").GetString();
+        var currency = order.GetProperty("order_currency").GetString();
 
-        if (string.IsNullOrWhiteSpace(invoice) ||
+        if (string.IsNullOrWhiteSpace(invoice) || currency != "VND" ||
             !decimal.TryParse(amountText, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount))
             return false;
 
@@ -109,7 +110,14 @@ public sealed class SePayService(
 
             var transaction = root.GetProperty("transaction");
             var transactionId = transaction.GetProperty("transaction_id").GetString();
-            if (string.IsNullOrWhiteSpace(transactionId))
+            var transactionStatus = transaction.GetProperty("transaction_status").GetString();
+            var transactionCurrency = transaction.GetProperty("transaction_currency").GetString();
+            var transactionAmountText = transaction.GetProperty("transaction_amount").GetString();
+            if (string.IsNullOrWhiteSpace(transactionId) ||
+                transactionStatus != "APPROVED" ||
+                transactionCurrency != "VND" ||
+                !decimal.TryParse(transactionAmountText, NumberStyles.Number, CultureInfo.InvariantCulture, out var transactionAmount) ||
+                transactionAmount != payment.Amount)
                 return false;
 
             if (payment.Status == "Paid")
