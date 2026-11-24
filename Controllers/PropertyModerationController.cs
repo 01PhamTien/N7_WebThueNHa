@@ -32,8 +32,8 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
             page > int.MaxValue / pageSize ||
             !Enum.IsDefined(status) ||
             (propertyTypeId.HasValue && propertyTypeId.Value < 1) ||
-            keyword?.Length > 100 ||
-            province?.Length > 120)
+            (keyword is { Length: > 100 }) ||
+            (province is { Length: > 120 })
             return BadRequest(new { message = "Tham số lọc hoặc phân trang không hợp lệ." });
 
         IQueryable<Property> query = db.Properties.AsNoTracking()
