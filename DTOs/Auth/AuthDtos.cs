@@ -40,3 +40,15 @@ public sealed record CurrentUserResponse(
     string Email,
     string? PhoneNumber,
     IReadOnlyCollection<string> Roles);
+
+public sealed class UpdateProfileRequest
+{
+    [Required, StringLength(150, MinimumLength = 2)]
+    public string FullName { get; set; } = string.Empty;
+
+    [Phone, StringLength(20)]
+    public string? PhoneNumber { get; set; }
+
+    [Url, StringLength(1000)]
+    public string? AvatarUrl { get; set; }
+}
