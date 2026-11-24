@@ -131,7 +131,7 @@ Tat ca API chat deu yeu cau JWT:
 - `PATCH /api/chat/conversations/{conversationId}/read`: danh dau da doc.
 - `PATCH /api/chat/conversations/{conversationId}/archive`: an/hien hoi thoai trong danh sach ca nhan.
 
-Quy tac: moi Property + Tenant + Landlord chi co mot hoi thoai; unique index trong database chong tao trung. Chi participant moi doc/gửi tin va tai tep. Tep duoc luu ngoai wwwroot trong `PrivateUploads/chat`, khong phuc vu cong khai; thu muc nay duoc gitignore. Moi may dev can giu backup rieng neu muon giu tep tai len. Realtime SignalR se duoc bo sung sau khi API HTTP duoc kiem thu.
+Quy tac: moi Property + Tenant + Landlord chi co mot hoi thoai; unique index trong database chong tao trung. Chi participant moi doc/gửi tin va tai tep. Tep duoc luu ngoai wwwroot trong `PrivateUploads/chat`, khong phuc vu cong khai; thu muc nay duoc gitignore. Moi may dev can giu backup rieng neu muon giu tep tai len. Realtime duoc trien khai bang SignalR tai `/hubs/chat`; client ket noi bang JWT, goi `JoinConversation(conversationId)` sau khi vao man hinh hoi thoai va lang nghe su kien `NhanTinNhan`. Server chi cho participant tham gia group.
 
 ### SignalR realtime
 
