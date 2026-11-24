@@ -1,0 +1,52 @@
+@baseUrl = https://localhost:7295
+@tenantToken = THAY_BANG_JWT_TENANT
+@landlordToken = THAY_BANG_JWT_LANDLORD
+@otherToken = THAY_BANG_JWT_NGUOI_KHAC
+@bookingId = THAY_BANG_GUID_BOOKING_ACCEPTED
+@contractId = THAY_BANG_GUID_HOP_DONG
+
+### 1. Tenant tao hop dong nhap tu Booking Accepted
+POST {{baseUrl}}/api/contracts/from-booking/{{bookingId}}
+Authorization: Bearer {{tenantToken}}
+
+### 2. Landlord goi lai cho cung Booking (tra hop dong da ton tai, khong tao trung)
+POST {{baseUrl}}/api/contracts/from-booking/{{bookingId}}
+Authorization: Bearer {{landlordToken}}
+
+### 3. Tenant xem danh sach hop dong
+GET {{baseUrl}}/api/contracts?page=1&pageSize=20
+Authorization: Bearer {{tenantToken}}
+
+### 4. Landlord loc hop dong theo trang thai Draft
+GET {{baseUrl}}/api/contracts?status=Draft&page=1&pageSize=20
+Authorization: Bearer {{landlordToken}}
+
+### 5. Tenant xem chi tiet hop dong cua minh
+GET {{baseUrl}}/api/contracts/{{contractId}}
+Authorization: Bearer {{tenantToken}}
+
+### 6. Landlord cap nhat hop dong Draft
+PUT {{baseUrl}}/api/contracts/{{contractId}}
+Authorization: Bearer {{landlordToken}}
+Content-Type: application/json
+
+{
+  "startDate": "2027-01-01",
+  "endDate": "2027-12-31",
+  "monthlyRent": 4500000,
+  "depositAmount": 4500000,
+  "paymentDueDay": 5,
+  "terms": "Thanh toan tien thue truoc ngay 05 hang thang."
+}
+
+### 7. Landlord gui hop dong cho hai ben xac nhan
+POST {{baseUrl}}/api/contracts/{{contractId}}/submit
+Authorization: Bearer {{landlordToken}}
+
+### 8. Kiem tra page khong hop le (mong doi 400)
+GET {{baseUrl}}/api/contracts?page=0&pageSize=20
+Authorization: Bearer {{tenantToken}}
+
+### 9. Kiem tra pageSize vuot gioi han (mong doi 400)
+GET {{baseUrl}}/api/contracts?page=1&pageSize=51
+Authorization: Bearer {{tenantToken}}
