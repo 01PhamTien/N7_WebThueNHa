@@ -345,7 +345,7 @@ public sealed class ChatController : ControllerBase
             [
                 new MessageAttachment
                 {
-                    FileUrl = Path.Combine(relativeFolder, storedName).Replace('\\\\', '/'),
+                    FileUrl = Path.Combine(relativeFolder, storedName).Replace(Path.DirectorySeparatorChar, '/'),
                     FileName = safeOriginalName,
                     ContentType = contentType,
                     FileSize = file.Length,
