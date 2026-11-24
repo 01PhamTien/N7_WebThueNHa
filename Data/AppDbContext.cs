@@ -166,11 +166,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.HasKey(x => x.Id);
             e.Property(x => x.InvoiceCode).HasMaxLength(50).IsRequired();
             e.HasIndex(x => x.InvoiceCode).IsUnique();
-            e.HasIndex(x => x.ContractId)
+            e.HasIndex(x => new { x.ContractId, x.InvoiceType })
                 .IsUnique()
                 .HasDatabaseName("UX_Invoices_Contract_Deposit")
                 .HasFilter("[InvoiceType] = 0 AND [Status] <> 5");
-            e.HasIndex(x => new { x.ContractId, x.PeriodStart, x.PeriodEnd })
+            e.HasIndex(x => new { x.ContractId, x.InvoiceType, x.PeriodStart, x.PeriodEnd })
                 .IsUnique()
                 .HasDatabaseName("UX_Invoices_Contract_MonthlyRent_Period")
                 .HasFilter("[InvoiceType] = 1 AND [PeriodStart] IS NOT NULL AND [PeriodEnd] IS NOT NULL AND [Status] <> 5");
