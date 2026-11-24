@@ -97,7 +97,7 @@ builder.Services
                     .FindAll(System.Security.Claims.ClaimTypes.Role)
                     .Select(x => x.Value)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase)
-                    ?? [];
+                    ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 var currentRoles = user.Roles.ToHashSet(StringComparer.OrdinalIgnoreCase);
                 if (!tokenRoles.SetEquals(currentRoles))
