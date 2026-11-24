@@ -117,3 +117,30 @@ Quy tac bao ve:
 Dang ky mot tai khoan qua API register, sau do mo `Scripts/TaoAdminDauTien.sql` trong SSMS, thay email mau bang email vua dang ky va chay script. Khong co API cong khai nao cap quyen Admin.
 
 - JWT cu bi tu choi neu tai khoan bi khoa hoac tap role trong token khong con khop voi UserRoles trong database. Khi cap/thu hoi role, token cu khong the tiep tuc dung quyen cu; nguoi dung can dang nhap lai.
+
+## Chat rieng theo tung can nha
+
+Tat ca API chat deu yeu cau JWT:
+
+- `POST /api/chat/properties/{propertyId}/conversation`: nguoi co role Tenant tao/lay hoi thoai voi chu nha cua can nha da duoc duyet va dang cong khai.
+- `GET /api/chat/conversations`: danh sach hoi thoai cua nguoi dang dang nhap.
+- `GET /api/chat/conversations/{conversationId}/messages?page=1&pageSize=30`: lich su tin nhan co phan trang.
+- `POST /api/chat/conversations/{conversationId}/messages`: gui tin nhan van ban.
+- `POST /api/chat/conversations/{conversationId}/attachments`: gui tep multipart/form-data (toi da 10 MB; JPG/JPEG/PNG/WEBP/PDF/DOC/DOCX).
+- `GET /api/chat/attachments/{attachmentId}`: tai tep; chi thanh vien hoi thoai duoc tai.
+- `PATCH /api/chat/conversations/{conversationId}/read`: danh dau da doc.
+- `PATCH /api/chat/conversations/{conversationId}/archive`: an/hien hoi thoai trong danh sach ca nhan.
+
+Quy tac: moi Property + Tenant + Landlord chi co mot hoi thoai; unique index trong database chong tao trung. Chi participant moi doc/gửi tin va tai tep. Tep duoc luu ngoai wwwroot trong `PrivateUploads/chat`, khong phuc vu cong khai; thu muc nay duoc gitignore. Moi may dev can giu backup rieng neu muon giu tep tai len. Realtime SignalR se duoc bo sung sau khi API HTTP duoc kiem thu.
+
+### SignalR realtime
+
+- Hub endpoint: `/hubs/chat`.
+- Client ket noi bang JWT, sau do goi `JoinConversation(conversationId)` de vao group.
+- Server chi cho phep user la participant vao group cua hoi thoai.
+- Khi co tin nhan moi (van ban/tep), server phat event `NhanTinNhan` toi group.
+- Goi `LeaveConversation(conversationId)` khi roi man hinh chat.
+
+Voi SignalR JavaScript client, cung cap `accessTokenFactory: () => token`. Backend chi doc query `access_token` tren duong dan `/hubs/chat`; khong doc token query tren cac API khac. Nho dung HTTPS trong moi truong that.
+
+- Upload tep chat kiem tra ca extension, MIME va magic bytes (chu ky noi dung JPG/PNG/WEBP/PDF/DOC/DOCX), khong chi tin ten file va Content-Type do client gui.
