@@ -246,6 +246,90 @@ public sealed class ChatController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, realtimePayload);
     }
 
+
+    /// <summary>Chỉ người gửi mới được sửa tin nhắn văn bản của chính mình.</summary>
+    [HttpPut("conversations/{conversationId:guid}/messages/{messageId:guid}")]
+    public async Task<IActionResult> EditMessage(
+        Guid conversationId,
+        Guid messageId,
+        EditMessageRequest request,
+        CancellationToken cancellationToken)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null)
+            return Unauthorized();
+
+        var message = await _db.Messages.SingleOrDefaultAsync(
+            x => x.Id == messageId &&
+                 x.ConversationId == conversationId &&
+                 x.SenderId == currentUserId.Value &&
+                 x.DeletedAt == null,
+            cancellationToken);
+
+        if (message is null)
+            return NotFound(new { message = "Không tìm thấy tin nhắn hoặc bạn không có quyền chỉnh sửa." });
+
+        if (message.MessageType != MessageType.Text)
+            return Conflict(new { message = "Chỉ tin nhắn văn bản mới được chỉnh sửa." });
+
+        var content = request.Content.Trim();
+        if (content.Length == 0)
+            return BadRequest(new { message = "Nội dung tin nhắn không được để trống." });
+
+        message.Content = content;
+        message.EditedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var payload = new
+        {
+            messageId = message.Id,
+            conversationId,
+            senderId = message.SenderId,
+            content = message.Content,
+            editedAt = message.EditedAt
+        };
+        await _chatHub.Clients.Group(ChatHub.GetGroupName(conversationId))
+            .SendAsync("SuaTinNhan", payload, cancellationToken);
+
+        return Ok(payload);
+    }
+
+    /// <summary>Chỉ người gửi mới được xóa mềm tin nhắn của chính mình.</summary>
+    [HttpDelete("conversations/{conversationId:guid}/messages/{messageId:guid}")]
+    public async Task<IActionResult> DeleteMessage(
+        Guid conversationId,
+        Guid messageId,
+        CancellationToken cancellationToken)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null)
+            return Unauthorized();
+
+        var message = await _db.Messages.SingleOrDefaultAsync(
+            x => x.Id == messageId &&
+                 x.ConversationId == conversationId &&
+                 x.SenderId == currentUserId.Value &&
+                 x.DeletedAt == null,
+            cancellationToken);
+
+        if (message is null)
+            return NotFound(new { message = "Không tìm thấy tin nhắn hoặc bạn không có quyền xóa." });
+
+        message.DeletedAt = DateTime.UtcNow;
+        message.Content = null;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _chatHub.Clients.Group(ChatHub.GetGroupName(conversationId))
+            .SendAsync("XoaTinNhan", new
+            {
+                messageId,
+                conversationId,
+                deletedAt = message.DeletedAt
+            }, cancellationToken);
+
+        return NoContent();
+    }
+
     /// <summary>Đánh dấu hội thoại đã đọc đến thời điểm hiện tại.</summary>
     [HttpPatch("conversations/{conversationId:guid}/read")]
     public async Task<IActionResult> MarkAsRead(Guid conversationId, CancellationToken cancellationToken)
@@ -423,6 +507,7 @@ public sealed class ChatController : ControllerBase
         var attachment = await _db.MessageAttachments
             .AsNoTracking()
             .Where(x => x.Id == attachmentId &&
+                x.Message.DeletedAt == null &&
                 x.Message.Conversation.Participants.Any(p => p.UserId == currentUserId.Value))
             .Select(x => new
             {
