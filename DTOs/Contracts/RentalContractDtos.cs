@@ -43,6 +43,8 @@ public sealed record RentalContractResponse(
     string? Terms,
     string? ContractUrl,
     string Status,
+    DateTime? LandlordSignedAt,
+    DateTime? TenantSignedAt,
     DateTime? SignedAt,
     DateTime CreatedAt);
 
