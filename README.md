@@ -50,3 +50,41 @@ dotnet ef database update
 - `develop`: nhánh tích hợp.
 - `feature/*`: nhánh làm từng chức năng.
 - Tạo Pull Request từ feature vào develop; nhóm trưởng review và merge.
+
+
+## Xác thực tài khoản và JWT
+
+Các API xác thực ban đầu:
+
+- `POST /api/auth/register`: đăng ký tài khoản; tài khoản mới luôn nhận vai trò `Tenant`.
+- `POST /api/auth/login`: đăng nhập và nhận JWT Access Token (hiệu lực 2 giờ).
+- `GET /api/auth/me`: lấy thông tin tài khoản hiện tại; yêu cầu Bearer Token hợp lệ.
+
+Mật khẩu được băm bằng ASP.NET Core Identity PasswordHasher; không lưu mật khẩu dạng rõ. Không cho phép người dùng tự chọn vai trò Admin hoặc Landlord khi đăng ký công khai.
+
+### Cấu hình JWT bằng User Secrets (PowerShell)
+
+Tạo khóa bí mật ngẫu nhiên tối thiểu 32 byte và lưu trực tiếp vào User Secrets:
+
+```powershell
+$jwtKey = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
+dotnet user-secrets set "Jwt:Key" $jwtKey
+```
+
+Có thể kiểm tra các khóa đã lưu bằng:
+
+```powershell
+dotnet user-secrets list
+```
+
+Không chia sẻ hoặc commit giá trị `Jwt:Key` lên Git. Mỗi máy phát triển có thể tự tạo khóa riêng. Các giá trị mặc định của Issuer và Audience lần lượt là `Web2_ThueNha` và `Web2_ThueNhaClient`.
+
+### Thử API
+
+1. Chạy ứng dụng trong môi trường Development.
+2. Mở Swagger UI.
+3. Gọi `POST /api/auth/register` với FullName, Email, Password (ít nhất 8 ký tự) và PhoneNumber tùy chọn.
+4. Gọi `POST /api/auth/login` bằng Email và Password để nhận `accessToken`.
+5. Gửi token dưới dạng `Authorization: Bearer <accessToken>` khi gọi `GET /api/auth/me`.
+
+Không dùng tài khoản hoặc dữ liệu thật của người dùng trong môi trường thử nghiệm.
