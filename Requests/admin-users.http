@@ -54,3 +54,4 @@ Content-Type: application/json
 # Thu lai cac request tren bang JWT Tenant/Landlord: phai nhan 403.
 # Thu khoa tai khoan hoac thay doi role, sau do goi API bang JWT cu: token phai bi tu choi.
 # Khong duoc tu khoa minh, tu thay doi role, hoac khoa/go Admin cua Admin cuoi cung.
+# Thu hai request dong thoi de khoa/go role Admin cua hai tai khoan quan tri vien cuoi cung: khong duoc de he thong con 0 Admin dang hoat dong.
