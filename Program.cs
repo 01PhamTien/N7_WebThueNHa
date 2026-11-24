@@ -77,9 +77,31 @@ builder.Services
                 }
 
                 var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-                var isActive = await db.Users.AnyAsync(x => x.Id == userId && x.IsActive);
-                if (!isActive)
+                var user = await db.Users
+                    .Where(x => x.Id == userId)
+                    .Select(x => new
+                    {
+                        x.IsActive,
+                        Roles = x.UserRoles.Select(ur => ur.Role.Name).ToArray()
+                    })
+                    .SingleOrDefaultAsync();
+
+                if (user is null || !user.IsActive)
+                {
                     context.Fail("Tài khoản không tồn tại hoặc đã bị khóa.");
+                    return;
+                }
+
+                // Vai trò trong JWT phải còn khớp với database để thu hồi quyền có hiệu lực ngay.
+                var tokenRoles = context.Principal?
+                    .FindAll(System.Security.Claims.ClaimTypes.Role)
+                    .Select(x => x.Value)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase)
+                    ?? [];
+
+                var currentRoles = user.Roles.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                if (!tokenRoles.SetEquals(currentRoles))
+                    context.Fail("Vai trò tài khoản đã thay đổi. Vui lòng đăng nhập lại.");
             }
         };
     });
