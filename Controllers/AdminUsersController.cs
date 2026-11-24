@@ -28,8 +28,9 @@ public sealed class AdminUsersController : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        // Phân trang tại SQL Server; tham số sai phải báo 400 thay vì âm thầm đổi giá trị.
+        if (page < 1 || pageSize < 1 || pageSize > 100 || page > int.MaxValue / pageSize)
+            return BadRequest(new { message = "page phải từ 1; pageSize phải từ 1 đến 100." });
 
         var query = _db.Users.AsNoTracking().AsQueryable();
 
@@ -46,27 +47,33 @@ public sealed class AdminUsersController : ControllerBase
             query = query.Where(x => x.IsActive == isActive.Value);
 
         var totalItems = await query.CountAsync(cancellationToken);
-        var users = await query
-            .OrderByDescending(x => x.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(x => new AdminUserListItem(
-                x.Id,
-                x.FullName,
-                x.Email,
-                x.PhoneNumber,
-                x.AvatarUrl,
-                x.IsActive,
-                x.CreatedAt,
-                x.UserRoles.Select(ur => ur.Role.Name).ToArray()))
-            .ToListAsync(cancellationToken);
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+        var users = page > totalPages
+            ? []
+            : await query
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new AdminUserListItem(
+                    x.Id,
+                    x.FullName,
+                    x.Email,
+                    x.PhoneNumber,
+                    x.AvatarUrl,
+                    x.IsActive,
+                    x.CreatedAt,
+                    x.UserRoles.Select(ur => ur.Role.Name).ToArray()))
+                .ToListAsync(cancellationToken);
 
         return Ok(new
         {
             page,
             pageSize,
             totalItems,
-            totalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+            totalPages,
+            hasPrevious = page > 1 && page <= totalPages,
+            hasNext = page < totalPages,
             items = users
         });
     }
