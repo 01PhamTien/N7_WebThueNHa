@@ -180,8 +180,9 @@ public sealed class PaymentsController(AppDbContext db) : ControllerBase
         if (!User.IsInRole("Admin") && payment.Invoice.Contract.LandlordId != userId)
             return Forbid();
 
-        if (payment.Status != PaymentStatus.Pending)
-            return Conflict(new { message = "Chỉ khoản thanh toán đang chờ mới được từ chối." });
+        if (payment.Status != PaymentStatus.Pending ||
+            payment.Invoice.Status == InvoiceStatus.Cancelled)
+            return Conflict(new { message = "Chỉ khoản thanh toán đang chờ trên hóa đơn chưa hủy mới được từ chối." });
 
         var reason = request.Reason.Trim();
         if (reason.Length == 0)
