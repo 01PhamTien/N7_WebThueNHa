@@ -72,12 +72,16 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
             .Include(x => x.Images.OrderBy(image => image.DisplayOrder))
             .Include(x => x.PropertyAmenities)
                 .ThenInclude(x => x.Amenity)
-            .Include(x => x.ModerationLogs)
-                .ThenInclude(x => x.Admin)
             .SingleOrDefaultAsync(x => x.Id == propertyId, cancellationToken);
 
         if (property is null)
             return NotFound(new { message = "Không tìm thấy tin đăng." });
+
+        var moderationLogs = await db.PropertyModerationLogs.AsNoTracking()
+            .Where(log => log.PropertyId == propertyId)
+            .Include(log => log.Admin)
+            .OrderByDescending(log => log.CreatedAt)
+            .ToListAsync(cancellationToken);
 
         var response = new ModerationPropertyDetailResponse(
             property.Id,
@@ -102,8 +106,7 @@ public sealed class PropertyModerationController(AppDbContext db) : ControllerBa
             property.Images.Select(image => new ModerationPropertyImageResponse(
                 image.Id, image.ImageUrl, image.IsPrimary, image.DisplayOrder)).ToArray(),
             property.PropertyAmenities.Select(item => item.Amenity.Name).OrderBy(name => name).ToArray(),
-            property.ModerationLogs
-                .OrderByDescending(log => log.CreatedAt)
+            moderationLogs
                 .Select(log => new ModerationPropertyLogResponse(
                     log.Id, log.Admin.FullName, log.Action, log.Reason, log.CreatedAt))
                 .ToArray());
