@@ -4,3 +4,14 @@ GET {{Web2_ThueNha_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+POST {{Web2_ThueNha_HostAddress}}/api/sepay/checkout
+Content-Type: application/json
+
+{
+  "amount": 1500000,
+  "description": "Thanh toan tien coc thue nha",
+  "customerId": "USER-001"
+}
+
+###
