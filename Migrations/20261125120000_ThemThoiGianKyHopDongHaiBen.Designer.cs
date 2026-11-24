@@ -262,7 +262,13 @@ namespace Web2_ThueNha.Migrations
                     b.Property<Guid>("PropertyId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("LandlordSignedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("SignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("TenantSignedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateOnly>("StartDate")
