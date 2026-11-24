@@ -141,6 +141,9 @@ public sealed class AdminUsersController : ControllerBase
         if (currentUserId is null)
             return Unauthorized();
 
+        if (currentUserId == userId)
+            return BadRequest(new { message = "Không thể tự thay đổi vai trò của chính mình. Hãy nhờ một quản trị viên khác thực hiện." });
+
         var requestedNames = request.Roles
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x.Trim())
