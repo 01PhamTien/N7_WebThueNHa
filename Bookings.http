@@ -1,0 +1,56 @@
+@baseUrl = https://localhost:7295
+@tenantToken = THAY_BANG_JWT_CUA_TENANT
+@landlordToken = THAY_BANG_JWT_CUA_LANDLORD
+@propertyId = THAY_BANG_GUID_CAN_NHA
+@bookingId = THAY_BANG_GUID_YEU_CAU
+
+### Tenant - gửi yêu cầu đặt thuê
+POST {{baseUrl}}/api/bookings
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{
+  "propertyId": "{{propertyId}}",
+  "startDate": "2027-01-01",
+  "endDate": "2027-06-01",
+  "numberOfPeople": 2,
+  "proposedPrice": 3500000,
+  "message": "Tôi muốn thuê căn nhà này."
+}
+
+### Tenant - xem yêu cầu của mình (phân trang mặc định page=1, pageSize=10)
+GET {{baseUrl}}/api/bookings/mine?page=1&pageSize=10
+Authorization: Bearer {{tenantToken}}
+
+### Tenant - lọc yêu cầu theo trạng thái
+GET {{baseUrl}}/api/bookings/mine?page=1&pageSize=10&status=Pending
+Authorization: Bearer {{tenantToken}}
+
+### Landlord - xem yêu cầu gửi đến nhà của mình (phân trang)
+GET {{baseUrl}}/api/bookings/incoming?page=1&pageSize=10
+Authorization: Bearer {{landlordToken}}
+
+### Landlord - lọc yêu cầu gửi đến theo trạng thái
+GET {{baseUrl}}/api/bookings/incoming?page=1&pageSize=10&status=Accepted
+Authorization: Bearer {{landlordToken}}
+
+### Tenant hoặc chủ nhà sở hữu - xem chi tiết
+GET {{baseUrl}}/api/bookings/{{bookingId}}
+Authorization: Bearer {{tenantToken}}
+
+### Landlord - chấp nhận yêu cầu
+PATCH {{baseUrl}}/api/bookings/{{bookingId}}/accept
+Authorization: Bearer {{landlordToken}}
+
+### Landlord - từ chối yêu cầu
+PATCH {{baseUrl}}/api/bookings/{{bookingId}}/reject
+Authorization: Bearer {{landlordToken}}
+Content-Type: application/json
+
+{
+  "reason": "Căn nhà không còn phù hợp với thời gian thuê."
+}
+
+### Tenant - hủy yêu cầu đang chờ
+PATCH {{baseUrl}}/api/bookings/{{bookingId}}/cancel
+Authorization: Bearer {{tenantToken}}
