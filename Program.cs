@@ -7,7 +7,6 @@ using Web2_ThueNha.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Đăng ký dịch vụ API và Swagger.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -18,25 +17,36 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "API cho hệ thống quản lý cho thuê nhà."
     });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Nhập Access Token nhận được từ API đăng nhập. Không cần thêm tiền tố Bearer."
+    });
+
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
 });
 
-// Cấu hình Entity Framework Core và SQL Server.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Chưa cấu hình ConnectionStrings:DefaultConnection.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Cấu hình JWT từ User Secrets hoặc biến môi trường.
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("Chưa cấu hình Jwt:Key bằng User Secrets.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Web2_ThueNha";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Web2_ThueNhaClient";
 
 if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
-{
     throw new InvalidOperationException("Jwt:Key phải có ít nhất 32 byte.");
-}
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -60,7 +70,6 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<User>, 
 
 var app = builder.Build();
 
-// Chỉ bật Swagger UI trong môi trường phát triển.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
