@@ -194,3 +194,15 @@ Checklist kiểm thử (chưa đánh dấu Passed trước khi chạy thật): `
 SePay Gateway và Bank Webhook được gắn trực tiếp với `Invoice`/`Payment` trong `AppDbContext`; không có `PaymentDbContext` hoặc bảng `Payments` thứ hai. Tenant khởi tạo checkout tại `POST /api/invoices/{invoiceId}/sepay-checkout`; Payment chỉ chuyển `Succeeded` sau IPN/Bank Webhook đã xác thực. Cấu hình và test case nằm tại `docs/SEPAY.md` và `docs/requests/sepay-test-cases.md`.
 
 Chạy Sandbox trước Production; không commit merchant secret, IPN secret, webhook secret hoặc tài khoản ngân hàng.
+
+## Tìm kiếm và lọc danh sách Landlord/Admin
+
+Các API danh sách hỗ trợ lọc và phân trang tại Backend; các điều kiện được kết hợp trước khi tính `totalCount`/`totalItems`:
+
+- `GET /api/properties/mine?status=&keyword=&page=1&pageSize=10`: lọc trạng thái tin và tìm theo tiêu đề, địa chỉ, phường/xã hoặc tỉnh/thành.
+- `GET /api/bookings/incoming?status=&keyword=&page=1&pageSize=10`: tìm theo tên/email người thuê hoặc tiêu đề căn nhà.
+- `GET /api/contracts?status=&keyword=&page=1&pageSize=20`: tìm theo mã hợp đồng, tên người thuê hoặc tiêu đề căn nhà.
+- `GET /api/invoices?status=&type=&keyword=&page=1&pageSize=20`: tìm theo mã hóa đơn, mã hợp đồng hoặc tiêu đề căn nhà.
+- `GET /api/admin/properties?status=Pending&listingStatus=&keyword=&province=&propertyTypeId=&page=1&pageSize=10`: lọc trạng thái kiểm duyệt, trạng thái hiển thị (`Draft/Published/Hidden/Closed`) và các điều kiện tìm kiếm hiện có.
+
+`keyword` tối đa 100 ký tự. Không truyền `keyword` hoặc `listingStatus` sẽ giữ hành vi lọc cũ. Request mẫu: `Requests/landlord-admin-filters.http`.

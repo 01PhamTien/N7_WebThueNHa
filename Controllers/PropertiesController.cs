@@ -119,6 +119,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] PropertyListingStatus? status = null,
+        [FromQuery] string? keyword = null,
         CancellationToken cancellationToken = default)
     {
         if (!TryGetUserId(out var userId))
@@ -126,14 +127,24 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
 
         if (page < 1 || pageSize < 1 || pageSize > MaxPageSize ||
             page > int.MaxValue / pageSize ||
-            (status.HasValue && !Enum.IsDefined(status.Value)))
-            return BadRequest(new { message = "Tham số phân trang hoặc trạng thái không hợp lệ." });
+            (status.HasValue && !Enum.IsDefined(status.Value)) ||
+            (keyword is { Length: > 100 }))
+            return BadRequest(new { message = "Tham số tìm kiếm, phân trang hoặc trạng thái không hợp lệ." });
 
         // Luôn giới hạn dữ liệu theo chủ nhà trong JWT; không nhận LandlordId từ client.
         IQueryable<Property> query = propertyQueries.GetLandlordPropertiesQuery(userId);
 
         if (status.HasValue)
             query = query.Where(x => x.ListingStatus == status.Value);
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var term = keyword.Trim();
+            query = query.Where(x => x.Title.Contains(term) ||
+                                     x.AddressLine.Contains(term) ||
+                                     x.ProvinceName.Contains(term) ||
+                                     (x.WardName != null && x.WardName.Contains(term)));
+        }
 
         // Đếm sau khi áp dụng toàn bộ điều kiện lọc, trước khi phân trang.
         var totalCount = await query.CountAsync(cancellationToken);

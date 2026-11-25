@@ -26,6 +26,7 @@ public sealed class ContractsController(AppDbContext db, IContractService contra
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetContracts(
         [FromQuery] RentalContractStatus? status,
+        [FromQuery] string? keyword = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -35,8 +36,9 @@ public sealed class ContractsController(AppDbContext db, IContractService contra
 
         if (page < 1 || pageSize < 1 || pageSize > MaxPageSize ||
             page > int.MaxValue / pageSize ||
-            (status.HasValue && !Enum.IsDefined(status.Value)))
-            return BadRequest(new { message = "Tham số lọc hoặc phân trang không hợp lệ." });
+            (status.HasValue && !Enum.IsDefined(status.Value)) ||
+            (keyword is { Length: > 100 }))
+            return BadRequest(new { message = "Tham số tìm kiếm, lọc hoặc phân trang không hợp lệ." });
 
         var isLandlord = User.IsInRole("Landlord");
         var isTenant = User.IsInRole("Tenant");
@@ -51,6 +53,15 @@ public sealed class ContractsController(AppDbContext db, IContractService contra
 
         if (status.HasValue)
             query = query.Where(x => x.Status == status.Value);
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var term = keyword.Trim();
+            query = query.Where(x =>
+                x.ContractCode.Contains(term) ||
+                x.Tenant.FullName.Contains(term) ||
+                x.Property.Title.Contains(term));
+        }
 
         var totalItems = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);

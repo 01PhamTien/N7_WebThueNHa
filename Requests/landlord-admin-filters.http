@@ -1,0 +1,26 @@
+@baseUrl = https://localhost:7000
+@token = THAY_BANG_ACCESS_TOKEN
+
+### Tin đăng của Chủ nhà: tìm theo tiêu đề/địa chỉ và lọc trạng thái
+GET {{baseUrl}}/api/properties/mine?keyword=nguyen%20tra&status=Published&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### Booking đến: tìm theo tên/email người thuê hoặc tiêu đề căn nhà
+GET {{baseUrl}}/api/bookings/incoming?keyword=nguyen&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### Hợp đồng: tìm theo mã hợp đồng, tên người thuê hoặc căn nhà
+GET {{baseUrl}}/api/contracts?keyword=HD&page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Hóa đơn: tìm theo mã hóa đơn, mã hợp đồng hoặc căn nhà; kết hợp status/type
+GET {{baseUrl}}/api/invoices?keyword=INV&status=Pending&type=Rent&page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Admin: lọc trạng thái kiểm duyệt và trạng thái hiển thị tin
+GET {{baseUrl}}/api/admin/properties?status=Approved&listingStatus=Hidden&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### Admin: kết hợp keyword, province, propertyTypeId và listingStatus
+GET {{baseUrl}}/api/admin/properties?status=Approved&listingStatus=Published&keyword=can%20ho&province=Hue&propertyTypeId=1&page=1&pageSize=10
+Authorization: Bearer {{token}}
