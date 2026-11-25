@@ -17,6 +17,7 @@ import type { MenuProps } from 'antd';
 import {
   BellOutlined,
   CalendarOutlined,
+  CreditCardOutlined,
   FileTextOutlined,
   HeartOutlined,
   HomeOutlined,
