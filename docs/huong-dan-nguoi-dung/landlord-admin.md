@@ -53,6 +53,11 @@ Nếu chưa có tài khoản, có thể chọn **Đăng ký** tại `/dang-ky`. 
 
 Mở **Tin đăng** trên menu hoặc truy cập `/landlord/properties`.
 
+**Tìm kiếm và lọc**
+
+- Nhập từ khóa để tìm theo tiêu đề hoặc địa chỉ căn nhà; kết quả được lọc tại Backend và kết hợp với phân trang.
+- Dùng bộ lọc trạng thái hiển thị: Draft, Published, Hidden hoặc Closed.
+
 **Tạo tin đăng**
 
 1. Chọn **Tạo tin đăng**.
@@ -94,6 +99,9 @@ Mỗi tin đăng được tối đa 20 hình ảnh. Thêm, xóa hoặc đổi �
 
 Mở **Yêu cầu thuê** tại `/landlord/bookings`.
 
+- Nhập từ khóa để tìm theo tên/email người thuê hoặc tiêu đề căn nhà.
+- Kết hợp từ khóa với bộ lọc trạng thái và phân trang.
+
 1. Chọn bộ lọc trạng thái để xem yêu cầu đang chờ (`Pending`), đã chấp nhận (`Accepted`), đã từ chối (`Rejected`), đã hủy (`Cancelled`) hoặc hết hạn (`Expired`).
 2. Xem thông tin trong danh sách: căn nhà, người thuê, thời gian thuê, giá đề xuất và trạng thái.
 3. Chọn **Chi tiết** để xem số người thuê và lời nhắn của người thuê.
@@ -107,6 +115,8 @@ Chỉ yêu cầu đang Pending mới có thể được chấp nhận hoặc t�
 ### 2.4. Quản lý hợp đồng
 
 Mở **Hợp đồng** tại `/landlord/contracts`.
+
+- Nhập từ khóa để tìm theo mã hợp đồng, tên người thuê hoặc tiêu đề căn nhà; có thể kết hợp bộ lọc trạng thái.
 
 1. Danh sách hiển thị mã hợp đồng, căn nhà, người thuê, thời hạn, tiền thuê và trạng thái.
 2. Hợp đồng mới tạo từ Booking Accepted ở trạng thái **Draft** (bản nháp).
@@ -124,6 +134,8 @@ Hợp đồng chỉ chuyển sang **Active** khi cả Chủ nhà và Người th
 ### 2.5. Hóa đơn và thanh toán
 
 Mở **Hóa đơn** tại `/landlord/invoices`.
+
+- Nhập từ khóa để tìm theo mã hóa đơn, mã hợp đồng hoặc tiêu đề căn nhà; có thể kết hợp lọc trạng thái và loại hóa đơn.
 
 **Xem hóa đơn**
 
@@ -219,10 +231,12 @@ Mở **Kiểm duyệt tin** tại `/admin/moderation`.
 
 **Xem danh sách và chi tiết**
 
-1. Dùng bộ lọc để xem tin **Draft** (bản nháp), **Pending** (chờ duyệt), **Approved** (đã duyệt) hoặc **Rejected** (bị từ chối).
-2. Danh sách hiển thị tiêu đề tin, chủ nhà, khu vực, giá thuê và trạng thái kiểm duyệt.
-3. Chọn **Chi tiết** để xem thông tin căn nhà, địa chỉ, mô tả, giá, hình ảnh và lịch sử kiểm duyệt.
-4. Lịch sử có thể hiển thị hành động, tên Admin, lý do và thời điểm thực hiện.
+1. Dùng bộ lọc trạng thái kiểm duyệt để xem tin **Draft** (bản nháp), **Pending** (chờ duyệt), **Approved** (đã duyệt) hoặc **Rejected** (bị từ chối).
+2. Có thể lọc thêm theo trạng thái hiển thị **Draft**, **Published**, **Hidden** hoặc **Closed**. Bộ lọc này có thể kết hợp với trạng thái kiểm duyệt và tìm kiếm.
+3. Nhập từ khóa để tìm theo tiêu đề và/hoặc tỉnh/thành phố.
+4. Danh sách hiển thị tiêu đề tin, chủ nhà, khu vực, giá thuê và trạng thái kiểm duyệt.
+5. Chọn **Chi tiết** để xem thông tin căn nhà, địa chỉ, mô tả, giá, hình ảnh và lịch sử kiểm duyệt.
+6. Lịch sử có thể hiển thị hành động, tên Admin, lý do và thời điểm thực hiện.
 
 **Thực hiện hành động theo trạng thái**
 
