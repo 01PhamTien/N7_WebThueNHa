@@ -92,6 +92,7 @@ export interface ContractDto {
   endDate: string;
   monthlyRent: number;
   depositAmount: number;
+  estimatedRent: number;
   paymentDueDay?: number;
   terms?: string | null;
   status: string;
