@@ -79,6 +79,7 @@ export function LandlordContracts() {
     {title:'Người thuê',dataIndex:'tenantName'},
     {title:'Thời hạn',render:(_,r)=>r.startDate+' – '+r.endDate},
     {title:'Tiền thuê',dataIndex:'monthlyRent',render:money},
+    {title:'Ước tính cả kỳ',dataIndex:'estimatedRent',render:money},
     {title:'Trạng thái',dataIndex:'status',render:(v:string)=><Status value={v} label={contractStatusLabels[v] || v}/>},
     {title:'Thao tác',render:(_,r)=><Space wrap>{r.status==='Draft'&&<><Button size="small" onClick={()=>{setEdit(r);form.setFieldsValue({...r,terms:r.terms||undefined,startDate:dayjs(r.startDate),endDate:dayjs(r.endDate)});}}>Chỉnh sửa</Button><Popconfirm title="Gửi hợp đồng cho hai bên ký?" onConfirm={async()=>{try{await api.submitContract(r.id);message.success('Đã gửi hợp đồng chờ ký');q.refresh();}catch(e){message.error(errorText(e));}}}><Button size="small" type="primary">Gửi ký</Button></Popconfirm></>}</Space>}
   ];
