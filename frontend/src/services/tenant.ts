@@ -11,6 +11,7 @@ export const tenantApi={
  addFavorite:(id:string)=>api.post('/api/favorites/'+id),
  removeFavorite:(id:string)=>api.delete('/api/favorites/'+id),
  bookings:(page:number,pageSize:number)=>api.get<PageResult<BookingItem>>('/api/bookings/mine',{params:{page,pageSize}}),
+ booking:(id:string)=>api.get<BookingItem>('/api/bookings/'+id),
  createBooking:(data:{propertyId:string;startDate:string;endDate:string;numberOfPeople:number;proposedPrice:number;message?:string})=>api.post('/api/bookings',data),
  cancelBooking:(id:string)=>api.patch<BookingItem>('/api/bookings/'+id+'/cancel'),
  contracts:(page:number,pageSize:number)=>api.get<PageResult<ContractItem>>('/api/contracts',{params:{page,pageSize}}),
