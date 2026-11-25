@@ -64,6 +64,16 @@ public sealed class BookingsController : ControllerBase
         await using var transaction = await _db.Database.BeginTransactionAsync(
             IsolationLevel.Serializable, cancellationToken);
 
+        // Mỗi khách chỉ được có một yêu cầu đang chờ xử lý cho cùng một căn nhà.
+        // Chặn cả trường hợp bấm gửi liên tục hoặc gửi lại cùng căn nhà khi yêu cầu cũ chưa được xử lý.
+        var hasDuplicatePending = await _db.Bookings.AnyAsync(x =>
+            x.PropertyId == request.PropertyId &&
+            x.TenantId == tenantId &&
+            x.Status == BookingStatus.Pending, cancellationToken);
+
+        if (hasDuplicatePending)
+            return Conflict(new { message = "Bạn đã gửi yêu cầu thuê căn nhà này và đang chờ chủ nhà phản hồi. Vui lòng kiểm tra mục Đơn thuê của tôi, không cần gửi lại." });
+
         var hasAcceptedConflict = await _db.Bookings.AnyAsync(x =>
             x.PropertyId == request.PropertyId &&
             x.Status == BookingStatus.Accepted &&
@@ -166,8 +176,7 @@ public sealed class BookingsController : ControllerBase
             return BadRequest(new { message = "Tham số tìm kiếm hoặc trạng thái yêu cầu thuê không hợp lệ." });
 
         var query = _db.Bookings.AsNoTracking()
-            .Where(x => _db.Properties.Any(p =>
-                p.Id == x.PropertyId && p.LandlordId == landlordId));
+            .Where(x => x.Property.LandlordId == landlordId);
 
         if (status.HasValue)
             query = query.Where(x => x.Status == status.Value);
