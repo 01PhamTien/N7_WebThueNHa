@@ -1058,3 +1058,15 @@ body { background: var(--canvas); color: var(--ink); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--muted); font-size: 12px; }
+.loading-state .ant-spin-dot-item { background-color: var(--brand); }
+.page-heading-copy { min-width: 0; }
+.pagination { display: flex; justify-content: flex-end; margin-top: 22px; }
+.pagination .ant-pagination { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.pagination .ant-pagination-total-text { margin-inline-end: 10px; color: var(--muted); font-size: 12px; }
+@media (max-width: 640px) {
+  .pagination { justify-content: center; overflow-x: auto; }
+  .pagination .ant-pagination { flex-wrap: nowrap; white-space: nowrap; }
+  .pagination .ant-pagination-total-text { display: none; }
+}
