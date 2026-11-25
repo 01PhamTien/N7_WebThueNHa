@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Web2_ThueNha.Models;
 
 namespace Web2_ThueNha.DTOs.Contracts;
 
@@ -17,7 +18,11 @@ public sealed record ContractListItem(
     decimal MonthlyRent,
     decimal DepositAmount,
     string Status,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    public decimal EstimatedRent =>
+        RentalPricing.Calculate(MonthlyRent, StartDate, EndDate).TotalAmount;
+}
 
 public sealed record PagedContractsResponse(
     IReadOnlyCollection<ContractListItem> Items,
@@ -46,7 +51,11 @@ public sealed record RentalContractResponse(
     DateTime? LandlordSignedAt,
     DateTime? TenantSignedAt,
     DateTime? SignedAt,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    public decimal EstimatedRent =>
+        RentalPricing.Calculate(MonthlyRent, StartDate, EndDate).TotalAmount;
+}
 
 public sealed record RentalContractDetailResponse(
     RentalContractResponse Contract,
