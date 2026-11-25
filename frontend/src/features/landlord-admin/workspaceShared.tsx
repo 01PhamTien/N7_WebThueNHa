@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DependencyList } from 'react';
 import { Alert, Button, Space, Tag, Typography } from 'antd';
 import { errorText } from '../../services/api';
@@ -19,9 +19,41 @@ export function Status({ value, label }: { value: string | number; label?: strin
   return <Tag color={statusColor(display)}>{display}</Tag>;
 }
 export function useRequest<T>(load: () => Promise<{ data: T }>, deps: DependencyList = []) {
-  const [data,setData] = useState<T | null>(null); const [busy,setBusy] = useState(true); const [error,setError] = useState('');
-  const refresh = async () => { setBusy(true); setError(''); try { setData((await load()).data); } catch(e) { setError(errorText(e)); } finally { setBusy(false); } };
-  useEffect(() => { void refresh(); }, deps);
+  const [data,setData] = useState<T | null>(null);
+  const [busy,setBusy] = useState(true);
+  const [error,setError] = useState('');
+  const [reloadKey,setReloadKey] = useState(0);
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
+  const refresh = useCallback(() => {
+    setReloadKey(value => value + 1);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    setBusy(true);
+    setError('');
+
+    loadRef.current()
+      .then(response => {
+        if (active) setData(response.data);
+      })
+      .catch(error => {
+        if (active) {
+          setData(null);
+          setError(errorText(error));
+        }
+      })
+      .finally(() => {
+        if (active) setBusy(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [...deps, reloadKey]);
+
   return { data, busy, error, refresh, setData };
 }
 export function ErrorLine({error}:{error:string}) { return error ? <Alert type="error" showIcon message={error} style={{marginBottom:16}}/> : null; }
