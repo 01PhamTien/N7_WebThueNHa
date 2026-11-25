@@ -43,7 +43,7 @@ export function LandlordProperties() {
   const openEdit=(row?:PropertyDto)=>{setEditing(row||({} as PropertyDto));form.setFieldsValue(row||{propertyTypeId:1,bedrooms:0,bathrooms:0});};
   const save=async(v:PropertyRequest)=>{try{if(editing?.id) await api.updateProperty(editing.id,v); else await api.createProperty(v);message.success('Đã lưu tin đăng. Tin sẽ ở trạng thái chờ duyệt sau khi tạo/cập nhật.');setEditing(null);form.resetFields();await q.refresh();}catch(e){message.error(errorText(e));}};
   const columns:ColumnsType<PropertyDto>=[
-    {title:'Tin đăng',dataIndex:'title',render:(v,r)=><Space direction="vertical" size={0}><b>{v}</b><Typography.Text type="secondary">{r.addressLine}, {r.provinceName}</Typography.Text></Space>},
+    {title:'Tin đăng',dataIndex:'title',render:(v,r)=><Space orientation="vertical" size={0}><b>{v}</b><Typography.Text type="secondary">{r.addressLine}, {r.provinceName}</Typography.Text></Space>},
     {title:'Giá thuê',dataIndex:'pricePerMonth',render:money},
     {title:'Kiểm duyệt',dataIndex:'moderationStatus',render:(v:string)=><Status value={v} label={moderationStatusLabels[({ Draft: 0, Pending: 1, Approved: 2, Rejected: 3 } as Record<string, number>)[v]] || v}/>},
     {title:'Hiển thị',dataIndex:'listingStatus',render:(v:string)=><Status value={v} label={listingStatusLabels[v] || v}/>},
@@ -61,7 +61,7 @@ export function LandlordBookings() {
   const [page,setPage]=useState(1); const [bookingDetail,setBookingDetail]=useState<BookingDto|null>(null); const [status,setStatus]=useState<string|undefined>('Pending'); const [keyword,setKeyword]=useState(''); const q=useRequest(()=>api.incomingBookings({page,pageSize:10,status,keyword:keyword||undefined}),[page,status,keyword]); const {message,modal}=AntApp.useApp();
   const columns:ColumnsType<BookingDto>=[
     {title:'Căn nhà',dataIndex:'propertyTitle'},
-    {title:'Người thuê',dataIndex:'tenantName',render:(v,r)=><Space direction="vertical" size={0}>{v}<Typography.Text type="secondary">{r.tenantEmail}</Typography.Text></Space>},
+    {title:'Người thuê',dataIndex:'tenantName',render:(v,r)=><Space orientation="vertical" size={0}>{v}<Typography.Text type="secondary">{r.tenantEmail}</Typography.Text></Space>},
     {title:'Thời gian',render:(_,r)=>r.startDate+' – '+r.endDate},
     {title:'Giá đề xuất',dataIndex:'proposedPrice',render:money},
     {title:'Trạng thái',dataIndex:'status',render:(v:number)=><Status value={v} label={bookingStatusLabels[v] || String(v)}/>},
