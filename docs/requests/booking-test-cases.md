@@ -49,6 +49,15 @@ Tài liệu này dùng cùng `Bookings.http` trên môi trường Development c�
 | Cạnh tranh trạng thái | Gửi Accept và Reject đồng thời cho cùng một Booking Pending | Chỉ một thao tác chuyển trạng thái thành công; thao tác còn lại nhận 409 | Chưa chạy |
 | Cạnh tranh trạng thái | Gửi Accept và Cancel đồng thời cho cùng một Booking Pending | Chỉ một thao tác chuyển trạng thái thành công; thao tác còn lại nhận 409 | Chưa chạy |
 
+## Kiểm thử xung đột với hợp đồng
+
+| Ca | Tình huống | Kết quả mong đợi |
+|---|---|---|
+| BOOK-CONFLICT-01 | Tạo yêu cầu thuê chồng lấn hợp đồng Draft/AwaitingSignature/Active trên cùng căn nhà | 409; không tạo booking |
+| BOOK-CONFLICT-02 | Chấp nhận booking chồng lấn hợp đồng khác trên cùng căn nhà | 409; booking vẫn Pending |
+| BOOK-CONFLICT-03 | Chủ nhà đã đổi thời hạn hợp đồng, Tenant tạo booking trùng phần thời gian được gia hạn | 409 |
+| BOOK-CONFLICT-04 | Hai request tạo/chấp nhận booking trùng lịch gửi đồng thời | Không thể cùng chiếm một khoảng thời gian; ghi status thực tế |
+
 ## Kiểm thử quy ước tính tiền thuê
 
 Quy ước đang áp dụng: `EndDate` là ngày kết thúc không bao gồm; tháng tròn được tính theo ngày kỷ niệm từ ngày bắt đầu ban đầu (ngày 29/30/31 được chốt về ngày cuối tháng nếu tháng đích không có ngày tương ứng); phần ngày lẻ tính theo `MonthlyRent / 30 * số ngày`, tổng tiền làm tròn đến đồng.
