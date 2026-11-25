@@ -455,7 +455,7 @@ public sealed class ChatController : ControllerBase
     [RequestSizeLimit(11 * 1024 * 1024)]
     public async Task<IActionResult> UploadAttachment(
         Guid conversationId,
-        [FromForm] IFormFile file,
+        IFormFile file,
         [FromForm] string? caption,
         CancellationToken cancellationToken)
     {
