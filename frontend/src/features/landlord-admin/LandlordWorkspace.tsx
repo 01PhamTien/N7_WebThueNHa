@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { TOKEN_KEY, errorText } from '../../services/api';
 import { landlordAdminApi as api } from '../../services/landlordAdmin';
-import type { BookingDto, ChatAttachmentDto, ChatMessageDto, ContractDto, ConversationDto, InvoiceDetailDto, InvoiceListDto, PaymentDto, PropertyDto, PropertyImageDto, PropertyRequest, CreateInvoiceRequest, NotificationDto } from '../../services/landlordAdmin';
+import type { AdminPaymentListDto, BookingDto, ChatAttachmentDto, ChatMessageDto, ContractDto, ConversationDto, InvoiceDetailDto, InvoiceListDto, PaymentDto, PropertyDto, PropertyImageDto, PropertyRequest, CreateInvoiceRequest, NotificationDto } from '../../services/landlordAdmin';
 import { Page, Loading, EmptyState } from '../../components/Shared';
 import { bookingStatusLabels, contractStatusLabels, invoiceStatusLabels, invoiceTypeLabels, listingStatusLabels, moderationStatusLabels, paymentStatusLabels, money, dateText, Status, ErrorLine, Paging, useRequest } from './workspaceShared';
 
@@ -85,6 +85,44 @@ export function LandlordContracts() {
     {title:'Thao tác',render:(_,r)=><Space wrap>{r.status==='Draft'&&<><Button size="small" onClick={()=>{setEdit(r);form.setFieldsValue({...r,terms:r.terms||undefined,startDate:dayjs(r.startDate),endDate:dayjs(r.endDate)});}}>Chỉnh sửa</Button><Popconfirm title="Gửi hợp đồng cho hai bên ký?" onConfirm={async()=>{try{await api.submitContract(r.id);message.success('Đã gửi hợp đồng chờ ký');q.refresh();}catch(e){message.error(errorText(e));}}}><Button size="small" type="primary">Gửi ký</Button></Popconfirm></>}{r.status==='AwaitingSignature'&&!r.landlordSignedAt&&<Popconfirm title="Xác nhận ký hợp đồng?" description="Bạn xác nhận đồng ý với nội dung hợp đồng đã gửi." okText="Xác nhận ký" cancelText="Hủy" onConfirm={async()=>{setSigningId(r.id);try{await api.signContract(r.id);message.success('Đã xác nhận chữ ký. Khi đủ hai chữ ký, hệ thống phát hành hóa đơn ban đầu.');q.refresh();}catch(e){message.error(errorText(e));throw e;}finally{setSigningId(null);}}}><Button type="primary" size="small" loading={signingId===r.id}>Ký hợp đồng</Button></Popconfirm>}</Space>}
   ];
   return <Page title="Quản lý hợp đồng"><ErrorLine error={q.error}/><Space wrap style={{marginBottom:16}}><Input.Search value={keyword} onChange={e=>{setPage(1);setKeyword(e.target.value);}} placeholder="Tìm mã hợp đồng, người thuê hoặc căn nhà" style={{width:320}}/><Select allowClear placeholder="Lọc trạng thái hợp đồng" style={{width:220,marginBottom:16}} value={status} onChange={v=>{setPage(1);setStatus(v);}} options={Object.entries(contractStatusLabels).map(([value,label])=>({value,label}))}/></Space><Card className="management-table-card">{q.busy?<Loading/>:<Table rowKey="id" columns={columns} dataSource={q.data?.items||[]} pagination={false} scroll={{x:1100}} locale={{emptyText:<EmptyState/>}}/>}<Paging page={page} total={q.data?.totalItems||0} onChange={setPage}/></Card><Drawer title="Chỉnh sửa hợp đồng" open={!!edit} onClose={()=>setEdit(null)} size="large" styles={{ wrapper: { width: 'min(500px, 100vw)' } }} extra={<Button type="primary" onClick={()=>form.submit()}>Lưu</Button>}><Alert type="info" showIcon message="Hợp đồng thuê theo tháng" description="Thời hạn dưới một tháng áp dụng mức thuê tối thiểu một tháng. Tháng tròn tính theo giá tháng; ngày lẻ tính theo giá tháng chia 30 nhân số ngày. Tiền cọc được thỏa thuận riêng." style={{marginBottom:16}}/><Form form={form} layout="vertical" onFinish={async (v:ContractFormValues)=>{try{await api.updateContract(edit!.id,{...v,startDate:v.startDate.format('YYYY-MM-DD'),endDate:v.endDate.format('YYYY-MM-DD')});message.success('Đã cập nhật hợp đồng');setEdit(null);q.refresh();}catch(e){message.error(errorText(e));}}}><Form.Item name="startDate" label="Ngày bắt đầu" rules={[{required:true}]}><DatePicker style={{width:'100%'}}/></Form.Item><Form.Item name="endDate" label="Ngày kết thúc (không tính ngày này)" dependencies={['startDate']} rules={[{required:true},{validator:(_,value)=>{const start=form.getFieldValue('startDate');return !start||!value||value.isAfter(start,'day')?Promise.resolve():Promise.reject(new Error('Ngày kết thúc phải sau ngày bắt đầu.'));}}]}><DatePicker style={{width:'100%'}} disabledDate={current=>{const start=form.getFieldValue('startDate');return !!start&&!current.isAfter(start,'day');}}/></Form.Item><Form.Item name="monthlyRent" label="Tiền thuê/tháng" rules={[{required:true},{type:'number',min:0.01,message:'Tiền thuê phải lớn hơn 0.'}]}><InputNumber min={0.01} max={999999999} precision={2} style={{width:'100%'}}/></Form.Item><Form.Item name="depositAmount" label="Tiền cọc" rules={[{required:true},{type:'number',min:0,max:999999999,message:'Tiền cọc không hợp lệ.'}]}><InputNumber min={0} max={999999999} precision={2} style={{width:'100%'}}/></Form.Item><Form.Item name="paymentDueDay" label="Ngày đến hạn hàng tháng" rules={[{required:true}]}><InputNumber min={1} max={28} style={{width:'100%'}}/></Form.Item><Form.Item name="terms" label="Điều khoản"><Input.TextArea rows={5} maxLength={4000} showCount/></Form.Item></Form></Drawer></Page>;
+}
+
+export function LandlordPayments() {
+  const [page,setPage]=useState(1);
+  const [status,setStatus]=useState<string|undefined>('Pending');
+  const [keyword,setKeyword]=useState('');
+  const q=useRequest(()=>api.incomingPayments({page,pageSize:10,status,keyword:keyword||undefined}),[page,status,keyword]);
+  const {message,modal}=AntApp.useApp();
+  const [busyId,setBusyId]=useState<string|null>(null);
+  const refresh=()=>q.refresh();
+  const columns:ColumnsType<AdminPaymentListDto>=[
+    {title:'Người thanh toán',dataIndex:'payerName'},
+    {title:'Căn nhà',dataIndex:'propertyTitle'},
+    {title:'Hóa đơn',dataIndex:'invoiceCode'},
+    {title:'Phương thức',render:(_,r)=><Space direction="vertical" size={0}><span>{r.paymentMethod==='BankTransfer'?'Chuyển khoản':r.paymentMethod==='Cash'?'Tiền mặt':r.paymentMethod}</span><Typography.Text type="secondary">{r.paymentProvider||'—'}</Typography.Text></Space>},
+    {title:'Mã giao dịch',dataIndex:'transactionCode',render:(v:string|null)=><Typography.Text copyable={!!v}>{v||'Chưa có'}</Typography.Text>},
+    {title:'Số tiền',dataIndex:'amount',render:money},
+    {title:'Trạng thái',dataIndex:'status',render:(v:string)=><Status value={v} label={paymentStatusLabels[v]||v}/>},
+    {title:'Thời điểm',dataIndex:'createdAt',render:dateText},
+    {title:'Thao tác',render:(_,r)=><Space>{r.status==='Pending'&&r.paymentProvider==='Manual'&&<>
+      <Popconfirm title="Xác nhận đã nhận khoản tiền này?" description="Chỉ xác nhận sau khi đã kiểm tra tiền thực nhận." okText="Đã nhận tiền" onConfirm={async()=>{setBusyId(r.id);try{await api.confirmPayment(r.id);message.success('Đã xác nhận thanh toán');refresh();}catch(e){message.error(errorText(e));}finally{setBusyId(null);}}}>
+        <Button size="small" type="primary" loading={busyId===r.id}>Xác nhận</Button>
+      </Popconfirm>
+      <Button size="small" danger onClick={()=>modal.confirm({title:'Từ chối giao dịch',content:<Input.TextArea id={'reject-payment-'+r.id} rows={3} maxLength={1000} placeholder="Nhập lý do từ chối"/>,onOk:async()=>{const reason=(document.getElementById('reject-payment-'+r.id) as HTMLTextAreaElement)?.value||'';if(!reason.trim()){message.error('Vui lòng nhập lý do.');throw new Error('Thiếu lý do');}setBusyId(r.id);try{await api.rejectPayment(r.id,reason);message.success('Đã từ chối giao dịch');refresh();}catch(e){message.error(errorText(e));throw e;}finally{setBusyId(null);}}})}>Từ chối</Button>
+    </>}</Space>}
+  ];
+  return <Page title="Quản lý thanh toán" description="Theo dõi giao dịch của khách thuê và xác nhận tiền thực nhận.">
+    <ErrorLine error={q.error}/>
+    <Space wrap style={{marginBottom:16}}>
+      <Input.Search value={keyword} onChange={e=>{setPage(1);setKeyword(e.target.value);}} placeholder="Tìm khách, hóa đơn, căn nhà hoặc mã giao dịch" style={{width:320}}/>
+      <Select value={status} allowClear placeholder="Tất cả trạng thái" style={{width:190}} onChange={v=>{setPage(1);setStatus(v);}} options={Object.entries(paymentStatusLabels).map(([value,label])=>({value,label}))}/>
+    </Space>
+    <Card className="management-table-card">
+      {q.busy?<Loading/>:<Table rowKey="id" columns={columns} dataSource={q.data?.items||[]} pagination={false} scroll={{x:1250}} locale={{emptyText:<EmptyState/>}}/>}
+      <Paging page={page} total={q.data?.totalItems||0} onChange={setPage}/>
+    </Card>
+    <Alert style={{marginTop:16}} type="info" showIcon message="Nguyên tắc xác nhận" description="Chỉ xác nhận giao dịch chuyển khoản thủ công sau khi kiểm tra tài khoản ngân hàng đã nhận đúng số tiền. Thanh toán SePay được hệ thống xác nhận tự động qua IPN/Webhook hợp lệ."/>
+  </Page>;
 }
 
 export function LandlordInvoices() {
