@@ -51,6 +51,9 @@ public sealed class BookingsController : ControllerBase
         if (property is null)
             return NotFound(new { message = "Không tìm thấy căn nhà." });
 
+        if (request.NumberOfPeople > property.MaxOccupants)
+            return BadRequest(new { message = $"Căn nhà chỉ cho phép tối đa {property.MaxOccupants} người ở." });
+
         if (property.LandlordId == tenantId)
             return BadRequest(new { message = "Chủ nhà không thể tự gửi yêu cầu thuê căn nhà của mình." });
 
@@ -86,7 +89,7 @@ public sealed class BookingsController : ControllerBase
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             NumberOfPeople = request.NumberOfPeople,
-            ProposedPrice = request.ProposedPrice,
+            ProposedPrice = property.PricePerMonth,
             Message = string.IsNullOrWhiteSpace(request.Message) ? null : request.Message.Trim(),
             Status = BookingStatus.Pending,
             CreatedAt = DateTime.UtcNow
@@ -277,7 +280,7 @@ public sealed class BookingsController : ControllerBase
                 StartDate = booking.StartDate,
                 EndDate = booking.EndDate,
                 MonthlyRent = booking.ProposedPrice,
-                DepositAmount = 0,
+                DepositAmount = booking.Property.DepositAmount,
                 PaymentDueDay = 1,
                 Status = RentalContractStatus.Draft,
                 CreatedAt = now
