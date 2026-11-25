@@ -37,6 +37,14 @@
 | C23 | User khong phai participant JoinConversation | HubException; khong vao group | Chua chay |
 | C24 | Goi LeaveConversation | Chi connection hien tai roi group; khong anh huong participant khac | Chua chay |
 
+## Kiểm tra giao diện sau tinh giản
+
+- Danh sách chat có hai lựa chọn dễ hiểu: **Hộp thư đến** và **Đã lưu trữ**; mỗi lựa chọn chỉ hiển thị đúng nhóm hội thoại.
+- Hội thoại đã lưu trữ vẫn xem được lịch sử nhưng không hiện ô gửi tin/đính kèm cho đến khi khôi phục.
+- Giao diện không hiển thị nút sửa hoặc xóa tin nhắn đã gửi; lịch sử tin nhắn được giữ nguyên.
+- Upload từ giao diện chặn trước tệp trên 10 MB hoặc phần mở rộng không hỗ trợ; Backend vẫn phải kiểm tra lại độc lập.
+- Khi mở hội thoại, số tin chưa đọc giảm sau khi tải lại danh sách.
+
 ## Ghi nhan
 - Ghi commit SHA, .NET SDK, SQL Server va status code thuc te.
 - Kiem tra file that duoc tao trong `PrivateUploads/chat`; khong commit tep upload.
