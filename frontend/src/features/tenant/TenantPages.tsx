@@ -621,6 +621,7 @@ export function NotificationsPage() {
     setMarkingAll(true);
     try {
       await tenantApi.readAll();
+      window.dispatchEvent(new Event('web2:notifications-updated'));
       state.setData(previous => previous
         ? { ...previous, items: previous.items.map(item => ({ ...item, isRead: true })) }
         : previous);
@@ -636,6 +637,7 @@ export function NotificationsPage() {
     setMarkingId(id);
     try {
       await tenantApi.readNotification(id);
+      window.dispatchEvent(new Event('web2:notifications-updated'));
       state.setData(previous => previous
         ? { ...previous, items: previous.items.map(item => item.id === id ? { ...item, isRead: true } : item) }
         : previous);
@@ -659,7 +661,7 @@ export function NotificationsPage() {
         </div>
         <Button
           icon={<CheckOutlined />}
-          disabled={unreadCount === 0 || state.busy || !!state.err}
+          disabled={state.busy || !!state.err}
           loading={markingAll}
           onClick={() => void markAllRead()}
         >
@@ -697,7 +699,7 @@ export function NotificationsPage() {
                       loading={markingId === notification.id}
                       onClick={() => void markRead(notification.id)}
                     >
-                      Đã đọc
+                      Đánh dấu đã đọc
                     </Button>
                   )}
                 </List.Item>
