@@ -15,3 +15,7 @@ export interface ChatAttachment{attachmentId:string;fileName:string;contentType?
 export interface ChatMessage{messageId:string;senderId:string;senderName:string;content?:string|null;messageType:string;sentAt:string;editedAt?:string|null;isMine:boolean;attachments:ChatAttachment[]}
 export interface LoginRequest{email:string;password:string}
 export interface RegisterRequest{fullName:string;email:string;phoneNumber?:string;password:string}
+
+export interface PropertyReviewItem{id:string;rating:number;comment?:string|null;createdAt:string}
+export interface PropertyReviewSummary{averageRating:number;totalReviews:number;items:PropertyReviewItem[]}
+export interface MyReviewItem{id:string;contractId:string;propertyId:string;propertyTitle:string;rating:number;comment?:string|null;createdAt:string}
