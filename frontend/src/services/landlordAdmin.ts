@@ -30,6 +30,10 @@ export interface PropertyDto {
   propertyTypeId: number;
   propertyTypeName?: string;
   pricePerMonth: number;
+  depositAmount: number;
+  maxOccupants: number;
+  furnishingDescription?: string | null;
+  additionalFeesDescription?: string | null;
   area: number;
   bedrooms: number;
   bathrooms: number;
@@ -46,6 +50,10 @@ export interface PropertyRequest {
   title: string;
   description?: string;
   pricePerMonth: number;
+  depositAmount: number;
+  maxOccupants: number;
+  furnishingDescription?: string;
+  additionalFeesDescription?: string;
   area: number;
   bedrooms: number;
   bathrooms: number;
@@ -66,7 +74,7 @@ export interface BookingDto {
   startDate: string;
   endDate: string;
   numberOfPeople: number;
-  proposedPrice: number;
+  monthlyRent: number;
   estimatedRent: number;
   fullMonths: number;
   extraDays: number;
