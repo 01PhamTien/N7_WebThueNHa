@@ -119,6 +119,26 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
             return ServiceResult<RentalContractResponse>.Conflict(
                 "Không thể chỉnh sửa hợp đồng đã Active hoặc đã kết thúc.");
 
+        var bookingConflict = await db.Bookings.AnyAsync(x =>
+            x.Id != contract.BookingId &&
+            x.PropertyId == contract.PropertyId &&
+            x.Status == BookingStatus.Accepted &&
+            x.StartDate < request.EndDate &&
+            x.EndDate > request.StartDate,
+            cancellationToken);
+
+        var contractConflict = await db.RentalContracts.AnyAsync(x =>
+            x.Id != contractId &&
+            x.PropertyId == contract.PropertyId &&
+            x.Status is not (RentalContractStatus.Completed or RentalContractStatus.Terminated or RentalContractStatus.Cancelled) &&
+            x.StartDate < request.EndDate &&
+            x.EndDate > request.StartDate,
+            cancellationToken);
+
+        if (bookingConflict || contractConflict)
+            return ServiceResult<RentalContractResponse>.Conflict(
+                "Thời hạn mới bị trùng với yêu cầu thuê đã chấp nhận hoặc hợp đồng khác của căn nhà.");
+
         if (contract.Status == RentalContractStatus.AwaitingSignature)
         {
             contract.LandlordSignedAt = null;
