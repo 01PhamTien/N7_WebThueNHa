@@ -1070,3 +1070,23 @@ body { background: var(--canvas); color: var(--ink); }
   .pagination .ant-pagination { flex-wrap: nowrap; white-space: nowrap; }
   .pagination .ant-pagination-total-text { display: none; }
 }
+
+/* Keep compact controls compact inside dense tables and toolbars. */
+.ant-btn-sm { min-height: 30px; height: 30px; padding-inline: 10px; font-size: 12px; }
+.ant-btn-lg { min-height: 46px; }
+.ant-input-sm,
+.ant-input-affix-wrapper-sm { min-height: 32px; }
+.ant-select-sm .ant-select-selector,
+.ant-picker-small { min-height: 32px !important; }
+.page > h1 { margin-bottom: 22px; }
+.page > .chat { margin-top: 4px; }
+
+/* Property gallery adapts when a listing has only one or two photos. */
+.property-gallery:has(> img:only-child) { grid-template-columns: 1fr; }
+.property-gallery:has(> img:only-child) img:first-child { grid-row: auto; height: 430px; }
+.property-gallery:has(> img:nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.property-gallery:has(> img:nth-child(2):last-child) img:first-child { grid-row: auto; height: 270px; }
+@media (max-width: 640px) {
+  .property-gallery:has(> img:only-child) img:first-child,
+  .property-gallery:has(> img:nth-child(2):last-child) img:first-child { height: 220px; }
+}
