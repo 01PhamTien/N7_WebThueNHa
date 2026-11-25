@@ -568,3 +568,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .tenant-pagination .ant-pagination { white-space: nowrap; }
   .tenant-notification-item .ant-list-item-meta { flex-basis: 100%; }
 }
+
+.tenant-list-card .ant-list {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.tenant-list-card .ant-list-item:last-child { border-block-end: 0; }
