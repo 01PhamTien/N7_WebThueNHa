@@ -668,7 +668,7 @@ export function PropertyDetailPage() {
             type="info"
             showIcon
             message="Giá niêm yết là giá thuê mỗi tháng"
-            description={`Giá thuê niêm yết ${(property?.pricePerMonth ?? 0).toLocaleString('vi-VN') + ' đ'}/tháng; tiền cọc ${property.depositAmount.toLocaleString('vi-VN') + ' đ'}. Sức chứa tối đa ${property?.maxOccupants ?? 1} người. Thời hạn dưới một tháng tính tối thiểu một tháng; ngày lẻ sau tháng tròn tính theo giá tháng / 30. Điện, nước và phí khác theo thỏa thuận công khai.`}
+            description={`Giá thuê niêm yết ${(property?.pricePerMonth ?? 0).toLocaleString('vi-VN') + ' đ'}/tháng; tiền cọc ${(property?.depositAmount ?? 0).toLocaleString('vi-VN') + ' đ'}. Sức chứa tối đa ${property?.maxOccupants ?? 1} người. Thời hạn dưới một tháng tính tối thiểu một tháng; ngày lẻ sau tháng tròn tính theo giá tháng / 30. Điện, nước và phí khác theo thỏa thuận công khai.`}
             style={{ marginBottom: 16 }}
           />
           <Form.Item name="startDate" label="Ngày bắt đầu" rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu.' }]}>
