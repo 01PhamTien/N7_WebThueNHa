@@ -41,7 +41,8 @@ export function ManagementLayout({ children }: { children: ReactNode }) {
     { key: '/landlord/properties', icon: <HomeOutlined />, label: <Link to="/landlord/properties">Quản lý tin đăng</Link> },
     { key: '/landlord/bookings', icon: <CalendarOutlined />, label: <Link to="/landlord/bookings">Yêu cầu thuê</Link> },
     { key: '/landlord/contracts', icon: <FileTextOutlined />, label: <Link to="/landlord/contracts">Hợp đồng</Link> },
-    { key: '/landlord/invoices', icon: <CreditCardOutlined />, label: <Link to="/landlord/invoices">Hóa đơn & thanh toán</Link> },
+    { key: '/landlord/invoices', icon: <CreditCardOutlined />, label: <Link to="/landlord/invoices">Hóa đơn</Link> },
+    { key: '/landlord/payments', icon: <CreditCardOutlined />, label: <Link to="/landlord/payments">Quản lý thanh toán</Link> },
     { key: '/landlord/chat', icon: <MessageOutlined />, label: <Link to="/landlord/chat">Tin nhắn</Link> },
     { key: '/landlord/notifications', icon: <BellOutlined />, label: <Link to="/landlord/notifications">Thông báo</Link> }
   ], [isAdminArea]);
