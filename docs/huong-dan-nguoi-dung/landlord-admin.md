@@ -171,7 +171,7 @@ Giới hạn tệp đính kèm theo Backend:
 - Định dạng được hỗ trợ: **JPG/JPEG, PNG, WEBP, PDF, DOC, DOCX**.
 - Phần mở rộng, kiểu nội dung và chữ ký tệp phải phù hợp; đổi tên đuôi tệp không hợp lệ sẽ không giúp tải lên thành công.
 
-Khi mở hội thoại, hệ thống tải lịch sử tin nhắn và đánh dấu hội thoại đã đọc. Dùng bộ lọc **Hộp thư đến** để xem hội thoại đang hoạt động và **Đã lưu trữ** để xem các hội thoại đã cất đi. Trong hội thoại, chọn **Lưu trữ** để chuyển hội thoại khỏi hộp thư đến; chọn **Đưa về hộp thư đến** để tiếp tục trao đổi. Lưu trữ không xóa tin nhắn hoặc dữ liệu hội thoại. Giao diện không cung cấp thao tác sửa hoặc xóa tin nhắn đã gửi. Tin nhắn mới được đồng bộ realtime khi kết nối hoạt động. Nếu tải/gửi tin nhắn hoặc tệp thất bại, giao diện hiển thị thông báo lỗi; hãy kiểm tra kết nối, quyền truy cập và định dạng/dung lượng tệp rồi thử lại.
+Khi mở hội thoại, hệ thống tải lịch sử tin nhắn và đánh dấu hội thoại đã đọc. Dùng bộ lọc **Hộp thư đến** để xem hội thoại đang hoạt động và **Đã lưu trữ** để xem các hội thoại đã cất đi. Trong hội thoại, chọn **Lưu trữ** để chuyển hội thoại khỏi hộp thư đến; chọn **Đưa về hộp thư đến** để tiếp tục trao đổi. Lưu trữ không xóa tin nhắn hoặc dữ liệu hội thoại. Bạn vẫn có thể gửi tin nhắn hoặc tệp trực tiếp từ hội thoại đã lưu trữ; khi gửi mới, hội thoại tự chuyển về Hộp thư đến của bạn, không thay đổi trạng thái lưu trữ của người thuê. Giao diện không cung cấp thao tác sửa hoặc xóa tin nhắn đã gửi. Tin nhắn mới được đồng bộ realtime khi kết nối hoạt động. Nếu tải/gửi tin nhắn hoặc tệp thất bại, giao diện hiển thị thông báo lỗi; hãy kiểm tra kết nối, quyền truy cập và định dạng/dung lượng tệp rồi thử lại.
 
 ### 2.7. Thông báo
 
