@@ -177,6 +177,8 @@ export interface InvoiceListDto {
   propertyId: string;
   propertyTitle: string;
   invoiceType: string;
+  periodStart?: string | null;
+  periodEnd?: string | null;
   issueDate: string;
   dueDate: string;
   totalAmount: number;
