@@ -48,18 +48,32 @@ function localDateValue(date = new Date()): string {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
 }
 
+function addCalendarMonths(value: string, months: number): string {
+  const [year, month, day] = value.split('-').map(Number);
+  const target = new Date(year, month - 1 + months, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  const result = new Date(target.getFullYear(), target.getMonth(), Math.min(day, lastDay));
+  return [result.getFullYear(), String(result.getMonth() + 1).padStart(2, '0'), String(result.getDate()).padStart(2, '0')].join('-');
+}
+
 function calculateRent(monthlyRent: number, startDate: string, endDate: string) {
-  let cursor = startDate;
-  let fullMonths = 0;
-  while (addCalendarMonth(cursor) <= endDate) {
-    cursor = addCalendarMonth(cursor);
+  const [startYear, startMonth] = startDate.split('-').map(Number);
+  const [endYear, endMonth] = endDate.split('-').map(Number);
+  let fullMonths = Math.max(0, (endYear - startYear) * 12 + endMonth - startMonth);
+
+  while (fullMonths > 0 && addCalendarMonths(startDate, fullMonths) > endDate) {
+    fullMonths -= 1;
+  }
+  while (addCalendarMonths(startDate, fullMonths + 1) <= endDate) {
     fullMonths += 1;
   }
+
+  const remainderStart = addCalendarMonths(startDate, fullMonths);
   const utc = (value: string) => {
     const [year, month, day] = value.split('-').map(Number);
     return Date.UTC(year, month - 1, day);
   };
-  const extraDays = Math.max(0, Math.round((utc(endDate) - utc(cursor)) / 86400000));
+  const extraDays = Math.max(0, Math.round((utc(endDate) - utc(remainderStart)) / 86400000));
   const dailyRate = Math.round(monthlyRent / 30);
   const total = Math.round(monthlyRent * fullMonths + monthlyRent * extraDays / 30);
   return { fullMonths, extraDays, dailyRate, total };
