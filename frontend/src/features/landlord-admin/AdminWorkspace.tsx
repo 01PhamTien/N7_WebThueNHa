@@ -193,7 +193,7 @@ export function AdminUsers() {
       render: (_, row) => (
         <Space>
           <Avatar src={row.avatarUrl}>{row.fullName?.[0]}</Avatar>
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Typography.Text strong>{row.fullName}</Typography.Text>
             <Typography.Text type="secondary">{row.email}</Typography.Text>
           </Space>
