@@ -68,13 +68,18 @@ function calculateRent(monthlyRent: number, startDate: string, endDate: string) 
     fullMonths += 1;
   }
 
+  const dailyRate = Math.round(monthlyRent / 30);
+  // Thuê nhà theo giá tháng: thời hạn dưới một tháng vẫn thu tối thiểu một tháng.
+  if (fullMonths === 0) {
+    return { fullMonths: 1, extraDays: 0, dailyRate, total: monthlyRent };
+  }
+
   const remainderStart = addCalendarMonths(startDate, fullMonths);
   const utc = (value: string) => {
     const [year, month, day] = value.split('-').map(Number);
     return Date.UTC(year, month - 1, day);
   };
   const extraDays = Math.max(0, Math.round((utc(endDate) - utc(remainderStart)) / 86400000));
-  const dailyRate = Math.round(monthlyRent / 30);
   const total = Math.round(monthlyRent * fullMonths + monthlyRent * extraDays / 30);
   return { fullMonths, extraDays, dailyRate, total };
 }
@@ -659,7 +664,7 @@ export function PropertyDetailPage() {
             type="info"
             showIcon
             message="Giá niêm yết là giá thuê mỗi tháng"
-            description="Tháng tròn tính theo giá tháng; phần ngày lẻ tính bằng giá tháng chia 30 nhân số ngày. Ngày kết thúc không tính vào số ngày thuê. Gửi yêu cầu chưa phát sinh thanh toán; tiền cọc và lịch thanh toán được xác nhận trong hợp đồng."
+            description="Thời hạn dưới một tháng áp dụng mức thuê tối thiểu một tháng. Sau tháng tròn, ngày lẻ tính theo giá tháng chia 30 nhân số ngày. Ngày kết thúc không tính tiền. Gửi yêu cầu chưa phát sinh thanh toán; tiền cọc và lịch thanh toán được xác nhận trong hợp đồng."
             style={{ marginBottom: 16 }}
           />
           <Form.Item name="startDate" label="Ngày bắt đầu" rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu.' }]}>
@@ -710,7 +715,7 @@ export function PropertyDetailPage() {
                     <Typography.Title level={4}>{estimate.total.toLocaleString('vi-VN')} đ</Typography.Title>
                   </div>
                   <Typography.Text type="secondary">
-                    {estimate.fullMonths} tháng tròn + {estimate.extraDays} ngày lẻ · Đơn giá ngày lẻ khoảng {estimate.dailyRate.toLocaleString('vi-VN')} đ/ngày.
+                    {estimate.fullMonths === 1 && estimate.extraDays === 0 && endDate > startDate && addCalendarMonth(startDate) > endDate ? 'Áp dụng mức thuê tối thiểu 1 tháng.' : `${estimate.fullMonths} tháng tròn + ${estimate.extraDays} ngày lẻ · Đơn giá ngày lẻ khoảng ${estimate.dailyRate.toLocaleString('vi-VN')} đ/ngày.`}
                   </Typography.Text>
                 </div>
               );
