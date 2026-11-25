@@ -417,7 +417,7 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
         if (totalPaid >= invoice.TotalAmount)
             return InvoiceStatus.Paid;
 
-        if (invoice.DueDate < DateOnly.FromDateTime(DateTime.UtcNow))
+        if (invoice.DueDate < DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7)))
             return InvoiceStatus.Overdue;
 
         return totalPaid > 0 ? InvoiceStatus.PartiallyPaid : InvoiceStatus.Issued;
