@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Web2_ThueNha.Services;
 using Web2_ThueNha.Services.Notifications;
 using Web2_ThueNha.Services.Contracts;
 using Web2_ThueNha.Services.Payments;
@@ -122,6 +123,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISePayService, SePayService>();
 builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 builder.Services.AddScoped<IPropertyModerationRepository, PropertyModerationRepository>();
 builder.Services.AddScoped<IPropertyQueryRepository, PropertyQueryRepository>();

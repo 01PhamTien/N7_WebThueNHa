@@ -188,3 +188,9 @@ Thông báo không được tạo khi nghiệp vụ trả lỗi hoặc request l
 - Interface/implementation được đăng ký Scoped qua Dependency Injection trong `Program.cs`.
 
 Checklist kiểm thử (chưa đánh dấu Passed trước khi chạy thật): `docs/requests/middleware-repository-test-cases.md`.
+
+## Tích hợp SePay
+
+SePay Gateway và Bank Webhook được gắn trực tiếp với `Invoice`/`Payment` trong `AppDbContext`; không có `PaymentDbContext` hoặc bảng `Payments` thứ hai. Tenant khởi tạo checkout tại `POST /api/invoices/{invoiceId}/sepay-checkout`; Payment chỉ chuyển `Succeeded` sau IPN/Bank Webhook đã xác thực. Cấu hình và test case nằm tại `docs/SEPAY.md` và `docs/requests/sepay-test-cases.md`.
+
+Chạy Sandbox trước Production; không commit merchant secret, IPN secret, webhook secret hoặc tài khoản ngân hàng.
