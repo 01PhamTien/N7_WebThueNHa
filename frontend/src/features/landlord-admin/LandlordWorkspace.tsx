@@ -168,7 +168,9 @@ export function LandlordChat() {
   const [text,setText]=useState('');
   const [archiving,setArchiving]=useState(false);
   const refreshConversations=useRef(q.refresh);
-  const {message,modal}=AntApp.useApp();
+  const app = AntApp.useApp();
+  const { message } = app;
+  const modal = app.modal;
   useEffect(()=>{refreshConversations.current=q.refresh;},[q.refresh]);
   useEffect(()=>{setPage(1);setActive(null);setMessages([]);},[includeArchived]);
   useEffect(()=>{
