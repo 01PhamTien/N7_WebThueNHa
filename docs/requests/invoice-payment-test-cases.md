@@ -44,6 +44,18 @@
 | PAY-17 | Hai request xác nhận đồng thời | Không thể ghi nhận vượt tổng hóa đơn | Chưa chạy |
 | PAY-18 | Hóa đơn quá hạn chưa thanh toán đủ | InvoiceStatus=Overdue | Chưa chạy |
 
+## Kiểm thử quy ước kỳ hóa đơn tiền thuê
+
+| Mã | Tình huống | Kết quả mong đợi | Kết quả thực tế |
+|---|---|---|---|
+| INV-19 | Tạo MonthlyRent cho 2 ngày trong hợp đồng | Backend lấy MonthlyRent từ hợp đồng, tính `MonthlyRent / 30 * 2`, không dùng UnitPrice do trình duyệt gửi | Chưa chạy |
+| INV-20 | Tạo MonthlyRent cho một tháng lịch tròn | Tổng tiền bằng đúng MonthlyRent trong hợp đồng | Chưa chạy |
+| INV-21 | Tạo MonthlyRent một tháng + 2 ngày | Tổng tiền bằng MonthlyRent + 2/30 MonthlyRent | Chưa chạy |
+| INV-22 | Tạo MonthlyRent có kỳ chồng lấn một phần với hóa đơn chưa hủy | 409; không tạo hóa đơn mới | Chưa chạy |
+| INV-23 | Tạo MonthlyRent trùng kỳ với hóa đơn đã hủy | Cho phép tạo lại kỳ đó | Chưa chạy |
+| INV-24 | Kỳ Other có ngày kết thúc bằng ngày bắt đầu | 400; khoảng ngày phải có độ dài lớn hơn 0 | Chưa chạy |
+| INV-25 | Tạo MonthlyRent có nhiều hơn một dòng chi tiết | 400; phí điện/nước/phát sinh lập hóa đơn loại Other | Chưa chạy |
+
 ## Quy tắc schema
 - Dùng bảng `Invoices`, `InvoiceItems`, `Payments` và `AppDbContext` hiện có.
 - Không tạo PaymentDbContext hoặc bảng Payments mới.
