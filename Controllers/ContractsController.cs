@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Contracts;
+using Web2_ThueNha.DTOs.Properties;
 using Web2_ThueNha.Models;
 
 using Web2_ThueNha.Services;
