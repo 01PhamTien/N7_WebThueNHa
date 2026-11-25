@@ -256,7 +256,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
             .Where(x => x.PropertyId == id).OrderBy(x => x.DisplayOrder).ToListAsync(cancellationToken);
         property.Images = images;
         await db.Entry(property).Collection(x => x.PropertyAmenities).Query().Include(x => x.Amenity).LoadAsync(cancellationToken);
-        return Ok(ToResponse(property));
+        return Ok(await ToResponseAsync(property, cancellationToken));
     }
 
     [HttpPatch("{id:guid}/status")]
