@@ -148,6 +148,10 @@ if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("SeedDem
     app.Logger.LogInformation("Đã kiểm tra và khởi tạo dữ liệu demo NhàỞ cho môi trường Development.");
 }
 
+// Đặt middleware xử lý lỗi trước Swagger để lỗi sinh OpenAPI cũng được ghi log
+// và trả ProblemDetails (chỉ lộ thông tin exception trong Development).
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -158,7 +162,6 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
