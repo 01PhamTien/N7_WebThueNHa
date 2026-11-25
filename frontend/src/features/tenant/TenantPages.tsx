@@ -455,7 +455,7 @@ export function BookingsPage() {
 }
 
 export function ContractsPage() {
-  const { message } = AntApp.useApp();
+  const { message, modal } = AntApp.useApp();
   const state = usePage<ContractItem>(tenantApi.contracts);
   const [detail, setDetail] = useState<ContractDetail | null>(null);
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
@@ -515,7 +515,9 @@ export function ContractsPage() {
     try {
       await tenantApi.signContract(id);
       message.success('Đã xác nhận chữ ký hợp đồng.');
+      state.setData(previous => previous ? {...previous, items: previous.items.map(item => item.id === id ? {...item, tenantSignedAt: new Date().toISOString()} : item)} : previous);
       state.reload();
+      if (detail?.contract.id === id) { const response = await tenantApi.contract(id); setDetail(response.data); }
     } catch (error) {
       message.error(errorText(error));
     } finally {
@@ -543,12 +545,12 @@ export function ContractsPage() {
                     >
                       Chi tiết
                     </Button>,
-                    ...(item.status === 'AwaitingSignature' ? [
+                    ...(item.status === 'AwaitingSignature' && !item.tenantSignedAt ? [
                       <Button
                         key="sign"
                         type="primary"
                         loading={signingId === item.id}
-                        onClick={() => void signContract(item.id)}
+                        onClick={() => void openDetail(item.id)}
                       >
                         Ký hợp đồng
                       </Button>
@@ -574,7 +576,7 @@ export function ContractsPage() {
                       </Space>
                     }
                   />
-                  <StatusTag value={item.status} labels={contractLabels} />
+                  <Space orientation="vertical" size={2}><StatusTag value={item.status} labels={contractLabels} />{item.status === 'AwaitingSignature' && <Typography.Text type="secondary">{item.tenantSignedAt ? 'Đã ký · Chờ chủ nhà ký' : item.landlordSignedAt ? 'Chờ bạn ký' : 'Chờ hai bên ký'}</Typography.Text>}</Space>
                 </List.Item>
               )}
             />
@@ -587,7 +589,12 @@ export function ContractsPage() {
         title="Chi tiết hợp đồng"
         open={!!detail}
         onCancel={() => setDetail(null)}
-        footer={null}
+        footer={[
+          <Button key="close" onClick={() => setDetail(null)}>Đóng</Button>,
+          ...(detail?.contract.status === 'AwaitingSignature' && !detail.contract.tenantSignedAt ? [
+            <Button key="sign" type="primary" loading={signingId === detail.contract.id} onClick={() => modal.confirm({title:'Xác nhận ký hợp đồng?', content:'Bạn xác nhận đã đọc và đồng ý với nội dung hợp đồng.',okText:'Xác nhận ký',cancelText:'Xem lại',onOk:()=>signContract(detail.contract.id)})}>Xác nhận ký</Button>
+          ] : [])
+        ]}
         width="min(760px, calc(100vw - 32px))"
         destroyOnHidden
       >
@@ -603,6 +610,8 @@ export function ContractsPage() {
             <Descriptions.Item label="Tiền cọc">{money(detail.contract.depositAmount)}</Descriptions.Item>
             <Descriptions.Item label="Ngày đến hạn hàng tháng">Ngày {detail.contract.paymentDueDay}</Descriptions.Item>
             <Descriptions.Item label="Trạng thái"><StatusTag value={detail.contract.status} labels={contractLabels} /></Descriptions.Item>
+            <Descriptions.Item label="Chủ nhà ký">{detail.contract.landlordSignedAt ? dateTimeText(detail.contract.landlordSignedAt) : "Chưa ký"}</Descriptions.Item>
+            <Descriptions.Item label="Người thuê ký">{detail.contract.tenantSignedAt ? dateTimeText(detail.contract.tenantSignedAt) : "Chưa ký"}</Descriptions.Item>
             <Descriptions.Item label="Điều khoản">{detail.contract.terms || 'Chưa có điều khoản bổ sung.'}</Descriptions.Item>
           </Descriptions>
         )}
