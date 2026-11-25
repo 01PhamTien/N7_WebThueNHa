@@ -306,6 +306,8 @@ export const landlordAdminApi = {
     data.append('file', file);
     return api.post<ChatMessageDto>('/api/chat/conversations/' + id + '/attachments', data);
   },
+  downloadAttachment: (attachmentId: string) =>
+    api.get<Blob>('/api/chat/attachments/' + attachmentId, { responseType: 'blob' }),
   markChatRead: (id: string) => api.patch<void>('/api/chat/conversations/' + id + '/read'),
 
   adminUsers: (params: PageParams & { keyword?: string; isActive?: boolean } = {}) =>
