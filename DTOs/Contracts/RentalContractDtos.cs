@@ -18,7 +18,9 @@ public sealed record ContractListItem(
     decimal MonthlyRent,
     decimal DepositAmount,
     string Status,
-    DateTime CreatedAt)
+    DateTime CreatedAt,
+    DateTime? LandlordSignedAt = null,
+    DateTime? TenantSignedAt = null)
 {
     public decimal EstimatedRent =>
         RentalPricing.Calculate(MonthlyRent, StartDate, EndDate).TotalAmount;
