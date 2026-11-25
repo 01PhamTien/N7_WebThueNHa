@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, App as AntApp, Button, Empty, Input, List, Modal, Popconfirm, Segmented, Space, Spin, Tag, Upload } from 'antd';
+import { Alert, App as AntApp, Button, Empty, Input, List, Segmented, Space, Spin, Tag, Upload } from 'antd';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { useLocation } from 'react-router-dom';
 import { tenantApi } from '../../services/tenant';
@@ -27,10 +27,6 @@ export function ChatPage() {
   const [error, setError] = useState('');
   const [connection, setConnection] = useState('Đang kết nối');
   const [archiving, setArchiving] = useState(false);
-  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
-  const [editContent, setEditContent] = useState('');
-  const [savingMessage, setSavingMessage] = useState(false);
-  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const messageRequestId = useRef(0);
   const lastAutoOpenedConversation = useRef<string | null>(null);
   const shouldAutoScroll = useRef(true);
@@ -194,32 +190,6 @@ export function ChatPage() {
     }
   };
 
-  const saveEditedMessage = async () => {
-    if (!active || !editingMessage) return;
-    const content = editContent.trim();
-    if (!content) { message.warning('Tin nhắn không được để trống.'); return; }
-    setSavingMessage(true);
-    try {
-      const response = await tenantApi.editMessage(active.conversationId, editingMessage.messageId, content);
-      setMessages(previous => previous.map(item => item.messageId === editingMessage.messageId ? { ...item, content: response.data.content, editedAt: response.data.editedAt } : item));
-      setEditingMessage(null);
-      setEditContent('');
-    } catch (error) { message.error(errorText(error)); }
-    finally { setSavingMessage(false); }
-  };
-
-  const deleteMessage = async (item: ChatMessage) => {
-    if (!active) return;
-    setDeletingMessageId(item.messageId);
-    try {
-      await tenantApi.deleteMessage(active.conversationId, item.messageId);
-      setMessages(previous => previous.filter(messageItem => messageItem.messageId !== item.messageId));
-      message.success('Đã xóa tin nhắn.');
-      loadConversations();
-    } catch (error) { message.error(errorText(error)); }
-    finally { setDeletingMessageId(null); }
-  };
-
   const archiveConversation = async () => {
     if (!active) return;
     setArchiving(true);
@@ -332,16 +302,8 @@ export function ChatPage() {
                 {loadingMessages && <Spin />}
                 {messages.map(item => (
                   <article key={item.messageId} className={item.isMine ? 'bubble mine' : 'bubble'}>
-                    <small>{item.senderName} · {new Date(item.sentAt).toLocaleString('vi-VN')}{item.editedAt ? ' · Đã chỉnh sửa' : ''}</small>
+                    <small>{item.senderName} · {new Date(item.sentAt).toLocaleString('vi-VN')}</small>
                     {item.content && <p>{item.content}</p>}
-                    {item.isMine && item.messageType === 'Text' && (
-                      <div className="chat-message-actions">
-                        <Button type="link" size="small" onClick={() => { setEditingMessage(item); setEditContent(item.content || ''); }}>Sửa</Button>
-                        <Popconfirm title="Xóa tin nhắn này?" description="Tin nhắn sẽ bị gỡ khỏi cuộc trò chuyện." okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true, loading: deletingMessageId === item.messageId }} onConfirm={() => void deleteMessage(item)}>
-                          <Button type="link" danger size="small" loading={deletingMessageId === item.messageId}>Xóa</Button>
-                        </Popconfirm>
-                      </div>
-                    )}
                     {item.attachments.map(attachment => (
                       <p key={attachment.attachmentId}>
                         <Button
@@ -413,9 +375,7 @@ export function ChatPage() {
           )}
         </section>
       </div>
-      <Modal title="Chỉnh sửa tin nhắn" open={!!editingMessage} onCancel={() => { setEditingMessage(null); setEditContent(''); }} onOk={() => void saveEditedMessage()} okText="Lưu" cancelText="Hủy" confirmLoading={savingMessage} okButtonProps={{ disabled: !editContent.trim() }}>
-        <Input.TextArea value={editContent} onChange={event => setEditContent(event.target.value)} autoSize={{ minRows: 3, maxRows: 6 }} maxLength={4000} showCount />
-      </Modal>
+
     </main>
   );
 }
