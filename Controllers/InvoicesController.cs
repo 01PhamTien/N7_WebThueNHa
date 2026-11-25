@@ -86,6 +86,8 @@ public sealed class InvoicesController(AppDbContext db, IPaymentService paymentS
                     x.Contract.LandlordId,
                     x.Contract.TenantId,
                     x.InvoiceType.ToString(),
+                    x.PeriodStart,
+                    x.PeriodEnd,
                     x.IssueDate,
                     x.DueDate,
                     x.TotalAmount,
