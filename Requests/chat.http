@@ -1,0 +1,106 @@
+@baseUrl = https://localhost:7295
+@tenantToken = THAY_BANG_JWT_TENANT
+@landlordToken = THAY_BANG_JWT_LANDLORD
+@propertyId = THAY_BANG_GUID_CAN_NHA_DA_DUYET
+@conversationId = THAY_BANG_GUID_HOI_THOAI
+@messageId = THAY_BANG_GUID_TIN_NHAN
+@attachmentId = THAY_BANG_GUID_TEP
+
+### 1. Tenant tao hoac lay hoi thoai theo can nha
+POST {{baseUrl}}/api/chat/properties/{{propertyId}}/conversation
+Authorization: Bearer {{tenantToken}}
+
+### 2. Tenant/landlord xem danh sach hoi thoai chua an (phan trang server-side)
+GET {{baseUrl}}/api/chat/conversations?page=1&pageSize=20
+Authorization: Bearer {{tenantToken}}
+
+### 2a. Xem trang tiep theo
+GET {{baseUrl}}/api/chat/conversations?page=2&pageSize=20
+Authorization: Bearer {{tenantToken}}
+
+### 2b. Xem ca hoi thoai da an (van phan trang)
+GET {{baseUrl}}/api/chat/conversations?includeArchived=true&page=1&pageSize=20
+Authorization: Bearer {{tenantToken}}
+
+### 2c. Kiem tra tham so phan trang khong hop le (mong doi 400)
+GET {{baseUrl}}/api/chat/conversations?page=0&pageSize=20
+Authorization: Bearer {{tenantToken}}
+
+### 3. Xem lich su tin nhan (phan trang server-side)
+GET {{baseUrl}}/api/chat/conversations/{{conversationId}}/messages?page=1&pageSize=30
+Authorization: Bearer {{tenantToken}}
+
+### 3a. Kiem tra pageSize vuot gioi han (mong doi 400)
+GET {{baseUrl}}/api/chat/conversations/{{conversationId}}/messages?page=1&pageSize=101
+Authorization: Bearer {{tenantToken}}
+
+### 4. Gui tin nhan van ban
+POST {{baseUrl}}/api/chat/conversations/{{conversationId}}/messages
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{
+  "content": "Xin chao, toi muon hoi them ve can nha."
+}
+
+### 5. Sua tin nhan cua chinh minh
+PUT {{baseUrl}}/api/chat/conversations/{{conversationId}}/messages/{{messageId}}
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{
+  "content": "Noi dung da duoc cap nhat."
+}
+
+### 6. Xoa mem tin nhan cua chinh minh
+DELETE {{baseUrl}}/api/chat/conversations/{{conversationId}}/messages/{{messageId}}
+Authorization: Bearer {{tenantToken}}
+
+### 7. Danh dau da doc
+PATCH {{baseUrl}}/api/chat/conversations/{{conversationId}}/read
+Authorization: Bearer {{tenantToken}}
+
+### 8. An hoi thoai khoi danh sach ca nhan
+PATCH {{baseUrl}}/api/chat/conversations/{{conversationId}}/archive
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{
+  "isArchived": true
+}
+
+### 9. Hien lai hoi thoai
+PATCH {{baseUrl}}/api/chat/conversations/{{conversationId}}/archive
+Authorization: Bearer {{tenantToken}}
+Content-Type: application/json
+
+{
+  "isArchived": false
+}
+
+### 10. Tai tep dinh kem (doi duong dan den tep local truoc khi gui)
+# VS Code REST Client: thay duong dan file ben duoi bang tep thu nghiem.
+POST {{baseUrl}}/api/chat/conversations/{{conversationId}}/attachments
+Authorization: Bearer {{tenantToken}}
+Content-Type: multipart/form-data; boundary=----ChatBoundary
+
+------ChatBoundary
+Content-Disposition: form-data; name="caption"
+
+Tai lieu dinh kem
+------ChatBoundary
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Type: application/pdf
+
+< ./sample.pdf
+------ChatBoundary--
+
+### 11. Tai tep (chi participant duoc phep)
+GET {{baseUrl}}/api/chat/attachments/{{attachmentId}}
+Authorization: Bearer {{tenantToken}}
+
+### SignalR
+# Ket noi /hubs/chat bang accessTokenFactory, sau do:
+# connection.invoke("JoinConversation", conversationId)
+# Lang nghe NhanTinNhan, SuaTinNhan, XoaTinNhan
+# Roi hoi thoai: connection.invoke("LeaveConversation", conversationId)

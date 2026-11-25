@@ -1,0 +1,10 @@
+global using Web2_ThueNha.Models;
+global using Web2_ThueNha.Models.Identity;
+global using Web2_ThueNha.Models.Properties;
+global using Web2_ThueNha.Models.Bookings;
+global using Web2_ThueNha.Models.Contracts;
+global using Web2_ThueNha.Models.Payments;
+global using Web2_ThueNha.Models.Chat;
+global using Web2_ThueNha.Models.Interactions;
+global using Web2_ThueNha.Models.Notifications;
+global using Web2_ThueNha.Models.Moderation;
