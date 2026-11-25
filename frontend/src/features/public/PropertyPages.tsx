@@ -528,7 +528,7 @@ export function PropertyDetailPage() {
               <span className="section-kicker">GIÁ THUÊ</span>
               <div className="detail-price">{(property.pricePerMonth || 0).toLocaleString('vi-VN')} đ <small>/ tháng</small></div>
               <p className="muted">Giá thuê do chủ nhà cung cấp.</p>
-              <Space direction="vertical" size={10} className="detail-actions">
+              <Space orientation="vertical" size={10} className="detail-actions">
                 <Button block onClick={() => void toggleFavorite()} loading={favoriteBusy}>
                   {favorite ? 'Bỏ yêu thích' : 'Lưu yêu thích'}
                 </Button>
