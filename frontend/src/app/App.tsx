@@ -54,7 +54,8 @@ import {
   LandlordChat,
   AdminDashboard,
   AdminUsers,
-  AdminModeration
+  AdminModeration,
+  AdminOperations
 } from '../features/landlord-admin/Workspace';
 
 const theme = {
@@ -203,7 +204,7 @@ function Shell() {
   const routeKeys = [
     '/', '/nha', '/landlord', '/landlord/properties', '/landlord/bookings',
     '/landlord/contracts', '/landlord/invoices', '/landlord/chat',
-    '/landlord/notifications', '/admin', '/admin/users', '/admin/moderation',
+    '/landlord/notifications', '/admin', '/admin/users', '/admin/moderation', '/admin/operations',
     '/yeu-thich', '/dat-thue', '/hop-dong', '/hoa-don', '/tin-nhan',
     '/thong-bao', '/ho-so'
   ];
@@ -272,6 +273,7 @@ function Shell() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/moderation" element={<AdminModeration />} />
+            <Route path="/admin/operations" element={<AdminOperations />} />
           </Route>
           <Route element={<RoleGuard roles={['Tenant']} />}>
             <Route path="/yeu-thich" element={<FavoritesPage />} />
