@@ -657,7 +657,6 @@ export function PropertyDetailPage() {
           >
             {({ getFieldValue }) => {
               const startDate = getFieldValue('startDate') || localDateValue();
-              const minimumEndDate = startDate;
               return (
                 <Form.Item
                   name="endDate"
