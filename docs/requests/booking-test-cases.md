@@ -49,6 +49,21 @@ Tài liệu này dùng cùng `Bookings.http` trên môi trường Development c�
 | Cạnh tranh trạng thái | Gửi Accept và Reject đồng thời cho cùng một Booking Pending | Chỉ một thao tác chuyển trạng thái thành công; thao tác còn lại nhận 409 | Chưa chạy |
 | Cạnh tranh trạng thái | Gửi Accept và Cancel đồng thời cho cùng một Booking Pending | Chỉ một thao tác chuyển trạng thái thành công; thao tác còn lại nhận 409 | Chưa chạy |
 
+## Kiểm thử quy ước tính tiền thuê
+
+Quy ước đang áp dụng: `EndDate` là ngày kết thúc không bao gồm; tháng tròn được tính theo ngày kỷ niệm từ ngày bắt đầu ban đầu (ngày 29/30/31 được chốt về ngày cuối tháng nếu tháng đích không có ngày tương ứng); phần ngày lẻ tính theo `MonthlyRent / 30 * số ngày`, tổng tiền làm tròn đến đồng.
+
+| Ca | Khoảng thuê | Giá tháng | Kết quả mong đợi |
+|---|---|---:|---:|
+| PRICE-01 | 25/11 đến trước 27/11 | 3.000.000đ | 2 ngày = 200.000đ |
+| PRICE-02 | 01/11 đến trước 16/11 | 3.000.000đ | 15 ngày = 1.500.000đ |
+| PRICE-03 | 25/11 đến trước 25/12 | 3.000.000đ | 1 tháng = 3.000.000đ |
+| PRICE-04 | 25/11 đến trước 27/12 | 3.000.000đ | 1 tháng + 2 ngày = 3.200.000đ |
+| PRICE-05 | 31/01 đến trước 28/02 (năm không nhuận) | 3.000.000đ | 1 tháng = 3.000.000đ |
+| PRICE-06 | 31/01 đến trước 31/03 | 3.000.000đ | 2 tháng = 6.000.000đ; không bị trôi mốc ngày sau tháng 2 |
+| PRICE-07 | Ngày kết thúc bằng ngày bắt đầu | 3.000.000đ | 400; không tạo yêu cầu |
+| PRICE-08 | Thử sửa giá tháng ở trình duyệt sau khi gửi yêu cầu | Theo dữ liệu được lưu trong hợp đồng | Hóa đơn tiền thuê lấy đơn giá từ hợp đồng ở Backend |
+
 ## Ghi nhận khi chạy
 
 Với mỗi ca, ghi lại:
