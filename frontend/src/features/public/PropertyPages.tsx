@@ -702,7 +702,7 @@ export function PropertyDetailPage() {
             noStyle
             shouldUpdate={(previous, current) =>
               previous.startDate !== current.startDate ||
-              previous.endDate !== current.endDate ||
+              previous.endDate !== current.endDate
             }
           >
             {({ getFieldValue }) => {
