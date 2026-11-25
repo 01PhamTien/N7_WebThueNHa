@@ -39,7 +39,7 @@ jobs:
           Jwt__Issuer: SwaggerSmoke
           Jwt__Audience: SwaggerSmoke
         run: |
-          dotnet run --configuration Release --no-build > /tmp/n7-api.log 2>&1 &
+          dotnet run --configuration Release --no-build --no-launch-profile > /tmp/n7-api.log 2>&1 &
           app_pid=$!
           trap 'kill "$app_pid" 2>/dev/null || true' EXIT
           status=000
