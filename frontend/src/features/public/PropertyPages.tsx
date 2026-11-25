@@ -703,7 +703,6 @@ export function PropertyDetailPage() {
             shouldUpdate={(previous, current) =>
               previous.startDate !== current.startDate ||
               previous.endDate !== current.endDate ||
-              previous.proposedPrice !== current.proposedPrice
             }
           >
             {({ getFieldValue }) => {
