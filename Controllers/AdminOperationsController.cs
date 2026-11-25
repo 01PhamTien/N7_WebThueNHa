@@ -97,7 +97,7 @@ public sealed class AdminOperationsController(AppDbContext db) : ControllerBase
                     x.Id, x.ContractCode, x.BookingId, x.PropertyId, x.Property.Title,
                     x.LandlordId, x.Landlord.FullName, x.TenantId, x.Tenant.FullName,
                     x.StartDate, x.EndDate, x.MonthlyRent, x.DepositAmount,
-                    x.Status.ToString(), x.CreatedAt))
+                    x.Status.ToString(), x.CreatedAt, x.LandlordSignedAt, x.TenantSignedAt))
                 .ToListAsync(cancellationToken);
 
         return Ok(ToPage(items, page, pageSize, total));
