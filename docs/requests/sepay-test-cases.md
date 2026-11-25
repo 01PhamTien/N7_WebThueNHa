@@ -42,6 +42,8 @@
 | SP-28 | IPN và Bank Webhook cùng xác nhận một Payment | Payment chỉ Succeeded một lần | Chưa chạy |
 | SP-29 | Payment SePay thành công | Tenant và Landlord nhận Payment notification đúng ReferenceId | Chưa chạy |
 | SP-30 | Kiểm tra schema | Chỉ dùng AppDbContext/Payments hiện có; không có PaymentDbContext hoặc bảng Payments thứ hai | Chưa chạy |
+| SP-31 | Cấu hình Public URL localhost/IP private | Ứng dụng từ chối cấu hình; không trả checkout URL nội bộ | Chưa chạy |
+| SP-32 | Invoice bị Paid trước khi callback tới | IPN/Bank Webhook ACK nhưng không đổi Payment Pending sang Succeeded; ghi log đối soát | Chưa chạy |
 
 ## Kiểm tra mã thanh toán SePay
 - Prefix cấu hình: `SP`.
