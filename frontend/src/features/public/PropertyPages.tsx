@@ -628,9 +628,9 @@ export function PropertyDetailPage() {
                 <Button block onClick={() => void toggleFavorite()} loading={favoriteBusy}>
                   {favorite ? 'Bỏ yêu thích' : 'Lưu yêu thích'}
                 </Button>
-                {user?.roles.includes('Tenant') && String(property.rentalStatus) !== 'Rented' && String(property.rentalStatus) !== 'Reserved' && (
+                {user?.roles.includes('Tenant') && (
                   <>
-                    <Button block type="primary" disabled={String(property.rentalStatus) === 'Rented' || String(property.rentalStatus) === 'Reserved'} onClick={() => {
+                    <Button block type="primary" onClick={() => {
                       const startDate = localDateValue();
                       bookingForm.setFieldsValue({
                         startDate,
