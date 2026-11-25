@@ -96,11 +96,14 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
         return ServiceResult<RentalContractResponse>.Created(ToResponse(contract));
     }
 
-    public async Task<ServiceResult<RentalContractResponse>> UpdateAsync(
+    public async Task<ServiceResult<RentalContractResponse>>     public async Task<ServiceResult<RentalContractResponse>> UpdateAsync(
         Guid contractId, Guid userId, UpdateRentalContractRequest request, CancellationToken cancellationToken)
     {
         if (request.EndDate <= request.StartDate)
             return ServiceResult<RentalContractResponse>.BadRequest("Ngày kết thúc phải sau ngày bắt đầu.");
+
+        await using var transaction = await db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
 
         var contract = await db.RentalContracts
             .SingleOrDefaultAsync(x => x.Id == contractId, cancellationToken);
@@ -131,8 +134,12 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
         contract.Terms = string.IsNullOrWhiteSpace(request.Terms) ? null : request.Terms.Trim();
 
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
         return ServiceResult<RentalContractResponse>.Success(ToResponse(contract));
     }
+
+
 
     public async Task<ServiceResult<RentalContractResponse>> SubmitForSignatureAsync(
         Guid contractId, Guid userId, CancellationToken cancellationToken)
