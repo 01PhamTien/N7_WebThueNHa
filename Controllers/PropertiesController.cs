@@ -83,7 +83,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
                 .ToListAsync(cancellationToken);
 
         return Ok(new PagedPropertyResponse(
-            await Task.WhenAll(items.Select(x => ToResponseAsync(x, cancellationToken))),
+            await ToResponsesAsync(items, cancellationToken),
             page,
             pageSize,
             totalItems,
@@ -162,7 +162,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
                 .ToListAsync(cancellationToken);
 
         return Ok(new PagedMyPropertiesResponse(
-            await Task.WhenAll(properties.Select(x => ToResponseAsync(x, cancellationToken))),
+            await ToResponsesAsync(properties, cancellationToken),
             page,
             pageSize,
             totalCount,
@@ -404,6 +404,18 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
 
     private static string? Clean(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    // DbContext is scoped and not thread-safe: map properties sequentially instead of Task.WhenAll.
+    private async Task<IReadOnlyCollection<PropertyResponse>> ToResponsesAsync(
+        IEnumerable<Property> properties,
+        CancellationToken cancellationToken)
+    {
+        var responses = new List<PropertyResponse>();
+        foreach (var property in properties)
+            responses.Add(await ToResponseAsync(property, cancellationToken));
+
+        return responses;
+    }
 
     private async Task<PropertyResponse> ToResponseAsync(Property property, CancellationToken cancellationToken)
     {
