@@ -213,7 +213,7 @@ Backend chấp nhận ảnh JPG/JPEG, PNG, WEBP, PDF, DOC và DOCX; dung lượn
 - Dùng bộ lọc **Hộp thư đến** để xem các cuộc trò chuyện đang sử dụng.
 - Chọn **Đã lưu trữ** để xem lại các cuộc trò chuyện cũ.
 - Mở hội thoại rồi chọn **Lưu trữ** để chuyển hội thoại khỏi hộp thư đến.
-- Trong danh sách đã lưu trữ, chọn **Đưa về hộp thư đến** để tiếp tục trao đổi. Hội thoại đã lưu trữ cần được khôi phục trước khi gửi tin nhắn mới.
+- Trong danh sách đã lưu trữ, chọn **Đưa về hộp thư đến** nếu muốn khôi phục thủ công. Bạn vẫn có thể gửi tin nhắn hoặc tệp trực tiếp; khi gửi mới, hội thoại tự chuyển về Hộp thư đến của bạn. Trạng thái lưu trữ của người còn lại không bị thay đổi.
 
 Khi mở hội thoại, hệ thống tải tin nhắn gần đây và đánh dấu hội thoại đã đọc. Nếu có nút **Tải tin nhắn cũ hơn**, chọn nút đó để xem các tin nhắn trước. Trạng thái kết nối SignalR được hiển thị trong phần đầu hội thoại; nếu mất kết nối, thử chờ hệ thống kết nối lại hoặc tải lại trang.
 
