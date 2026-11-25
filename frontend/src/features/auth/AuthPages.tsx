@@ -196,13 +196,12 @@ export function ProfilePage() {
   const [submitting, setSubmitting] = useState(false);
   const [reviews, setReviews] = useState<MyReviewItem[]>([]);
   const [reviewsBusy, setReviewsBusy] = useState(false);
-  const [form] = Form.useForm<{ fullName: string; phoneNumber?: string; avatarUrl?: string }>();
+  const [form] = Form.useForm<{ fullName: string; phoneNumber?: string }>();
 
   useEffect(() => {
     form.setFieldsValue({
       fullName: user?.fullName || '',
-      phoneNumber: user?.phoneNumber || '',
-      avatarUrl: user?.avatarUrl || ''
+      phoneNumber: user?.phoneNumber || ''
     });
   }, [form, user?.userId, user?.fullName, user?.phoneNumber, user?.avatarUrl]);
 
@@ -221,14 +220,13 @@ export function ProfilePage() {
     return () => { active = false; };
   }, [user?.userId, user?.roles.join('|')]);
 
-  const submit = async (values: { fullName: string; phoneNumber?: string; avatarUrl?: string }) => {
+  const submit = async (values: { fullName: string; phoneNumber?: string }) => {
     setSubmitting(true);
     try {
       const { authService } = await import('../../services/auth');
       await authService.updateProfile({
         fullName: values.fullName.trim(),
-        phoneNumber: values.phoneNumber?.trim() || undefined,
-        avatarUrl: values.avatarUrl?.trim() || undefined
+        phoneNumber: values.phoneNumber?.trim() || undefined
       });
       await refresh();
       message.success('Thông tin cá nhân đã được cập nhật.');
@@ -246,7 +244,7 @@ export function ProfilePage() {
   };
 
   return (
-    <Page title="Hồ sơ cá nhân" description="Cập nhật thông tin liên hệ và xem lại các đánh giá bạn đã gửi.">
+    <Page title="Hồ sơ cá nhân" description="Quản lý thông tin liên hệ của tài khoản.">
       <Card className="profile-card" bordered={false}>
         <div className="profile-card-heading">
           <Avatar
@@ -294,25 +292,9 @@ export function ProfilePage() {
                 <Input autoComplete="tel" placeholder="Nhập số điện thoại" />
               </Form.Item>
             </Col>
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="avatarUrl"
-                label="Ảnh đại diện (không bắt buộc)"
-                rules={[{ type: 'url', message: 'Vui lòng nhập đường dẫn ảnh hợp lệ.' }]}
-              >
-                <Input placeholder="Đường dẫn ảnh HTTPS" />
-              </Form.Item>
-            </Col>
           </Row>
           <div className="profile-form-actions">
             <Space wrap>
-              <Button onClick={() => form.setFieldsValue({
-                fullName: user?.fullName || '',
-                phoneNumber: user?.phoneNumber || '',
-                avatarUrl: user?.avatarUrl || ''
-              })}>
-                Khôi phục
-              </Button>
               <Button type="primary" htmlType="submit" loading={submitting}>
                 Lưu thay đổi
               </Button>
