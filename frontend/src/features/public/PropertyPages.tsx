@@ -462,6 +462,7 @@ export function PropertyDetailPage() {
   const [favorite, setFavorite] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [bookingForm] = Form.useForm();
   const [reviewSummary, setReviewSummary] = useState<PropertyReviewSummary | null>(null);
   const [reviewsBusy, setReviewsBusy] = useState(false);
@@ -534,13 +535,17 @@ export function PropertyDetailPage() {
     numberOfPeople: number;
     message?: string;
   }) => {
+    if (bookingSubmitting) return;
+    setBookingSubmitting(true);
     try {
       await tenantApi.createBooking({ propertyId: id, ...values });
-      message.success('Đã gửi yêu cầu thuê.');
+      message.success('Đã gửi yêu cầu thuê. Bạn có thể theo dõi tại mục Đơn thuê của tôi.');
       setBookingOpen(false);
       bookingForm.resetFields();
     } catch (error) {
       message.error(errorText(error));
+    } finally {
+      setBookingSubmitting(false);
     }
   };
 
@@ -663,6 +668,8 @@ export function PropertyDetailPage() {
         open={bookingOpen}
         onCancel={() => setBookingOpen(false)}
         onOk={() => bookingForm.submit()}
+        confirmLoading={bookingSubmitting}
+        okButtonProps={{ disabled: bookingSubmitting }}
         okText="Gửi yêu cầu"
         cancelText="Hủy"
         destroyOnHidden
