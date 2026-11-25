@@ -396,7 +396,7 @@ export const landlordAdminApi = {
   updateProperty: (id: string, data: PropertyRequest) => api.put<PropertyDto>('/api/properties/' + id, data),
   updatePropertyStatus: (id: string, status: number) => api.patch<void>('/api/properties/' + id + '/status', { status }),
   addPropertyImage: (id: string, imageUrl: string) => api.post<PropertyImageDto>('/api/properties/' + id + '/images', { imageUrl }),
-  uploadPropertyImage: (id: string, file: File) => { const data = new FormData(); data.append('file', file); return api.post<PropertyImageDto>('/api/properties/' + id + '/images/upload', data); }
+  uploadPropertyImage: (id: string, file: File) => { const data = new FormData(); data.append('file', file); return api.post<PropertyImageDto>('/api/properties/' + id + '/images/upload', data); },
   deletePropertyImage: (id: string, imageId: string) => api.delete<void>('/api/properties/' + id + '/images/' + imageId),
   primaryPropertyImage: (id: string, imageId: string) => api.put<void>('/api/properties/' + id + '/images/' + imageId + '/primary'),
 
