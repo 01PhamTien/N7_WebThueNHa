@@ -377,6 +377,8 @@ export const landlordAdminApi = {
   signContract: (id: string) => api.post<ContractDto>('/api/contracts/' + id + '/sign'),
   submitContract: (id: string) => api.post<ContractDto>('/api/contracts/' + id + '/submit'),
 
+  incomingPayments: (params: PageParams & { status?: string; keyword?: string } = {}) =>
+    api.get<PagedResult<AdminPaymentListDto>>('/api/payments/incoming', { params: { page: 1, pageSize: 10, ...params } }),
   invoices: (params: PageParams & { status?: string; type?: string; keyword?: string } = {}) =>
     api.get<PagedResult<InvoiceListDto>>('/api/invoices', { params: { page: 1, pageSize: 10, ...params } }),
   invoice: (id: string) => api.get<InvoiceDetailDto>('/api/invoices/' + id),
