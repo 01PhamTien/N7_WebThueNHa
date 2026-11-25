@@ -24,11 +24,12 @@ export function Sidebar({
       <Drawer
         title={<span className="drawer-brand">NhàỞ <small>Điều hướng</small></span>}
         placement="left"
-        width={300}
+        size="default"
+        styles={{ wrapper: { width: 'min(300px, 88vw)' } }}
         open={open}
         onClose={() => setOpen(false)}
         className="mobile-navigation-drawer"
-        destroyOnClose
+        destroyOnHidden
       >
         <Menu
           mode="inline"
