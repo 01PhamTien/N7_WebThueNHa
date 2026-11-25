@@ -2,7 +2,8 @@ namespace Web2_ThueNha.Models;
 
 /// <summary>
 /// Quy ước tiền thuê: mỗi tháng lịch tròn tính theo MonthlyRent; phần ngày lẻ
-/// tính theo MonthlyRent / 30 * số ngày. EndDate là ngày kết thúc không bao gồm.
+/// tính theo MonthlyRent / 30 * số ngày. Thời hạn dưới một tháng vẫn thu tối thiểu một tháng.
+/// EndDate là ngày kết thúc không bao gồm.
 /// </summary>
 public static class RentalPricing
 {
@@ -37,6 +38,11 @@ public static class RentalPricing
                 break;
             }
         }
+
+        // Đây là hệ thống thuê nhà theo giá tháng, không phải đặt phòng theo đêm:
+        // mọi hợp đồng có thời hạn ngắn hơn một tháng đều áp dụng mức thuê tối thiểu một tháng.
+        if (fullMonths == 0)
+            return new RentalPriceBreakdown(1, 0, decimal.Round(monthlyRent / 30m, 0, MidpointRounding.AwayFromZero), monthlyRent);
 
         var remainderStart = startDate.AddMonths(fullMonths);
         var extraDays = endDate.DayNumber - remainderStart.DayNumber;
