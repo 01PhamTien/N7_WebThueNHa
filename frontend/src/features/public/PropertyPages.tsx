@@ -98,6 +98,7 @@ function PropertyCard({ item, to }: { item: PropertyItem; to: string }) {
             ? <img src={imageUrl} alt={item.title} loading="lazy" />
             : <div className="property-cover-placeholder"><HomeOutlined /><span>Nhà cho thuê</span></div>}
           <span className="property-cover-label">{item.propertyTypeName || 'Bất động sản'}</span>
+          <Tag color={item.rentalStatus === 'Rented' ? 'default' : item.rentalStatus === 'Reserved' ? 'warning' : item.rentalStatus === 'PendingRequest' ? 'processing' : 'success'} style={{position:'absolute',top:12,right:12,margin:0}}>{item.rentalStatus === 'Rented' ? 'Đang cho thuê' : item.rentalStatus === 'Reserved' ? 'Đã có lịch thuê' : item.rentalStatus === 'PendingRequest' ? 'Có yêu cầu thuê' : 'Đang trống'}</Tag>
         </Link>
       }
     >
@@ -560,7 +561,7 @@ export function PropertyDetailPage() {
           <section className="property-detail-main">
             <div className="property-detail-heading">
               <div>
-                <Tag color="success">{property.propertyTypeName || 'Bất động sản'}</Tag>
+                <Space wrap><Tag color="blue">{property.propertyTypeName || 'Bất động sản'}</Tag><Tag color={property.rentalStatus === 'Rented' ? 'default' : property.rentalStatus === 'Reserved' ? 'warning' : property.rentalStatus === 'PendingRequest' ? 'processing' : 'success'}>{property.rentalStatus === 'Rented' ? 'Đang cho thuê' : property.rentalStatus === 'Reserved' ? 'Đã có lịch thuê' : property.rentalStatus === 'PendingRequest' ? 'Có yêu cầu thuê' : 'Đang trống'}</Tag></Space>
                 <h1>{property.title}</h1>
                 <p><EnvironmentOutlined /> {[property.addressLine, property.wardName, property.provinceName].filter(Boolean).join(', ')}</p>
               </div>
@@ -627,9 +628,9 @@ export function PropertyDetailPage() {
                 <Button block onClick={() => void toggleFavorite()} loading={favoriteBusy}>
                   {favorite ? 'Bỏ yêu thích' : 'Lưu yêu thích'}
                 </Button>
-                {user?.roles.includes('Tenant') && (
+                {user?.roles.includes('Tenant') && property.rentalStatus !== 'Rented' && property.rentalStatus !== 'Reserved' && (
                   <>
-                    <Button block type="primary" onClick={() => {
+                    <Button block type="primary" disabled={property.rentalStatus === 'Rented' || property.rentalStatus === 'Reserved'} onClick={() => {
                       const startDate = localDateValue();
                       bookingForm.setFieldsValue({
                         startDate,
