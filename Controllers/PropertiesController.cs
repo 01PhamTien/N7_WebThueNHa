@@ -83,7 +83,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
                 .ToListAsync(cancellationToken);
 
         return Ok(new PagedPropertyResponse(
-            items.Select(ToResponse).ToArray(),
+            await Task.WhenAll(items.Select(x => ToResponseAsync(x, cancellationToken))),
             page,
             pageSize,
             totalItems,
@@ -109,7 +109,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
              property.ModerationStatus != PropertyModerationStatus.Approved))
             return NotFound(new { message = "Không tìm thấy căn nhà." });
 
-        return Ok(ToResponse(property));
+        return Ok(await ToResponseAsync(property, cancellationToken));
     }
 
     [HttpGet("mine")]
@@ -162,7 +162,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
                 .ToListAsync(cancellationToken);
 
         return Ok(new PagedMyPropertiesResponse(
-            properties.Select(ToResponse).ToArray(),
+            await Task.WhenAll(properties.Select(x => ToResponseAsync(x, cancellationToken))),
             page,
             pageSize,
             totalCount,
@@ -211,7 +211,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
         await db.SaveChangesAsync(cancellationToken);
         await db.Entry(property).Reference(x => x.PropertyType).LoadAsync(cancellationToken);
 
-        return CreatedAtAction(nameof(GetProperty), new { id = property.Id }, ToResponse(property));
+        return CreatedAtAction(nameof(GetProperty), new { id = property.Id }, await ToResponseAsync(property, cancellationToken));
     }
 
     [HttpPut("{id:guid}")]
@@ -405,7 +405,23 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
     private static string? Clean(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private static PropertyResponse ToResponse(Property property) =>
+    private async Task<PropertyResponse> ToResponseAsync(Property property, CancellationToken cancellationToken)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        var active = await db.RentalContracts.AnyAsync(x =>
+            x.PropertyId == property.Id && x.Status == RentalContractStatus.Active &&
+            x.StartDate <= today && x.EndDate > today, cancellationToken);
+        var pending = await db.Bookings.AnyAsync(x =>
+            x.PropertyId == property.Id && x.Status == BookingStatus.Pending &&
+            x.EndDate > today, cancellationToken);
+        var acceptedFuture = await db.Bookings.AnyAsync(x =>
+            x.PropertyId == property.Id && x.Status == BookingStatus.Accepted &&
+            x.StartDate > today && x.EndDate > today, cancellationToken);
+        var rentalStatus = active ? "Rented" : acceptedFuture ? "Reserved" : pending ? "PendingRequest" : "Available";
+        return ToResponse(property, rentalStatus);
+    }
+
+    private static PropertyResponse ToResponse(Property property, string rentalStatus) =>
         new(
             property.Id,
             property.LandlordId,
@@ -428,6 +444,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
             property.Longitude,
             property.ModerationStatus.ToString(),
             property.ListingStatus.ToString(),
+            rentalStatus,
             property.CreatedAt,
             property.UpdatedAt,
             property.Images.OrderBy(x => x.DisplayOrder)
