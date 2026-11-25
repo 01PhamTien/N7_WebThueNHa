@@ -159,7 +159,6 @@ public static class DemoDataSeeder
         db.Properties.AddRange(newProperties);
         await db.SaveChangesAsync(cancellationToken);
 
-        var newPropertyIds = newProperties.Select(x => x.Id).ToHashSet();
         var propertyAmenities = newProperties.SelectMany(property =>
         {
             var index = properties.FindIndex(x => x.Id == property.Id);
@@ -175,9 +174,11 @@ public static class DemoDataSeeder
             .Where(x => x.ModerationStatus == PropertyModerationStatus.Approved
                 && x.ListingStatus == PropertyListingStatus.Published)
             .ToList();
-        var legacyPublishedCount = properties.Take(45)
-            .Count(x => x.ModerationStatus == PropertyModerationStatus.Approved
-                && x.ListingStatus == PropertyListingStatus.Published);
+        var legacyPublishedProperties = properties.Take(45)
+            .Where(x => x.ModerationStatus == PropertyModerationStatus.Approved
+                && x.ListingStatus == PropertyListingStatus.Published)
+            .ToList();
+        var legacyPublishedCount = legacyPublishedProperties.Count;
 
         var bookings = new List<Booking>();
         for (var i = 0; i < 360; i++)
@@ -482,10 +483,7 @@ public static class DemoDataSeeder
         {
             for (var favoriteIndex = 0; favoriteIndex < 4; favoriteIndex++)
             {
-                var propertyPool = tenantIndex < 18 ? properties.Take(45)
-                    .Where(x => x.ModerationStatus == PropertyModerationStatus.Approved
-                        && x.ListingStatus == PropertyListingStatus.Published).ToList()
-                    : publishedProperties;
+                var propertyPool = tenantIndex < 18 ? legacyPublishedProperties : publishedProperties;
                 var propertyIndex = (tenantIndex * 3 + favoriteIndex * 7) % propertyPool.Count;
                 var property = propertyPool[propertyIndex];
                 favorites.Add(new Favorite
