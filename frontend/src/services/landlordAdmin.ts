@@ -294,6 +294,8 @@ export const landlordAdminApi = {
 
   conversations: (params: ChatPageParams = {}) =>
     api.get<PagedResult<ConversationDto>>('/api/chat/conversations', { params: { page: 1, pageSize: 30, ...params } }),
+  archiveConversation: (id: string, isArchived: boolean) =>
+    api.patch<{ conversationId: string; isArchived: boolean }>('/api/chat/conversations/' + id + '/archive', { isArchived }),
   messages: (id: string, params: PageParams = {}) =>
     api.get<PagedResult<ChatMessageDto>>('/api/chat/conversations/' + id + '/messages', { params: { page: 1, pageSize: 50, ...params } }),
   sendMessage: (id: string, content: string) => api.post<ChatMessageDto>('/api/chat/conversations/' + id + '/messages', { content }),
