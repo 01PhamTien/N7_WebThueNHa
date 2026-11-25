@@ -79,6 +79,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
                 .Take(pageSize)
                 .Include(x => x.PropertyType)
                 .Include(x => x.Images.OrderBy(i => i.DisplayOrder))
+                .Include(x => x.PropertyAmenities).ThenInclude(x => x.Amenity)
                 .ToListAsync(cancellationToken);
 
         return Ok(new PagedPropertyResponse(
@@ -254,6 +255,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
         var images = await db.PropertyImages.AsNoTracking()
             .Where(x => x.PropertyId == id).OrderBy(x => x.DisplayOrder).ToListAsync(cancellationToken);
         property.Images = images;
+        await db.Entry(property).Collection(x => x.PropertyAmenities).Query().Include(x => x.Amenity).LoadAsync(cancellationToken);
         return Ok(ToResponse(property));
     }
 
@@ -420,5 +422,6 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
             property.UpdatedAt,
             property.Images.OrderBy(x => x.DisplayOrder)
                 .Select(x => new PropertyImageResponse(x.Id, x.ImageUrl, x.IsPrimary, x.DisplayOrder))
-                .ToArray());
+                .ToArray(),
+            property.PropertyAmenities.Select(x => x.Amenity.Name).OrderBy(x => x).ToArray());
 }
