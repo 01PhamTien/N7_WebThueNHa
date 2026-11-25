@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Bookings;
 using Web2_ThueNha.Models;
+using Web2_ThueNha.Models.Contracts;
 using Web2_ThueNha.Services.Notifications;
 
 namespace Web2_ThueNha.Controllers;
@@ -262,11 +263,32 @@ public sealed class BookingsController : ControllerBase
         booking.RespondedAt = DateTime.UtcNow;
         booking.UpdatedAt = DateTime.UtcNow;
 
+        // Tạo hợp đồng cùng transaction chấp nhận yêu cầu; không ký hoặc thu tiền tự động.
+        var now = DateTime.UtcNow;
+        if (!await _db.RentalContracts.AnyAsync(x => x.BookingId == booking.Id, cancellationToken))
+        {
+            _db.RentalContracts.Add(new RentalContract
+            {
+                BookingId = booking.Id,
+                PropertyId = booking.PropertyId,
+                LandlordId = landlordId,
+                TenantId = booking.TenantId,
+                ContractCode = $"HD-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
+                StartDate = booking.StartDate,
+                EndDate = booking.EndDate,
+                MonthlyRent = booking.ProposedPrice,
+                DepositAmount = 0,
+                PaymentDueDay = 1,
+                Status = RentalContractStatus.Draft,
+                CreatedAt = now
+            });
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
         await _notifications.CreateAsync(
             booking.TenantId,
             "Yêu cầu thuê đã được chấp nhận",
-            $"Chủ nhà đã chấp nhận yêu cầu thuê căn nhà {booking.Property.Title}.",
+            $"Chủ nhà đã chấp nhận yêu cầu thuê căn nhà {booking.Property.Title}. Hợp đồng đang được chuẩn bị để hai bên ký.",
             NotificationType.Booking,
             booking.Id,
             cancellationToken);
