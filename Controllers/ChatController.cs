@@ -458,7 +458,6 @@ public sealed class ChatController : ControllerBase
     public async Task<IActionResult> UploadAttachment(
         Guid conversationId,
         IFormFile file,
-        [FromForm] string? caption,
         CancellationToken cancellationToken)
     {
         var currentUserId = GetCurrentUserId();
@@ -503,9 +502,6 @@ public sealed class ChatController : ControllerBase
         if (!await HasExpectedFileSignatureAsync(file, extension, cancellationToken))
             return BadRequest(new { message = "Nội dung thực tế của tệp không khớp với định dạng khai báo." });
 
-        if (caption?.Length > 4000)
-            return BadRequest(new { message = "Chú thích tệp không được vượt quá 4000 ký tự." });
-
         var safeOriginalName = Path.GetFileName(file.FileName.Replace('\\', '/'));
         if (safeOriginalName.Length > 255)
             safeOriginalName = safeOriginalName[^255..];
@@ -524,7 +520,7 @@ public sealed class ChatController : ControllerBase
         {
             ConversationId = conversationId,
             SenderId = currentUserId.Value,
-            Content = string.IsNullOrWhiteSpace(caption) ? null : caption.Trim(),
+            Content = null,
             MessageType = contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
                 ? MessageType.Image
                 : MessageType.File,
