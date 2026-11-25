@@ -67,6 +67,9 @@ export interface BookingDto {
   endDate: string;
   numberOfPeople: number;
   proposedPrice: number;
+  estimatedRent: number;
+  fullMonths: number;
+  extraDays: number;
   message?: string | null;
   status: number;
   respondedAt?: string | null;
