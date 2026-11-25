@@ -17,9 +17,6 @@ public sealed class CreateBookingRequest
     [Range(1, 100)]
     public int NumberOfPeople { get; set; }
 
-    [Range(typeof(decimal), "0.01", "999999999")]
-    public decimal ProposedPrice { get; set; }
-
     [StringLength(1000)]
     public string? Message { get; set; }
 }
@@ -40,7 +37,7 @@ public sealed record BookingResponse(
     DateOnly StartDate,
     DateOnly EndDate,
     int NumberOfPeople,
-    decimal ProposedPrice,
+    decimal MonthlyRent,
     string? Message,
     BookingStatus Status,
     DateTime? RespondedAt,
@@ -49,7 +46,7 @@ public sealed record BookingResponse(
     DateTime? UpdatedAt)
 {
     public decimal EstimatedRent =>
-        RentalPricing.Calculate(ProposedPrice, StartDate, EndDate).TotalAmount;
+        RentalPricing.Calculate(MonthlyRent, StartDate, EndDate).TotalAmount;
 
     public int FullMonths =>
         RentalPricing.Calculate(ProposedPrice, StartDate, EndDate).FullMonths;
