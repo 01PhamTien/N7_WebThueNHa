@@ -62,13 +62,31 @@ const theme = {
     colorSuccess: '#23865b',
     colorWarning: '#d99528',
     colorError: '#c64d4d',
+    colorBgLayout: '#f5f8f6',
+    colorBgContainer: '#ffffff',
+    colorText: '#20352e',
+    colorTextSecondary: '#718078',
+    colorBorder: '#e4ece6',
     borderRadius: 12,
+    borderRadiusLG: 18,
+    fontSize: 14,
     fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    controlHeight: 42
+    controlHeight: 44
   },
   components: {
-    Menu: { itemBorderRadius: 10, horizontalItemSelectedColor: '#176b57' },
-    Table: { headerBg: '#f5f8f6', rowHoverBg: '#f7faf8' }
+    Button: { primaryShadow: 'none', borderRadius: 12 },
+    Card: { borderRadiusLG: 18, headerBg: 'transparent' },
+    Menu: {
+      itemBorderRadius: 10,
+      itemSelectedBg: '#eaf4ee',
+      itemSelectedColor: '#176b57',
+      horizontalItemSelectedColor: '#176b57'
+    },
+    Table: {
+      headerBg: '#f3f7f4',
+      rowHoverBg: '#f7faf8',
+      borderColor: '#e8eee9'
+    }
   }
 };
 
