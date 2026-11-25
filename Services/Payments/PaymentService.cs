@@ -20,13 +20,15 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
             request.DueDate == default ||
             request.DueDate < request.IssueDate ||
             request.Items is null ||
-            request.Items.Count is < 1 or > 20 ||
-            request.Items.Any(x =>
-                string.IsNullOrWhiteSpace(x.Description) ||
-                x.Description.Trim().Length > 300 ||
-                x.Quantity <= 0 ||
-                x.UnitPrice <= 0 ||
-                decimal.Round(x.Quantity * x.UnitPrice, 2, MidpointRounding.AwayFromZero) <= 0))
+            request.Items.Count > 20 ||
+            (request.InvoiceType == InvoiceType.MonthlyRent && request.Items.Count > 1) ||
+            (request.InvoiceType != InvoiceType.MonthlyRent &&
+             (request.Items.Count == 0 || request.Items.Any(x =>
+                 string.IsNullOrWhiteSpace(x.Description) ||
+                 x.Description.Trim().Length > 300 ||
+                 x.Quantity <= 0 ||
+                 x.UnitPrice <= 0 ||
+                 decimal.Round(x.Quantity * x.UnitPrice, 2, MidpointRounding.AwayFromZero) <= 0)))
             return ServiceResult<InvoiceDetailResponse>.BadRequest(
                 "Thông tin hóa đơn hoặc dòng chi tiết không hợp lệ.");
 
@@ -84,12 +86,16 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
                 return ServiceResult<InvoiceDetailResponse>.BadRequest(
                     "Kỳ thuê không hợp lệ để tính tiền.");
 
-            // Giá tiền thuê được tính tại Backend, không tin đơn giá do trình duyệt gửi lên.
-            request.Items[0].Quantity = 1;
-            request.Items[0].UnitPrice = rent.TotalAmount;
-            request.Items[0].Description = string.IsNullOrWhiteSpace(request.Items[0].Description)
-                ? "Tiền thuê nhà"
-                : request.Items[0].Description.Trim();
+            // Backend tự tạo dòng tiền thuê; không nhận nội dung, số lượng hoặc đơn giá từ trình duyệt.
+            request.Items =
+            [
+                new CreateInvoiceItemRequest
+                {
+                    Description = "Tiền thuê nhà",
+                    Quantity = 1,
+                    UnitPrice = rent.TotalAmount
+                }
+            ];
         }
 
         var totalAmount = request.Items.Sum(x =>
