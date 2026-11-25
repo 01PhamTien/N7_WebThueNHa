@@ -47,6 +47,17 @@
 - Migration chỉ thêm hai cột nullable, không tạo bảng mới và không suy diễn chữ ký lịch sử từ `SignedAt` cũ.
 - Khi chỉnh sửa nội dung hợp đồng trước khi Active, phải reset hai timestamp; quy tắc cập nhật chi tiết được kiểm tra ở PR hợp đồng.
 
+## Kiểm thử thời hạn và giá thuê
+
+| Mã | Tình huống | Kết quả mong đợi | Kết quả thực tế |
+|---|---|---|---|
+| CT-28 | Tạo hợp đồng từ Booking Accepted có khoảng ngày hợp lệ | StartDate/EndDate và MonthlyRent lấy từ Booking; EstimatedRent được tính theo quy ước tháng tròn + ngày lẻ | Chưa chạy |
+| CT-29 | Cập nhật hợp đồng Draft với EndDate <= StartDate | 400; không thay đổi hợp đồng | Chưa chạy |
+| CT-30 | Cập nhật hợp đồng để chồng lấn Booking Accepted khác trên cùng Property | 409; không thay đổi thời hạn | Chưa chạy |
+| CT-31 | Cập nhật hợp đồng để chồng lấn hợp đồng Draft/AwaitingSignature/Active khác trên cùng Property | 409; không thay đổi thời hạn | Chưa chạy |
+| CT-32 | Cập nhật hợp đồng với khoảng ngày không chồng lấn | 200; trả EstimatedRent theo thời hạn mới | Chưa chạy |
+| CT-33 | Hợp đồng bắt đầu ngày 31/01, kết thúc trước 31/03 | EstimatedRent không bị trôi mốc ngày sau tháng 2 | Chưa chạy |
+
 ## Ghi nhan
 - Ghi commit SHA, .NET SDK, SQL Server va status code thuc te.
 - Khong commit JWT hoac du lieu ca nhan that.
