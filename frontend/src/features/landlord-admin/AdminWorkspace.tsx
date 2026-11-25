@@ -18,6 +18,7 @@ import {
   Space,
   Statistic,
   Table,
+  Tabs,
   Tag,
   Typography
 } from 'antd';
@@ -26,6 +27,9 @@ import { errorText } from '../../services/api';
 import { landlordAdminApi as api } from '../../services/landlordAdmin';
 import type {
   AdminUserDto,
+  AdminPaymentListDto,
+  AdminReviewDto,
+  AdminModerationLogDto,
   CreateAdminUserRequest,
   ModerationPropertyDto,
   PropertyImageDto,
@@ -33,6 +37,10 @@ import type {
 } from '../../services/landlordAdmin';
 import { Page, Loading, EmptyState } from '../../components/Shared';
 import {
+  bookingStatusLabels,
+  contractStatusLabels,
+  invoiceStatusLabels,
+  paymentStatusLabels,
   dateText,
   listingStatusLabels,
   moderationActionLabels,
@@ -56,12 +64,16 @@ interface AdminUserFormValues {
 export function AdminDashboard() {
   const q = useRequest(() => api.adminDashboard(), []);
   const metrics = [
-    { title: 'Tổng tài khoản', value: q.data?.totalUsers ?? 0, note: `${q.data?.activeUsers ?? 0} đang hoạt động` },
-    { title: 'Tổng tin đăng', value: q.data?.totalProperties ?? 0, note: `${q.data?.publishedProperties ?? 0} đang công khai` },
-    { title: 'Tin chờ duyệt', value: q.data?.pendingProperties ?? 0, note: 'Cần kiểm tra nội dung' },
-    { title: 'Yêu cầu thuê chờ xử lý', value: q.data?.pendingBookings ?? 0, note: 'Trên toàn hệ thống' },
-    { title: 'Hợp đồng hiệu lực', value: q.data?.activeContracts ?? 0, note: 'Đang có hiệu lực' },
-    { title: 'Hóa đơn quá hạn', value: q.data?.overdueInvoices ?? 0, note: 'Cần theo dõi thanh toán' }
+    { title: 'Tài khoản', value: q.data?.totalUsers ?? 0, note: `${q.data?.activeUsers ?? 0} đang hoạt động` },
+    { title: 'Tin đăng', value: q.data?.totalProperties ?? 0, note: `${q.data?.publishedProperties ?? 0} đang công khai` },
+    { title: 'Tin chờ duyệt', value: q.data?.pendingProperties ?? 0, note: 'Hàng đợi kiểm duyệt' },
+    { title: 'Yêu cầu thuê', value: q.data?.totalBookings ?? 0, note: `${q.data?.pendingBookings ?? 0} đang chờ xử lý` },
+    { title: 'Hợp đồng', value: q.data?.totalContracts ?? 0, note: `${q.data?.activeContracts ?? 0} đang hiệu lực` },
+    { title: 'Hóa đơn', value: q.data?.totalInvoices ?? 0, note: `${q.data?.overdueInvoices ?? 0} hóa đơn quá hạn` },
+    { title: 'Thanh toán chờ', value: q.data?.pendingPayments ?? 0, note: 'Cần theo dõi xác nhận' },
+    { title: 'Thanh toán thành công', value: q.data?.successfulPayments ?? 0, note: `${money(q.data?.successfulPaymentAmount)} tổng giá trị` },
+    { title: 'Đánh giá', value: q.data?.totalReviews ?? 0, note: 'Phản hồi từ người thuê' },
+    { title: 'Lượt kiểm duyệt', value: q.data?.totalModerationActions ?? 0, note: 'Lịch sử thao tác Admin' }
   ];
 
   return (
@@ -81,7 +93,166 @@ export function AdminDashboard() {
         <div className="management-quick-actions">
           <Button type="primary" href="/admin/users">Quản lý tài khoản</Button>
           <Button href="/admin/moderation">Kiểm duyệt và quản lý tin đăng</Button>
+          <Button href="/admin/operations">Giám sát vận hành & tài chính</Button>
         </div>
+      </Card>
+    </Page>
+  );
+}
+
+interface AdminOperationsPageResult<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+}
+
+const emptyAdminPage = <T,>(): { data: AdminOperationsPageResult<T> } => ({
+  data: { items: [], page: 1, pageSize: 10, totalItems: 0 }
+});
+
+export function AdminOperations() {
+  const [activeTab, setActiveTab] = useState('bookings');
+  const [page, setPage] = useState(1);
+  const [keyword, setKeyword] = useState('');
+
+  const bookings = useRequest(
+    () => activeTab === 'bookings'
+      ? api.adminBookings({ page, pageSize: 10, keyword: keyword.trim() || undefined })
+      : Promise.resolve(emptyAdminPage<import('../../services/landlordAdmin').BookingDto>()),
+    [activeTab, page, keyword]
+  );
+  const contracts = useRequest(
+    () => activeTab === 'contracts'
+      ? api.adminContracts({ page, pageSize: 10, keyword: keyword.trim() || undefined })
+      : Promise.resolve(emptyAdminPage<import('../../services/landlordAdmin').ContractDto>()),
+    [activeTab, page, keyword]
+  );
+  const invoices = useRequest(
+    () => activeTab === 'invoices'
+      ? api.adminInvoices({ page, pageSize: 10, keyword: keyword.trim() || undefined })
+      : Promise.resolve(emptyAdminPage<import('../../services/landlordAdmin').InvoiceListDto>()),
+    [activeTab, page, keyword]
+  );
+  const payments = useRequest(
+    () => activeTab === 'payments'
+      ? api.adminPayments({ page, pageSize: 10, keyword: keyword.trim() || undefined })
+      : Promise.resolve(emptyAdminPage<AdminPaymentListDto>()),
+    [activeTab, page, keyword]
+  );
+  const reviews = useRequest(
+    () => activeTab === 'reviews'
+      ? api.adminReviews({ page, pageSize: 10, keyword: keyword.trim() || undefined })
+      : Promise.resolve(emptyAdminPage<AdminReviewDto>()),
+    [activeTab, page, keyword]
+  );
+  const logs = useRequest(
+    () => activeTab === 'activity'
+      ? api.adminModerationLogs({ page, pageSize: 10, keyword: keyword.trim() || undefined })
+      : Promise.resolve(emptyAdminPage<AdminModerationLogDto>()),
+    [activeTab, page, keyword]
+  );
+
+  const switchTab = (key: string) => {
+    setActiveTab(key);
+    setPage(1);
+    setKeyword('');
+  };
+
+  const renderTable = <T extends { id: string }>(
+    q: ReturnType<typeof useRequest<AdminOperationsPageResult<T>>>,
+    columns: ColumnsType<T>,
+    emptyText: string
+  ) => (
+    <Card className="management-table-card">
+      <ErrorLine error={q.error} />
+      {q.busy ? <Loading /> : (
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={q.data?.items || []}
+          pagination={false}
+          scroll={{ x: 900 }}
+          locale={{ emptyText: <EmptyState description={emptyText} /> }}
+        />
+      )}
+      <Paging page={page} total={q.data?.totalItems || 0} onChange={setPage} />
+    </Card>
+  );
+
+  const bookingColumns: ColumnsType<import('../../services/landlordAdmin').BookingDto> = [
+    { title: 'Tin đăng', dataIndex: 'propertyTitle', render: value => <Typography.Text strong>{value}</Typography.Text> },
+    { title: 'Người thuê', dataIndex: 'tenantName', render: (value, row) => <Space orientation="vertical" size={0}>{value}<Typography.Text type="secondary">{row.tenantEmail}</Typography.Text></Space> },
+    { title: 'Thời gian thuê', render: (_, row) => `${dateText(row.startDate)} – ${dateText(row.endDate)}` },
+    { title: 'Giá đề xuất', dataIndex: 'proposedPrice', render: money },
+    { title: 'Trạng thái', dataIndex: 'status', render: value => <Status value={value} label={bookingStatusLabels[value] || String(value)} /> },
+    { title: 'Ngày gửi', dataIndex: 'createdAt', render: dateText }
+  ];
+  const contractColumns: ColumnsType<import('../../services/landlordAdmin').ContractDto> = [
+    { title: 'Mã hợp đồng', dataIndex: 'contractCode', render: value => <Typography.Text strong>{value}</Typography.Text> },
+    { title: 'Tin đăng', dataIndex: 'propertyTitle' },
+    { title: 'Chủ nhà / Người thuê', render: (_, row) => <Space orientation="vertical" size={0}>{row.landlordName}<Typography.Text type="secondary">{row.tenantName}</Typography.Text></Space> },
+    { title: 'Thời hạn', render: (_, row) => `${dateText(row.startDate)} – ${dateText(row.endDate)}` },
+    { title: 'Tiền thuê', dataIndex: 'monthlyRent', render: money },
+    { title: 'Trạng thái', dataIndex: 'status', render: value => <Status value={value} label={contractStatusLabels[value] || value} /> }
+  ];
+  const invoiceColumns: ColumnsType<import('../../services/landlordAdmin').InvoiceListDto> = [
+    { title: 'Mã hóa đơn', dataIndex: 'invoiceCode', render: value => <Typography.Text strong>{value}</Typography.Text> },
+    { title: 'Hợp đồng', dataIndex: 'contractCode' },
+    { title: 'Tin đăng', dataIndex: 'propertyTitle' },
+    { title: 'Loại', dataIndex: 'invoiceType', render: value => value === 'Deposit' ? 'Tiền cọc' : value === 'MonthlyRent' ? 'Tiền thuê' : 'Khác' },
+    { title: 'Hạn thanh toán', dataIndex: 'dueDate', render: dateText },
+    { title: 'Tổng tiền', dataIndex: 'totalAmount', render: money },
+    { title: 'Trạng thái', dataIndex: 'status', render: value => <Status value={value} label={invoiceStatusLabels[value] || value} /> }
+  ];
+  const paymentColumns: ColumnsType<AdminPaymentListDto> = [
+    { title: 'Hóa đơn', dataIndex: 'invoiceCode', render: value => <Typography.Text strong>{value}</Typography.Text> },
+    { title: 'Tin đăng', dataIndex: 'propertyTitle' },
+    { title: 'Người thanh toán', dataIndex: 'payerName' },
+    { title: 'Số tiền', dataIndex: 'amount', render: money },
+    { title: 'Phương thức', dataIndex: 'paymentMethod' },
+    { title: 'Mã giao dịch', dataIndex: 'transactionCode', render: value => value || '—' },
+    { title: 'Trạng thái', dataIndex: 'status', render: value => <Status value={value} label={paymentStatusLabels[value] || value} /> },
+    { title: 'Thời gian', dataIndex: 'createdAt', render: dateText }
+  ];
+  const reviewColumns: ColumnsType<AdminReviewDto> = [
+    { title: 'Tin đăng', dataIndex: 'propertyTitle' },
+    { title: 'Người đánh giá', dataIndex: 'tenantName' },
+    { title: 'Hợp đồng', dataIndex: 'contractCode' },
+    { title: 'Điểm', dataIndex: 'rating', render: value => <Tag color={value >= 4 ? 'success' : value >= 3 ? 'gold' : 'error'}>{value}/5 ★</Tag> },
+    { title: 'Nội dung', dataIndex: 'comment', render: value => value || 'Không có nhận xét' },
+    { title: 'Ngày đánh giá', dataIndex: 'createdAt', render: dateText }
+  ];
+  const activityColumns: ColumnsType<AdminModerationLogDto> = [
+    { title: 'Tin đăng', dataIndex: 'propertyTitle' },
+    { title: 'Quản trị viên', dataIndex: 'adminName' },
+    { title: 'Thao tác', dataIndex: 'action', render: value => <Tag color={value === 'Approved' || value === 'Restored' ? 'success' : value === 'Rejected' ? 'error' : 'warning'}>{moderationActionLabels[({ Approved: 0, Rejected: 1, Hidden: 2, Restored: 3 } as Record<string, number>)[value]] || value}</Tag> },
+    { title: 'Lý do', dataIndex: 'reason', render: value => value || '—' },
+    { title: 'Thời gian', dataIndex: 'createdAt', render: dateText }
+  ];
+
+  const tabItems = [
+    { key: 'bookings', label: 'Yêu cầu thuê', children: renderTable(bookings, bookingColumns, 'Chưa có yêu cầu thuê.') },
+    { key: 'contracts', label: 'Hợp đồng', children: renderTable(contracts, contractColumns, 'Chưa có hợp đồng.') },
+    { key: 'invoices', label: 'Hóa đơn', children: renderTable(invoices, invoiceColumns, 'Chưa có hóa đơn.') },
+    { key: 'payments', label: 'Thanh toán', children: renderTable(payments, paymentColumns, 'Chưa có giao dịch thanh toán.') },
+    { key: 'reviews', label: 'Đánh giá', children: renderTable(reviews, reviewColumns, 'Chưa có đánh giá.') },
+    { key: 'activity', label: 'Nhật ký kiểm duyệt', children: renderTable(logs, activityColumns, 'Chưa có lịch sử kiểm duyệt.') }
+  ];
+
+  return (
+    <Page title="Giám sát vận hành" description="Theo dõi toàn bộ yêu cầu thuê, hợp đồng, hóa đơn, thanh toán, đánh giá và lịch sử kiểm duyệt của hệ thống.">
+      <div className="management-toolbar">
+        <Input.Search
+          allowClear
+          value={keyword}
+          onChange={event => { setPage(1); setKeyword(event.target.value); }}
+          placeholder="Tìm theo mã, tên người dùng, tin đăng..."
+          style={{ maxWidth: 380, width: '100%' }}
+        />
+      </div>
+      <Card className="management-quick-card">
+        <Tabs activeKey={activeTab} onChange={switchTab} items={tabItems} />
       </Card>
     </Page>
   );
