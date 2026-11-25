@@ -96,6 +96,8 @@ export interface ContractDto {
   paymentDueDay?: number;
   terms?: string | null;
   status: string;
+  landlordSignedAt?: string | null;
+  tenantSignedAt?: string | null;
   createdAt: string;
 }
 
@@ -372,6 +374,7 @@ export const landlordAdminApi = {
     api.get<PagedResult<ContractDto>>('/api/contracts', { params: { page: 1, pageSize: 10, ...params } }),
   createContract: (bookingId: string) => api.post<ContractDto>('/api/contracts/from-booking/' + bookingId),
   updateContract: (id: string, data: UpdateContractRequest) => api.put<ContractDto>('/api/contracts/' + id, data),
+  signContract: (id: string) => api.post<ContractDto>('/api/contracts/' + id + '/sign'),
   submitContract: (id: string) => api.post<ContractDto>('/api/contracts/' + id + '/submit'),
 
   invoices: (params: PageParams & { status?: string; type?: string; keyword?: string } = {}) =>
