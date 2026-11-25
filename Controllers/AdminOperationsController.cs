@@ -10,6 +10,8 @@ using Web2_ThueNha.Models;
 using Web2_ThueNha.Models.Bookings;
 using Web2_ThueNha.Models.Contracts;
 using Web2_ThueNha.Models.Payments;
+using Web2_ThueNha.Models.Interactions;
+using Web2_ThueNha.Models.Moderation;
 
 namespace Web2_ThueNha.Controllers;
 
