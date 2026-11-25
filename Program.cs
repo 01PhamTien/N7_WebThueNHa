@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Web2_ThueNha.Services.Notifications;
+using Web2_ThueNha.Services.Contracts;
+using Web2_ThueNha.Services.Payments;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.Hubs;
 using Web2_ThueNha.Middleware;
@@ -123,6 +125,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 builder.Services.AddScoped<IPropertyModerationRepository, PropertyModerationRepository>();
 builder.Services.AddScoped<IPropertyQueryRepository, PropertyQueryRepository>();
+builder.Services.AddScoped<IContractService, ContractService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<User>, Microsoft.AspNetCore.Identity.PasswordHasher<User>>();
 
 var app = builder.Build();
