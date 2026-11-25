@@ -49,7 +49,7 @@ public sealed record BookingResponse(
         RentalPricing.Calculate(MonthlyRent, StartDate, EndDate).TotalAmount;
 
     public int FullMonths =>
-        RentalPricing.Calculate(ProposedPrice, StartDate, EndDate).FullMonths;
+        RentalPricing.Calculate(MonthlyRent, StartDate, EndDate).FullMonths;
 
     public int ExtraDays =>
         RentalPricing.Calculate(ProposedPrice, StartDate, EndDate).ExtraDays;
