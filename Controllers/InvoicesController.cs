@@ -69,8 +69,8 @@ public sealed class InvoicesController(AppDbContext db, IPaymentService paymentS
         var items = page > totalPages
             ? new List<InvoiceListItem>()
             : await query
-                .OrderByDescending(x => x.IssueDate)
-                .ThenByDescending(x => x.CreatedAt)
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.IssueDate)
                 .ThenByDescending(x => x.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
