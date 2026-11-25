@@ -216,6 +216,13 @@ public sealed class SePayService(
             payment.Invoice.Status == InvoiceStatus.Cancelled)
             return false;
 
+        if (payment.Invoice.Status == InvoiceStatus.Paid)
+        {
+            logger.LogWarning("Bỏ qua IPN SePay vì hóa đơn {InvoiceId} đã Paid trước callback.", payment.InvoiceId);
+            await transaction.CommitAsync(cancellationToken);
+            return true;
+        }
+
         var transactionAlreadyUsed = await db.Payments.AnyAsync(x =>
             x.Id != payment.Id && x.TransactionCode == transactionId,
             cancellationToken);
