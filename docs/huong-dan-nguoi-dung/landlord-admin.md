@@ -79,7 +79,7 @@ Sau khi cập nhật nội dung, tin chuyển về trạng thái chờ duyệt (
 
 - Dùng danh sách trạng thái ở cột thao tác để chọn **Ẩn tin** hoặc **Đăng công khai**.
 - Chỉ tin đã được Admin duyệt mới có thể chuyển sang trạng thái đăng công khai. Nếu tin chưa được duyệt, thao tác đăng công khai sẽ không thành công.
-- Trạng thái hiển thị trong danh sách gồm các trạng thái như `Draft`, `Published`, `Hidden`.
+- Trạng thái hiển thị trong danh sách gồm `Draft` (bản nháp), `Published` (đang đăng), `Hidden` (đã ẩn) và `Closed` (đã đóng).
 
 **Quản lý hình ảnh**
 
@@ -94,7 +94,7 @@ Mỗi tin đăng được tối đa 20 hình ảnh. Thêm, xóa hoặc đổi �
 
 Mở **Yêu cầu thuê** tại `/landlord/bookings`.
 
-1. Chọn bộ lọc trạng thái để xem yêu cầu đang chờ (`Pending`), đã chấp nhận (`Accepted`), đã từ chối (`Rejected`) hoặc đã hủy (`Cancelled`).
+1. Chọn bộ lọc trạng thái để xem yêu cầu đang chờ (`Pending`), đã chấp nhận (`Accepted`), đã từ chối (`Rejected`), đã hủy (`Cancelled`) hoặc hết hạn (`Expired`).
 2. Xem thông tin trong danh sách: căn nhà, người thuê, thời gian thuê, giá đề xuất và trạng thái.
 3. Chọn **Chi tiết** để xem số người thuê và lời nhắn của người thuê.
 4. Với yêu cầu đang **Pending**:
@@ -132,9 +132,9 @@ Mở **Hóa đơn** tại `/landlord/invoices`.
 
 **Tạo hóa đơn**
 
-Giao diện hiện có nút **Tạo hóa đơn**. Biểu mẫu yêu cầu Contract ID (UUID), hạn thanh toán, nội dung và số tiền. Hợp đồng phải thuộc Chủ nhà và ở trạng thái **Active** (đã được cả hai bên ký) thì Backend mới cho phát hành hóa đơn.
+Giao diện hiện có nút **Tạo hóa đơn**. Biểu mẫu yêu cầu Contract ID (UUID), loại hóa đơn, ngày phát hành, hạn thanh toán, kỳ thanh toán (bắt buộc với tiền thuê hàng tháng), nội dung dòng hóa đơn, số lượng và đơn giá. Hạn thanh toán không được trước ngày phát hành; ngày kết thúc kỳ không được trước ngày bắt đầu kỳ. Hợp đồng phải thuộc Chủ nhà và ở trạng thái **Active** (đã được cả hai bên ký) thì Backend mới cho phát hành hóa đơn.
 
-> **Lưu ý hiện tại:** biểu mẫu tạo hóa đơn trên giao diện chưa có trường kỳ thanh toán (ngày bắt đầu/kết thúc). API yêu cầu kỳ thanh toán đối với hóa đơn tiền thuê hàng tháng, vì vậy thao tác tạo hóa đơn theo biểu mẫu hiện tại có thể bị Backend từ chối. Không nên hiểu việc biểu mẫu xuất hiện là hóa đơn đã được tạo thành công; hãy kiểm tra thông báo kết quả sau khi gửi.
+> **Lưu ý:** Với loại **Tiền thuê hàng tháng**, cần nhập cả ngày bắt đầu và ngày kết thúc kỳ thanh toán theo định dạng `YYYY-MM-DD`. Với loại khác, hai trường kỳ thanh toán có thể để trống. Kiểm tra thông báo kết quả sau khi gửi để biết hóa đơn đã được tạo thành công hay chưa.
 
 **Phân biệt Manual và SePay**
 
@@ -157,7 +157,7 @@ Giới hạn tệp đính kèm theo Backend:
 - Định dạng được hỗ trợ: **JPG/JPEG, PNG, WEBP, PDF, DOC, DOCX**.
 - Phần mở rộng, kiểu nội dung và chữ ký tệp phải phù hợp; đổi tên đuôi tệp không hợp lệ sẽ không giúp tải lên thành công.
 
-Khi mở hội thoại, hệ thống tải lịch sử tin nhắn và đánh dấu hội thoại đã đọc. Tin nhắn mới được đồng bộ realtime khi kết nối hoạt động. Nếu tải/gửi tin nhắn hoặc tệp thất bại, giao diện hiển thị thông báo lỗi; hãy kiểm tra kết nối, quyền truy cập và định dạng/dung lượng tệp rồi thử lại.
+Khi mở hội thoại, hệ thống tải lịch sử tin nhắn và đánh dấu hội thoại đã đọc. Dùng hai nút **Đang hoạt động** và **Đã lưu trữ** để chuyển giữa các danh sách. Trong hội thoại, chọn **Lưu trữ** để ẩn hội thoại khỏi danh sách đang hoạt động; chọn **Khôi phục** trong danh sách đã lưu trữ để đưa hội thoại trở lại. Lưu trữ không xóa tin nhắn hoặc dữ liệu hội thoại. Tin nhắn mới được đồng bộ realtime khi kết nối hoạt động. Nếu tải/gửi tin nhắn hoặc tệp thất bại, giao diện hiển thị thông báo lỗi; hãy kiểm tra kết nối, quyền truy cập và định dạng/dung lượng tệp rồi thử lại.
 
 ### 2.7. Thông báo
 
@@ -219,7 +219,7 @@ Mở **Kiểm duyệt tin** tại `/admin/moderation`.
 
 **Xem danh sách và chi tiết**
 
-1. Dùng bộ lọc để xem tin **Pending** (chờ duyệt), **Approved** (đã duyệt) hoặc **Rejected** (bị từ chối).
+1. Dùng bộ lọc để xem tin **Draft** (bản nháp), **Pending** (chờ duyệt), **Approved** (đã duyệt) hoặc **Rejected** (bị từ chối).
 2. Danh sách hiển thị tiêu đề tin, chủ nhà, khu vực, giá thuê và trạng thái kiểm duyệt.
 3. Chọn **Chi tiết** để xem thông tin căn nhà, địa chỉ, mô tả, giá, hình ảnh và lịch sử kiểm duyệt.
 4. Lịch sử có thể hiển thị hành động, tên Admin, lý do và thời điểm thực hiện.
@@ -239,7 +239,7 @@ Nút thao tác chỉ xuất hiện khi trạng thái hiện tại cho phép hàn
 - **Trạng thái kiểm duyệt:** Draft, Pending, Approved, Rejected.
 - **Trạng thái hiển thị tin:** Draft, Published, Hidden, Closed.
 
-Một tin có thể đã được duyệt (`Approved`) nhưng đang bị ẩn (`Hidden`). Trong giao diện hiện tại, bộ lọc danh sách kiểm duyệt gồm Pending, Approved và Rejected; trạng thái Hidden được xem trong chi tiết tin thông qua trạng thái hiển thị.
+Một tin có thể đã được duyệt (`Approved`) nhưng đang bị ẩn (`Hidden`). Trong giao diện hiện tại, bộ lọc danh sách kiểm duyệt gồm Draft, Pending, Approved và Rejected; trạng thái Hidden được xem trong chi tiết tin thông qua trạng thái hiển thị.
 
 ## 4. Lưu ý khi thao tác
 
