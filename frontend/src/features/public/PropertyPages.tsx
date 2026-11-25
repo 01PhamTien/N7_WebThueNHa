@@ -567,7 +567,7 @@ export function PropertyDetailPage() {
         onOk={() => bookingForm.submit()}
         okText="Gửi yêu cầu"
         cancelText="Hủy"
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={bookingForm} layout="vertical" onFinish={submitBooking}>
           <Form.Item name="startDate" label="Ngày bắt đầu" rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu.' }]}>
