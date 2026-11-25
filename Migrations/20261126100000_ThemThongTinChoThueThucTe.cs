@@ -34,7 +34,15 @@ public partial class ThemThongTinChoThueThucTe : Migration
                     WHEN PropertyTypeId = 3 THEN CASE WHEN Bedrooms >= 3 THEN 6 ELSE 4 END
                     WHEN PropertyTypeId = 4 THEN 2
                     ELSE 1
-                END;
+                END,
+                FurnishingDescription = CASE PropertyTypeId
+                    WHEN 1 THEN N'Giường, nệm, tủ quần áo; trang bị cơ bản theo hiện trạng phòng.'
+                    WHEN 2 THEN N'Bếp, tủ bếp, máy nước nóng; nội thất chi tiết theo hiện trạng căn hộ.'
+                    WHEN 3 THEN N'Tủ bếp, rèm cửa và thiết bị vệ sinh; nội thất chi tiết theo hiện trạng nhà.'
+                    WHEN 4 THEN N'Giường, tủ quần áo, máy lạnh và khu bếp nhỏ.'
+                    ELSE N'Mặt bằng bàn giao cơ bản, khách thuê tự bố trí thiết bị kinh doanh.'
+                END,
+                AdditionalFeesDescription = N'Điện, nước, gửi xe và phí dịch vụ (nếu có) tính riêng theo mức giá và cách tính ghi trong hợp đồng.';
         ");
     }
 
