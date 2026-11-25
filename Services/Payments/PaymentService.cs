@@ -146,6 +146,7 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
         }
 
         var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now.AddHours(7));
         var invoice = new Invoice
         {
             ContractId = contractId,
@@ -156,7 +157,7 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
             IssueDate = request.IssueDate,
             DueDate = request.DueDate,
             TotalAmount = totalAmount,
-            Status = request.DueDate < DateOnly.FromDateTime(now)
+            Status = request.DueDate < today
                 ? InvoiceStatus.Overdue
                 : InvoiceStatus.Issued,
             CreatedAt = now,
@@ -389,7 +390,7 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
     public async Task MarkOverdueInvoicesAsync(
         Guid userId, bool isLandlord, bool isTenant, CancellationToken cancellationToken)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         await db.Invoices
             .Where(x =>
                 ((isLandlord && x.Contract.LandlordId == userId) ||
@@ -404,7 +405,7 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
     public async Task RefreshOverdueStatusAsync(Invoice invoice, CancellationToken cancellationToken)
     {
         if (invoice.Status is InvoiceStatus.Issued or InvoiceStatus.PartiallyPaid &&
-            invoice.DueDate < DateOnly.FromDateTime(DateTime.UtcNow))
+            invoice.DueDate < DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7)))
         {
             invoice.Status = InvoiceStatus.Overdue;
             await db.SaveChangesAsync(cancellationToken);
