@@ -461,9 +461,14 @@ public sealed class SePayService(
         return new PaymentCodeSettings(merchantId, secretKey, checkoutUri.ToString(), publicUri.GetLeftPart(UriPartial.Authority));
     }
 
-    private string RequiredSetting(string key) =>
-        configuration[key] ??
-        throw new InvalidOperationException($"Thiếu cấu hình {key}.");
+    private string RequiredSetting(string key)
+    {
+        var value = configuration[key];
+        if (string.IsNullOrWhiteSpace(value))
+            throw new InvalidOperationException($"Thiếu cấu hình {key}.");
+
+        return value.Trim();
+    }
 
     private static bool IsNonPublicIpAddress(string host)
     {
