@@ -459,7 +459,7 @@ export function ContractsPage() {
                     ...(canReview(item) && !reviewedContractIds.has(item.id) ? [
                       <Button
                         key="review"
-                        onClick={() => setReviewContract(item)}
+                        onClick={() => { setReviewRating(5); setReviewComment(''); setReviewContract(item); }}
                       >
                         Đánh giá
                       </Button>
@@ -524,7 +524,7 @@ export function ContractsPage() {
         {reviewContract && (
           <Space orientation="vertical" size={12} style={{ width: '100%' }}>
             <Typography.Text strong>{reviewContract.propertyTitle}</Typography.Text>
-            <Rate value={reviewRating} onChange={setReviewRating} />
+            <Rate allowClear={false} value={reviewRating} onChange={setReviewRating} />
             <Input.TextArea
               value={reviewComment}
               onChange={event => setReviewComment(event.target.value)}
