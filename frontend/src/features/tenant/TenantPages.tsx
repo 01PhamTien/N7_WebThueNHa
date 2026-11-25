@@ -122,9 +122,10 @@ function InvoiceDueHint({ dueDate, status }: { dueDate: string; status: string }
   const [year, month, day] = dueDate.slice(0, 10).split('-').map(Number);
   if (!year || !month || !day) return null;
   const due = new Date(year, month - 1, day);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const days = Math.round((due.getTime() - today.getTime()) / 86400000);
+  const nowVietnam = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  const todayKey = Date.UTC(nowVietnam.getUTCFullYear(), nowVietnam.getUTCMonth(), nowVietnam.getUTCDate());
+  const dueKey = Date.UTC(year, month - 1, day);
+  const days = Math.round((dueKey - todayKey) / 86400000);
   if (days < 0) return <Tag color="red">Quá hạn {Math.abs(days)} ngày</Tag>;
   if (days === 0) return <Tag color="orange">Đến hạn hôm nay</Tag>;
   if (days <= 7) return <Tag color="orange">Còn {days} ngày</Tag>;
