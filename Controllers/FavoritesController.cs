@@ -1,17 +1,16 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Favorites;
+using Web2_ThueNha.Repositories.Favorites;
 
 namespace Web2_ThueNha.Controllers;
 
 [ApiController]
 [Route("api/favorites")]
 [Authorize]
-public sealed class FavoritesController(AppDbContext db) : ControllerBase
+public sealed class FavoritesController(IFavoriteRepository favorites) : ControllerBase
 {
     private const int MaxPageSize = 50;
 
@@ -32,13 +31,7 @@ public sealed class FavoritesController(AppDbContext db) : ControllerBase
             page > int.MaxValue / pageSize)
             return BadRequest(new { message = "page phải từ 1; pageSize phải từ 1 đến 50." });
 
-        IQueryable<Favorite> query = db.Favorites
-            .AsNoTracking()
-            .Where(x =>
-                x.UserId == userId &&
-                x.Property.ModerationStatus == PropertyModerationStatus.Approved &&
-                x.Property.ListingStatus == PropertyListingStatus.Published);
-
+        var query = favorites.GetUserFavorites(userId);
         var totalItems = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
@@ -70,13 +63,8 @@ public sealed class FavoritesController(AppDbContext db) : ControllerBase
                 .ToListAsync(cancellationToken);
 
         return Ok(new PagedFavoritesResponse(
-            items,
-            page,
-            pageSize,
-            totalItems,
-            totalPages,
-            page > 1 && page <= totalPages,
-            page < totalPages));
+            items, page, pageSize, totalItems, totalPages,
+            page > 1 && page <= totalPages, page < totalPages));
     }
 
     /// <summary>Thêm nhà đang công khai vào danh sách yêu thích; request lặp an toàn.</summary>
@@ -90,53 +78,20 @@ public sealed class FavoritesController(AppDbContext db) : ControllerBase
         if (!TryGetUserId(out var userId))
             return Unauthorized();
 
-        var isPublic = await db.Properties.AnyAsync(
-            x => x.Id == propertyId &&
-                 x.ModerationStatus == PropertyModerationStatus.Approved &&
-                 x.ListingStatus == PropertyListingStatus.Published,
-            cancellationToken);
-
-        if (!isPublic)
+        if (!await favorites.IsPropertyPublicAsync(propertyId, cancellationToken))
             return NotFound(new { message = "Không tìm thấy tin đăng đang được công khai." });
 
-        var alreadyExists = await db.Favorites.AnyAsync(
-            x => x.UserId == userId && x.PropertyId == propertyId,
-            cancellationToken);
-
-        if (alreadyExists)
-            return Ok(new FavoriteStatusResponse(propertyId, true));
-
-        var favorite = new Favorite
+        var created = await favorites.AddAsync(new Favorite
         {
             UserId = userId,
             PropertyId = propertyId,
             CreatedAt = DateTime.UtcNow
-        };
+        }, cancellationToken);
 
-        db.Favorites.Add(favorite);
-        try
-        {
-            await db.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateException exception) when (
-            exception.GetBaseException() is SqlException sqlException &&
-            sqlException.Number is 2601 or 2627)
-        {
-            // Khóa chính kép (UserId, PropertyId) xử lý hai request thêm đồng thời.
-            db.Entry(favorite).State = EntityState.Detached;
-
-            if (await db.Favorites.AnyAsync(
-                    x => x.UserId == userId && x.PropertyId == propertyId,
-                    cancellationToken))
-                return Ok(new FavoriteStatusResponse(propertyId, true));
-
-            throw;
-        }
-
-        return CreatedAtAction(
-            nameof(GetFavoriteStatus),
-            new { propertyId },
-            new FavoriteStatusResponse(propertyId, true));
+        var response = new FavoriteStatusResponse(propertyId, true);
+        return created
+            ? CreatedAtAction(nameof(GetFavoriteStatus), new { propertyId }, response)
+            : Ok(response);
     }
 
     /// <summary>Bỏ yêu thích; xóa lặp nhiều lần vẫn an toàn.</summary>
@@ -148,10 +103,7 @@ public sealed class FavoritesController(AppDbContext db) : ControllerBase
         if (!TryGetUserId(out var userId))
             return Unauthorized();
 
-        await db.Favorites
-            .Where(x => x.UserId == userId && x.PropertyId == propertyId)
-            .ExecuteDeleteAsync(cancellationToken);
-
+        await favorites.RemoveAsync(userId, propertyId, cancellationToken);
         return NoContent();
     }
 
@@ -165,13 +117,10 @@ public sealed class FavoritesController(AppDbContext db) : ControllerBase
         if (!TryGetUserId(out var userId))
             return Unauthorized();
 
-        if (!await db.Properties.AnyAsync(x => x.Id == propertyId, cancellationToken))
+        if (!await favorites.PropertyExistsAsync(propertyId, cancellationToken))
             return NotFound(new { message = "Không tìm thấy tin đăng." });
 
-        var isFavorite = await db.Favorites.AnyAsync(
-            x => x.UserId == userId && x.PropertyId == propertyId,
-            cancellationToken);
-
+        var isFavorite = await favorites.ExistsAsync(userId, propertyId, cancellationToken);
         return Ok(new FavoriteStatusResponse(propertyId, isFavorite));
     }
 
