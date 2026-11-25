@@ -301,7 +301,7 @@ export function ProfilePage() {
                   label="Số điện thoại"
                   rules={[{
                     validator: (_, value) =>
-                      !value || /^[0-9+().\\-\\s]{8,20}$/.test(value)
+                      !value || /^[0-9+().\-\s]{8,20}$/.test(value)
                         ? Promise.resolve()
                         : Promise.reject(new Error('Số điện thoại chưa đúng định dạng.'))
                   }]}
