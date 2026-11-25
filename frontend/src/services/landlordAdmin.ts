@@ -217,6 +217,55 @@ export interface AdminDashboardDto {
   pendingBookings: number;
   activeContracts: number;
   overdueInvoices: number;
+  totalBookings: number;
+  totalContracts: number;
+  totalInvoices: number;
+  pendingPayments: number;
+  successfulPayments: number;
+  successfulPaymentAmount: number;
+  totalReviews: number;
+  totalModerationActions: number;
+}
+
+export interface AdminPaymentListDto {
+  id: string;
+  invoiceId: string;
+  invoiceCode: string;
+  contractCode: string;
+  propertyTitle: string;
+  payerId: string;
+  payerName: string;
+  amount: number;
+  paymentMethod: string;
+  status: string;
+  paymentProvider?: string | null;
+  transactionCode?: string | null;
+  paidAt?: string | null;
+  failureReason?: string | null;
+  reviewedByName?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
+}
+
+export interface AdminReviewDto {
+  id: string;
+  contractId: string;
+  contractCode: string;
+  propertyTitle: string;
+  tenantName: string;
+  rating: number;
+  comment?: string | null;
+  createdAt: string;
+}
+
+export interface AdminModerationLogDto {
+  id: string;
+  propertyId: string;
+  propertyTitle: string;
+  adminName: string;
+  action: string;
+  reason?: string | null;
+  createdAt: string;
 }
 
 export interface CreateAdminUserRequest {
@@ -283,6 +332,18 @@ export interface ChatPageParams extends PageParams {
 
 export const landlordAdminApi = {
   adminDashboard: () => api.get<AdminDashboardDto>('/api/admin/dashboard'),
+  adminBookings: (params: PageParams & { status?: string; keyword?: string } = {}) =>
+    api.get<PagedResult<BookingDto>>('/api/admin/operations/bookings', { params: { page: 1, pageSize: 10, ...params } }),
+  adminContracts: (params: PageParams & { status?: string; keyword?: string } = {}) =>
+    api.get<PagedResult<ContractDto>>('/api/admin/operations/contracts', { params: { page: 1, pageSize: 10, ...params } }),
+  adminInvoices: (params: PageParams & { status?: string; type?: string; keyword?: string } = {}) =>
+    api.get<PagedResult<InvoiceListDto>>('/api/admin/operations/invoices', { params: { page: 1, pageSize: 10, ...params } }),
+  adminPayments: (params: PageParams & { status?: string; keyword?: string } = {}) =>
+    api.get<PagedResult<AdminPaymentListDto>>('/api/admin/operations/payments', { params: { page: 1, pageSize: 10, ...params } }),
+  adminReviews: (params: PageParams & { rating?: number; keyword?: string } = {}) =>
+    api.get<PagedResult<AdminReviewDto>>('/api/admin/operations/reviews', { params: { page: 1, pageSize: 10, ...params } }),
+  adminModerationLogs: (params: PageParams & { action?: string; keyword?: string } = {}) =>
+    api.get<PagedResult<AdminModerationLogDto>>('/api/admin/operations/moderation-logs', { params: { page: 1, pageSize: 10, ...params } }),
   createAdminUser: (data: CreateAdminUserRequest) => api.post<AdminUserDto>('/api/admin/users', data),
   updateAdminUser: (id: string, data: UpdateAdminUserRequest) => api.put<AdminUserDto>('/api/admin/users/' + id, data),
   deleteAdminUser: (id: string) => api.delete<void>('/api/admin/users/' + id),
