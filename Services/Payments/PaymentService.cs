@@ -28,7 +28,7 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
                  x.Description.Trim().Length > 300 ||
                  x.Quantity <= 0 ||
                  x.UnitPrice <= 0 ||
-                 decimal.Round(x.Quantity * x.UnitPrice, 2, MidpointRounding.AwayFromZero) <= 0)))
+                 decimal.Round(x.Quantity * x.UnitPrice, 2, MidpointRounding.AwayFromZero) <= 0))))
             return ServiceResult<InvoiceDetailResponse>.BadRequest(
                 "Thông tin hóa đơn hoặc dòng chi tiết không hợp lệ.");
 
