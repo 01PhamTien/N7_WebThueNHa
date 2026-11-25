@@ -1,4 +1,4 @@
-import { Alert, Empty, Modal, Spin, Button } from 'antd';
+import { Alert, Empty, App as AntApp, Spin, Button } from 'antd';
 import type { ReactNode } from 'react';
 
 export function Page({
@@ -46,10 +46,12 @@ export function ConfirmModal({
   triggerLabel: string;
   onConfirm: () => void | Promise<void>;
 }) {
+  const { modal } = AntApp.useApp();
+
   return (
     <Button
       danger
-      onClick={() => Modal.confirm({
+      onClick={() => modal.confirm({
         title,
         content,
         okText: 'Xác nhận',
