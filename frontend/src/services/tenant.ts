@@ -1,4 +1,12 @@
 import{api}from'./api';import type{PageResult,PropertyItem,FavoriteItem,BookingItem,ContractItem,ContractDetail,InvoiceItem,InvoiceDetail,NotificationItem,ConversationItem,ChatMessage,CurrentUser,PropertyReviewSummary,MyReviewItem}from'../types/api';
+
+// Booking API serializes enums as numbers; normalize at the tenant API boundary.
+const bookingStatuses = ['Pending', 'Accepted', 'Rejected', 'Cancelled', 'Expired'] as const;
+function normalizeBooking(item: BookingItem): BookingItem {
+ const raw = String(item.status);
+ const status = /^[0-4]$/.test(raw) ? bookingStatuses[Number(raw)] : bookingStatuses.find(value => value === raw);
+ return {...item, status: status ?? 'Unknown'};
+}
 export const tenantApi={
  unreadCount:()=>api.get<{unreadCount:number}>('/api/notifications/unread-count'),
  properties:(params:Record<string,string|number|undefined>)=>api.get<PageResult<PropertyItem>>('/api/properties',{params}),
@@ -10,10 +18,10 @@ export const tenantApi={
  favoriteStatus:(id:string)=>api.get<{propertyId:string;isFavorite:boolean}>('/api/favorites/'+id+'/status'),
  addFavorite:(id:string)=>api.post('/api/favorites/'+id),
  removeFavorite:(id:string)=>api.delete('/api/favorites/'+id),
- bookings:(page:number,pageSize:number)=>api.get<PageResult<BookingItem>>('/api/bookings/mine',{params:{page,pageSize}}),
- booking:(id:string)=>api.get<BookingItem>('/api/bookings/'+id),
+ bookings:(page:number,pageSize:number)=>api.get<PageResult<BookingItem>>('/api/bookings/mine',{params:{page,pageSize}}).then(response=>({...response,data:{...response.data,items:response.data.items.map(normalizeBooking)}})),
+ booking:(id:string)=>api.get<BookingItem>('/api/bookings/'+id).then(response=>({...response,data:normalizeBooking(response.data)})),
  createBooking:(data:{propertyId:string;startDate:string;endDate:string;numberOfPeople:number;proposedPrice:number;message?:string})=>api.post('/api/bookings',data),
- cancelBooking:(id:string)=>api.patch<BookingItem>('/api/bookings/'+id+'/cancel'),
+ cancelBooking:(id:string)=>api.patch<BookingItem>('/api/bookings/'+id+'/cancel').then(response=>({...response,data:normalizeBooking(response.data)})),
  contracts:(page:number,pageSize:number)=>api.get<PageResult<ContractItem>>('/api/contracts',{params:{page,pageSize}}),
  contract:(id:string)=>api.get<ContractDetail>('/api/contracts/'+id),
  signContract:(id:string)=>api.post('/api/contracts/'+id+'/sign'),
