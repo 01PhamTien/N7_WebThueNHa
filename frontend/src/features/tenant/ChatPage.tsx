@@ -1,22 +1,284 @@
-import{useCallback,useEffect,useRef,useState}from'react';import{Alert,App as AntApp,Button,Empty,Input,List,Spin,Tag,Upload,Modal,Space}from'antd';import{HubConnectionBuilder,HubConnectionState,LogLevel,type HubConnection}from'@microsoft/signalr';import{useLocation}from'react-router-dom';import{tenantApi}from'../../services/tenant';import{errorText,TOKEN_KEY}from'../../services/api';import{useAuth}from'../../app/AuthContext';import type{ConversationItem,ChatMessage}from'../../types/api';
-const SIZE=20;
-export function ChatPage(){const{message,modal}=AntApp.useApp();const{user}=useAuth();const location=useLocation();const[conversations,setConversations]=useState<ConversationItem[]>([]);const[page,setPage]=useState(1);const[totalPages,setTotalPages]=useState(0);const[includeArchived,setIncludeArchived]=useState(false);const[active,setActive]=useState<ConversationItem|null>(null);const[messages,setMessages]=useState<ChatMessage[]>([]);const[messagePage,setMessagePage]=useState(1);const[hasOlder,setHasOlder]=useState(false);const[text,setText]=useState('');const[busy,setBusy]=useState(true);const[loadingMessages,setLoadingMessages]=useState(false);const[error,setError]=useState('');const[connection,setConnection]=useState('Đang kết nối');const[editing,setEditing]=useState<string|null>(null);const[editText,setEditText]=useState('');const[archiving,setArchiving]=useState(false);const conn=useRef<HubConnection|null>(null);const scroll=useRef<HTMLDivElement>(null);
-const loadConversations=useCallback(()=>{setBusy(true);tenantApi.conversations(page,SIZE,includeArchived).then(r=>{setConversations(r.data.items);setTotalPages(r.data.totalPages)}).catch(e=>setError(errorText(e))).finally(()=>setBusy(false))},[page,includeArchived]);
-useEffect(()=>{loadConversations()},[loadConversations]);
-const loadMessages=useCallback(async(c:ConversationItem)=>{setLoadingMessages(true);setError('');try{const r=await tenantApi.messages(c.conversationId,1,SIZE);setMessages(r.data.items);setMessagePage(1);setHasOlder(r.data.hasNext);await tenantApi.markChatRead(c.conversationId)}catch(e){setError(errorText(e))}finally{setLoadingMessages(false)}},[]);
-const openConversation=(c:ConversationItem)=>{setActive(c);void loadMessages(c)};
-useEffect(()=>{const id=(location.state as {conversationId?:string}|null)?.conversationId;if(id){const found=conversations.find(c=>c.conversationId===id);if(found)openConversation(found)}},[conversations,location.state]);
-useEffect(()=>{if(!active)return;let mounted=true;const connectionInstance=new HubConnectionBuilder().withUrl((import.meta.env.VITE_API_BASE_URL||window.location.origin)+'/hubs/chat',{accessTokenFactory:()=>sessionStorage.getItem(TOKEN_KEY)||''}).withAutomaticReconnect().configureLogging(LogLevel.Warning).build();conn.current=connectionInstance;
-connectionInstance.on('NhanTinNhan',(m:{messageId:string;conversationId:string;senderId:string;senderName:string;content:string;messageType:string;sentAt:string})=>{if(m.conversationId!==active.conversationId)return;setMessages(old=>old.some(x=>x.messageId===m.messageId)?old:[...old,{...m,isMine:m.senderId===user?.userId,attachments:[]}]);if(m.senderId!==user?.userId)void tenantApi.markChatRead(active.conversationId)});
-connectionInstance.on('SuaTinNhan',(m:{messageId:string;content:string;editedAt:string})=>setMessages(old=>old.map(x=>x.messageId===m.messageId?{...x,content:m.content,editedAt:m.editedAt}:x)));
-connectionInstance.on('XoaTinNhan',(m:{messageId:string})=>setMessages(old=>old.filter(x=>x.messageId!==m.messageId)));
-connectionInstance.onreconnecting(()=>mounted&&setConnection('Đang kết nối lại'));connectionInstance.onreconnected(()=>mounted&&setConnection('Đã kết nối'));connectionInstance.onclose(()=>mounted&&setConnection('Mất kết nối'));
-void connectionInstance.start().then(()=>connectionInstance.invoke('JoinConversation',active.conversationId)).then(()=>{if(mounted)setConnection('Đã kết nối')}).catch(()=>{if(mounted)setConnection('Mất kết nối')});
-return()=>{mounted=false;void connectionInstance.invoke('LeaveConversation',active.conversationId).catch(()=>{});void connectionInstance.stop();conn.current=null}},[active?.conversationId,user?.userId]);
-useEffect(()=>{if(scroll.current)scroll.current.scrollTop=scroll.current.scrollHeight},[messages.length,active?.conversationId]);
-const send=async()=>{const content=text.trim();if(!active||!content)return;setText('');try{const r=await tenantApi.sendMessage(active.conversationId,content);const m=r.data;setMessages(old=>old.some(x=>x.messageId===m.messageId)?old:[...old,{...m,isMine:true,attachments:[]}]);loadConversations()}catch(e){setText(content);message.error(errorText(e))}};
-const older=async()=>{if(!active||!hasOlder)return;const next=messagePage+1;setLoadingMessages(true);try{const r=await tenantApi.messages(active.conversationId,next,SIZE);setMessages(old=>[...r.data.items,...old.filter(x=>!r.data.items.some(n=>n.messageId===x.messageId))]);setMessagePage(next);setHasOlder(r.data.hasNext)}catch(e){message.error(errorText(e))}finally{setLoadingMessages(false)}};
-const archive=async()=>{if(!active)return;setArchiving(true);try{await tenantApi.archiveConversation(active.conversationId,!active.isArchived);message.success(active.isArchived?'Đã khôi phục hội thoại':'Đã lưu trữ hội thoại');setActive(null);setMessages([]);loadConversations()}catch(e){message.error(errorText(e))}finally{setArchiving(false)}};
-const saveEdit=async(id:string)=>{if(!active||!editText.trim())return;try{const r=await tenantApi.editMessage(active.conversationId,id,editText.trim());setMessages(old=>old.map(m=>m.messageId===id?{...m,content:r.data.content,editedAt:r.data.editedAt}:m));setEditing(null)}catch(e){message.error(errorText(e))}};
-const deleteMessage=(id:string)=>{if(!active)return;modal.confirm({title:'Xóa tin nhắn?',content:'Tin nhắn sẽ được xóa khỏi hội thoại.',okText:'Xóa',cancelText:'Hủy',okButtonProps:{danger:true},onOk:async()=>{try{await tenantApi.deleteMessage(active.conversationId,id);setMessages(old=>old.filter(m=>m.messageId!==id))}catch(e){message.error(errorText(e))}}})};
-return <main className="page"><h1>Tin nhắn</h1>{error&&<Alert type="error" showIcon message={error} closable onClose={()=>setError('')}/>}<div className="chat"><aside><Space><Button type={!includeArchived?'primary':'default'} onClick={()=>{setIncludeArchived(false);setPage(1);setActive(null)}}>Đang hoạt động</Button><Button type={includeArchived?'primary':'default'} onClick={()=>{setIncludeArchived(true);setPage(1);setActive(null)}}>Đã lưu trữ</Button></Space>{busy?<Spin/>:<List dataSource={conversations} locale={{emptyText:<Empty description="Chưa có hội thoại"/>}} renderItem={c=><List.Item className={active?.conversationId===c.conversationId?'conversation-active':''} onClick={()=>openConversation(c)}><List.Item.Meta title={c.propertyTitle} description={c.lastMessageContent||'Chưa có tin nhắn'}/>{c.unreadCount>0&&<Tag color="blue">{c.unreadCount}</Tag>}</List.Item>}/ >}{totalPages>1&&<div className="chat-paging"><Button disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Trước</Button><span>{page}/{totalPages}</span><Button disabled={page>=totalPages} onClick={()=>setPage(p=>p+1)}>Sau</Button></div>}</aside><section className="chat-panel">{!active?<Empty description="Chọn một hội thoại để xem tin nhắn"/>:<><header><strong>{active.propertyTitle}</strong><Space><Tag color={connection==='Đã kết nối'?'green':'orange'}>{connection}</Tag><Button size="small" loading={archiving} onClick={()=>void archive()}>{active.isArchived?'Khôi phục':'Lưu trữ'}</Button></Space></header><div className="messages" ref={scroll}>{hasOlder&&<Button type="link" loading={loadingMessages} onClick={()=>void older()}>Tải tin nhắn cũ hơn</Button>}{loadingMessages&&<Spin/>}{messages.map(m=><article key={m.messageId} className={m.isMine?'bubble mine':'bubble'}><small>{m.senderName} · {new Date(m.sentAt).toLocaleString('vi-VN')}</small>{editing===m.messageId?<Space.Compact><Input value={editText} onChange={e=>setEditText(e.target.value)}/><Button type="primary" onClick={()=>void saveEdit(m.messageId)}>Lưu</Button><Button onClick={()=>setEditing(null)}>Hủy</Button></Space.Compact>:<p>{m.content}</p>}{m.editedAt&&<small>Đã chỉnh sửa</small>}{m.attachments.map(a=><p key={a.attachmentId}><a href={(import.meta.env.VITE_API_BASE_URL||'')+a.downloadUrl} target="_blank" rel="noreferrer">{a.fileName}</a></p>)}{m.isMine&&<Space size="small"><Button type="link" size="small" onClick={()=>{setEditing(m.messageId);setEditText(m.content||'')}}>Sửa</Button><Button type="link" danger size="small" onClick={()=>deleteMessage(m.messageId)}>Xóa</Button></Space>}</article>)}</div><Space.Compact className="composer"><Input value={text} onChange={e=>setText(e.target.value)} onPressEnter={()=>void send()} maxLength={4000} placeholder="Nhập tin nhắn..."/><Button type="primary" onClick={()=>void send()} disabled={!text.trim()}>Gửi</Button><Upload showUploadList={false} accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx" beforeUpload={file=>{tenantApi.uploadAttachment(active.conversationId,file).then(()=>tenantApi.messages(active.conversationId,1,SIZE)).then(r=>setMessages(r.data.items)).then(()=>message.success('Đã gửi tệp')).catch(e=>message.error(errorText(e)));return false}}><Button>Tệp</Button></Upload></Space.Compact></>}</section></div></main>}
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, App as AntApp, Button, Empty, Input, List, Select, Space, Spin, Tag, Upload } from 'antd';
+import { HubConnectionBuilder, LogLevel, type HubConnection } from '@microsoft/signalr';
+import { useLocation } from 'react-router-dom';
+import { tenantApi } from '../../services/tenant';
+import { errorText, TOKEN_KEY } from '../../services/api';
+import { useAuth } from '../../app/AuthContext';
+import type { ConversationItem, ChatMessage } from '../../types/api';
+
+const SIZE = 20;
+
+export function ChatPage() {
+  const { message } = AntApp.useApp();
+  const { user } = useAuth();
+  const location = useLocation();
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [active, setActive] = useState<ConversationItem | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messagePage, setMessagePage] = useState(1);
+  const [hasOlder, setHasOlder] = useState(false);
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [error, setError] = useState('');
+  const [connection, setConnection] = useState('Đang kết nối');
+  const [archiving, setArchiving] = useState(false);
+  const conn = useRef<HubConnection | null>(null);
+  const scroll = useRef<HTMLDivElement>(null);
+
+  const loadConversations = useCallback(() => {
+    setBusy(true);
+    tenantApi.conversations(page, SIZE, includeArchived)
+      .then(response => {
+        setConversations(response.data.items || []);
+        setTotalPages(response.data.totalPages || 0);
+      })
+      .catch(error => setError(errorText(error)))
+      .finally(() => setBusy(false));
+  }, [page, includeArchived]);
+
+  useEffect(() => { loadConversations(); }, [loadConversations]);
+
+  const loadMessages = useCallback(async (conversation: ConversationItem) => {
+    setLoadingMessages(true);
+    setError('');
+    try {
+      const response = await tenantApi.messages(conversation.conversationId, 1, SIZE);
+      setMessages(response.data.items || []);
+      setMessagePage(1);
+      setHasOlder(response.data.hasNext);
+      await tenantApi.markChatRead(conversation.conversationId);
+    } catch (error) {
+      setError(errorText(error));
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
+
+  const openConversation = (conversation: ConversationItem) => {
+    setActive(conversation);
+    void loadMessages(conversation);
+  };
+
+  useEffect(() => {
+    const id = (location.state as { conversationId?: string } | null)?.conversationId;
+    if (!id) return;
+    const found = conversations.find(item => item.conversationId === id);
+    if (found) openConversation(found);
+  }, [conversations, location.state]);
+
+  useEffect(() => {
+    if (!active) return;
+    let mounted = true;
+    const connectionInstance = new HubConnectionBuilder()
+      .withUrl((import.meta.env.VITE_API_BASE_URL || window.location.origin) + '/hubs/chat', {
+        accessTokenFactory: () => sessionStorage.getItem(TOKEN_KEY) || ''
+      })
+      .withAutomaticReconnect()
+      .configureLogging(LogLevel.Warning)
+      .build();
+    conn.current = connectionInstance;
+
+    connectionInstance.on('NhanTinNhan', (incoming: {
+      messageId: string;
+      conversationId: string;
+      senderId: string;
+      senderName: string;
+      content: string;
+      messageType: string;
+      sentAt: string;
+    }) => {
+      if (incoming.conversationId !== active.conversationId) return;
+      setMessages(previous => previous.some(item => item.messageId === incoming.messageId)
+        ? previous
+        : [...previous, { ...incoming, isMine: incoming.senderId === user?.userId, attachments: [] }]);
+      if (incoming.senderId !== user?.userId) void tenantApi.markChatRead(active.conversationId);
+    });
+
+    connectionInstance.onreconnecting(() => { if (mounted) setConnection('Đang kết nối lại'); });
+    connectionInstance.onreconnected(() => { if (mounted) setConnection('Đã kết nối'); });
+    connectionInstance.onclose(() => { if (mounted) setConnection('Mất kết nối'); });
+
+    void connectionInstance.start()
+      .then(() => connectionInstance.invoke('JoinConversation', active.conversationId))
+      .then(() => { if (mounted) setConnection('Đã kết nối'); })
+      .catch(() => { if (mounted) setConnection('Mất kết nối'); });
+
+    return () => {
+      mounted = false;
+      void connectionInstance.invoke('LeaveConversation', active.conversationId).catch(() => undefined);
+      void connectionInstance.stop();
+      conn.current = null;
+    };
+  }, [active?.conversationId, user?.userId]);
+
+  useEffect(() => {
+    if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
+  }, [messages.length, active?.conversationId]);
+
+  const send = async () => {
+    const content = text.trim();
+    if (!active || !content) return;
+    setText('');
+    try {
+      const response = await tenantApi.sendMessage(active.conversationId, content);
+      const sent = response.data;
+      setMessages(previous => previous.some(item => item.messageId === sent.messageId)
+        ? previous
+        : [...previous, { ...sent, isMine: true, attachments: [] }]);
+      loadConversations();
+    } catch (error) {
+      setText(content);
+      message.error(errorText(error));
+    }
+  };
+
+  const loadOlderMessages = async () => {
+    if (!active || !hasOlder) return;
+    const nextPage = messagePage + 1;
+    setLoadingMessages(true);
+    try {
+      const response = await tenantApi.messages(active.conversationId, nextPage, SIZE);
+      setMessages(previous => [
+        ...response.data.items,
+        ...previous.filter(item => !response.data.items.some(next => next.messageId === item.messageId))
+      ]);
+      setMessagePage(nextPage);
+      setHasOlder(response.data.hasNext);
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  const archiveConversation = async () => {
+    if (!active) return;
+    setArchiving(true);
+    try {
+      await tenantApi.archiveConversation(active.conversationId, !active.isArchived);
+      message.success(active.isArchived ? 'Đã khôi phục hội thoại' : 'Đã lưu trữ hội thoại');
+      setActive(null);
+      setMessages([]);
+      loadConversations();
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  return (
+    <main className="page">
+      <h1>Tin nhắn</h1>
+      {error && <Alert type="error" showIcon message={error} closable onClose={() => setError('')} />}
+      <div className="chat">
+        <aside>
+          <div className="chat-inbox-toolbar">
+            <Select
+              size="small"
+              value={includeArchived ? 'archived' : 'inbox'}
+              onChange={value => {
+                setIncludeArchived(value === 'archived');
+                setPage(1);
+                setActive(null);
+                setMessages([]);
+              }}
+              options={[
+                { value: 'inbox', label: 'Hộp thư đến' },
+                { value: 'archived', label: 'Đã lưu trữ' }
+              ]}
+              aria-label="Chọn danh sách hội thoại"
+            />
+          </div>
+          {busy ? <Spin /> : (
+            <List
+              dataSource={conversations}
+              locale={{ emptyText: <Empty description={includeArchived ? 'Chưa có hội thoại đã lưu trữ' : 'Chưa có cuộc trò chuyện'} /> }}
+              renderItem={conversation => (
+                <List.Item
+                  className={active?.conversationId === conversation.conversationId ? 'conversation-active' : ''}
+                  onClick={() => openConversation(conversation)}
+                >
+                  <List.Item.Meta
+                    title={conversation.propertyTitle}
+                    description={conversation.lastMessageContent || 'Chưa có tin nhắn'}
+                  />
+                  {conversation.unreadCount > 0 && <Tag color="blue">{conversation.unreadCount}</Tag>}
+                </List.Item>
+              )}
+            />
+          )}
+          {totalPages > 1 && (
+            <div className="chat-paging">
+              <Button disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Trước</Button>
+              <span>{page}/{totalPages}</span>
+              <Button disabled={page >= totalPages} onClick={() => setPage(value => value + 1)}>Sau</Button>
+            </div>
+          )}
+        </aside>
+
+        <section className="chat-panel">
+          {!active ? <Empty description="Chọn một cuộc trò chuyện để xem tin nhắn" /> : (
+            <>
+              <header>
+                <strong>{active.propertyTitle}</strong>
+                <Space>
+                  <Tag color={connection === 'Đã kết nối' ? 'green' : 'orange'}>{connection}</Tag>
+                  <Button size="small" loading={archiving} onClick={() => void archiveConversation()}>
+                    {active.isArchived ? 'Đưa về hộp thư đến' : 'Lưu trữ'}
+                  </Button>
+                </Space>
+              </header>
+              <div className="messages" ref={scroll}>
+                {hasOlder && <Button type="link" loading={loadingMessages} onClick={() => void loadOlderMessages()}>Tải tin nhắn cũ hơn</Button>}
+                {loadingMessages && <Spin />}
+                {messages.map(item => (
+                  <article key={item.messageId} className={item.isMine ? 'bubble mine' : 'bubble'}>
+                    <small>{item.senderName} · {new Date(item.sentAt).toLocaleString('vi-VN')}</small>
+                    {item.content && <p>{item.content}</p>}
+                    {item.attachments.map(attachment => (
+                      <p key={attachment.attachmentId}>
+                        <a href={(import.meta.env.VITE_API_BASE_URL || '') + attachment.downloadUrl} target="_blank" rel="noreferrer">
+                          {attachment.fileName}
+                        </a>
+                      </p>
+                    ))}
+                  </article>
+                ))}
+              </div>
+              <Space.Compact className="composer">
+                <Input
+                  value={text}
+                  onChange={event => setText(event.target.value)}
+                  onPressEnter={() => void send()}
+                  maxLength={4000}
+                  placeholder="Nhập tin nhắn..."
+                />
+                <Button type="primary" onClick={() => void send()} disabled={!text.trim()}>Gửi</Button>
+                <Upload
+                  showUploadList={false}
+                  accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
+                  beforeUpload={file => {
+                    tenantApi.uploadAttachment(active.conversationId, file)
+                      .then(() => tenantApi.messages(active.conversationId, 1, SIZE))
+                      .then(response => setMessages(response.data.items))
+                      .then(() => message.success('Đã gửi tệp'))
+                      .catch(error => message.error(errorText(error)));
+                    return false;
+                  }}
+                >
+                  <Button>Tệp</Button>
+                </Upload>
+              </Space.Compact>
+            </>
+          )}
+        </section>
+      </div>
+    </main>
+  );
+}
