@@ -94,21 +94,6 @@ namespace Web2_ThueNha.Migrations
                     b.Property<Guid>("CreatedById")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("DepositAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("AdditionalFeesDescription")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("FurnishingDescription")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("MaxOccupants")
-                        .HasColumnType("int");
-
                     b.Property<Guid>("LandlordId")
                         .HasColumnType("uniqueidentifier");
 
@@ -577,8 +562,6 @@ namespace Web2_ThueNha.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ContractId");
-
                     b.HasIndex("ContractId", "InvoiceType")
                         .IsUnique()
                         .HasDatabaseName("UX_Invoices_Contract_Deposit")
@@ -790,6 +773,21 @@ namespace Web2_ThueNha.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
+
+                    b.Property<decimal>("DepositAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("AdditionalFeesDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("FurnishingDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("MaxOccupants")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("LandlordId")
                         .HasColumnType("uniqueidentifier");
