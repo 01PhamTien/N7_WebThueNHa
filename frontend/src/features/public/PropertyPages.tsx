@@ -686,7 +686,7 @@ export function PropertyDetailPage() {
             {({ getFieldValue }) => {
               const startDate = getFieldValue('startDate');
               const endDate = getFieldValue('endDate');
-              const monthlyRent = Number(getFieldValue('proposedPrice') || property.pricePerMonth || 0);
+              const monthlyRent = Number(getFieldValue('proposedPrice') || property?.pricePerMonth || 0);
               if (!startDate || !endDate || endDate <= startDate || monthlyRent <= 0) return null;
               const estimate = calculateRent(monthlyRent, startDate, endDate);
               return (
