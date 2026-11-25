@@ -11,11 +11,12 @@ Tài liệu này hướng dẫn các thao tác hiện có trên giao diện Web2
 - [5. Quản lý nhà yêu thích](#5-quản-lý-nhà-yêu-thích)
 - [6. Gửi và theo dõi yêu cầu thuê](#6-gửi-và-theo-dõi-yêu-cầu-thuê)
 - [7. Xem và ký hợp đồng](#7-xem-và-ký-hợp-đồng)
-- [8. Xem hóa đơn và thanh toán](#8-xem-hóa-đơn-và-thanh-toán)
-- [9. Nhắn tin với chủ nhà](#9-nhắn-tin-với-chủ-nhà)
-- [10. Xem thông báo](#10-xem-thông-báo)
-- [11. Một số tình huống thường gặp](#11-một-số-tình-huống-thường-gặp)
-- [12. Ghi chú về giới hạn hiện tại](#12-ghi-chú-về-giới-hạn-hiện-tại)
+- [8. Đánh giá sau khi thuê](#8-đánh-giá-sau-khi-thuê)
+- [9. Xem hóa đơn và thanh toán](#9-xem-hóa-đơn-và-thanh-toán)
+- [10. Nhắn tin với chủ nhà](#10-nhắn-tin-với-chủ-nhà)
+- [11. Xem thông báo](#11-xem-thông-báo)
+- [12. Một số tình huống thường gặp](#12-một-số-tình-huống-thường-gặp)
+- [13. Ghi chú về giới hạn hiện tại](#13-ghi-chú-về-giới-hạn-hiện-tại)
 
 ## 1. Đăng ký tài khoản
 
