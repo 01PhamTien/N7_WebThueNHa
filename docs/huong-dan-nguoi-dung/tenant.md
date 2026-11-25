@@ -117,7 +117,7 @@ Nếu danh sách trống, giao diện hiển thị thông báo bạn chưa lưu 
    - **Lời nhắn**: không bắt buộc, tối đa 1.000 ký tự.
 5. Chọn **Gửi yêu cầu**.
 
-Ngày bắt đầu không được ở trong quá khứ và ngày kết thúc phải cách ngày bắt đầu ít nhất một tháng lịch. Ví dụ, từ 25/11 đến 25/12 là một tháng; yêu cầu chỉ 2 ngày sẽ bị từ chối vì tin đăng hiện chỉ hỗ trợ thuê theo tháng. Giá đề xuất là đơn giá mỗi tháng, không phải tổng tiền phải trả ngay khi gửi yêu cầu. Tiền thuê, tiền cọc và lịch thanh toán cuối cùng được xác nhận trong hợp đồng. Bạn không thể gửi yêu cầu thuê căn nhà của chính mình. Căn nhà phải được duyệt và đang công khai; khoảng thời gian thuê cũng không được trùng với một yêu cầu đã được chấp nhận.
+Ngày bắt đầu không được ở trong quá khứ và ngày kết thúc phải sau ngày bắt đầu. Giá đề xuất là đơn giá mỗi tháng; tổng tiền thuê được ước tính theo quy ước: mỗi tháng lịch tròn tính theo giá tháng, phần ngày lẻ tính bằng giá tháng chia 30 nhân số ngày lẻ. Ví dụ, nhà giá 3.000.000đ/tháng thì 2 ngày khoảng 200.000đ, 15 ngày là 1.500.000đ, một tháng tròn là 3.000.000đ và một tháng cộng 2 ngày là 3.200.000đ. Ngày kết thúc không được tính vào số ngày thuê. Gửi yêu cầu chưa phát sinh thanh toán; tiền cọc và lịch thanh toán cuối cùng được xác nhận trong hợp đồng. Bạn không thể gửi yêu cầu thuê căn nhà của chính mình. Căn nhà phải được duyệt và đang công khai; khoảng thời gian thuê cũng không được trùng với một yêu cầu đã được chấp nhận.
 
 ### Theo dõi và hủy yêu cầu
 
@@ -177,6 +177,8 @@ Nút **Ký hợp đồng** được hiển thị khi hợp đồng ở trạng t
 4. Quay lại hệ thống và mở lại chi tiết hóa đơn để theo dõi trạng thái cùng lịch sử giao dịch.
 
 Trạng thái thanh toán thành công được Backend cập nhật qua IPN/Bank Webhook hợp lệ của SePay; trang quay về sau thanh toán chỉ thông báo kết quả, không tự xác nhận hóa đơn đã thanh toán. Nếu trạng thái chưa cập nhật ngay, hãy kiểm tra lại sau hoặc liên hệ quản trị viên.
+
+Với hóa đơn loại **Tiền thuê hàng tháng**, hệ thống tự tính số tiền theo giá thuê trong hợp đồng và kỳ hóa đơn: tháng tròn tính theo giá tháng, phần ngày lẻ tính theo giá tháng chia 30 nhân số ngày. Ngày kết thúc kỳ hóa đơn không được tính vào số ngày thuê. Phí điện, nước hoặc khoản phát sinh nên được lập thành hóa đơn loại **Khác**.
 
 **Giới hạn hiện tại:** Backend có API ghi nhận thanh toán thủ công bằng tiền mặt/chuyển khoản, nhưng trang Hóa đơn dành cho Tenant hiện chỉ hiển thị nút **Thanh toán SePay**. Không có nút gửi yêu cầu thanh toán thủ công trên giao diện Tenant hiện tại.
 
