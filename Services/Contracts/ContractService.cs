@@ -269,35 +269,118 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
         return ServiceResult<RentalContractResponse>.Success(ToResponse(contract));
     }
 
-    // Cùng transaction với chữ ký cuối cùng. Không phát sinh hóa đơn nếu chưa đủ hai chữ ký.
+    // Phát hành tiền cọc và toàn bộ lịch tiền thuê theo từng kỳ ngay khi đủ hai chữ ký.
+    // Kỳ thuê dùng mốc ngày bắt đầu hợp đồng; ngày kết thúc mỗi kỳ là ngày không bao gồm.
     private async Task IssueInitialInvoicesAsync(RentalContract contract, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var today = DateOnly.FromDateTime(now.AddHours(7));
-        var firstEnd = contract.StartDate.AddMonths(1);
-        if (firstEnd > contract.EndDate) firstEnd = contract.EndDate;
-        var due = contract.StartDate > today ? contract.StartDate : today;
+        var existing = await db.Invoices
+            .Where(x => x.ContractId == contract.Id && x.Status != InvoiceStatus.Cancelled)
+            .Select(x => new { x.InvoiceType, x.PeriodStart, x.PeriodEnd })
+            .ToListAsync(ct);
+
         var invoices = new List<Invoice>();
-        void Add(InvoiceType type, decimal amount, string description, DateOnly? start = null, DateOnly? end = null)
+
+        void Add(InvoiceType type, decimal amount, string description, DateOnly dueDate,
+            DateOnly? periodStart = null, DateOnly? periodEnd = null)
         {
             invoices.Add(new Invoice
             {
                 ContractId = contract.Id,
                 InvoiceCode = $"INV-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
-                InvoiceType = type, PeriodStart = start, PeriodEnd = end,
-                IssueDate = today, DueDate = due, TotalAmount = amount,
-                Status = InvoiceStatus.Issued, CreatedAt = now,
-                Items = new List<InvoiceItem> { new InvoiceItem { Description = description, Quantity = 1, UnitPrice = amount, Amount = amount } }
+                InvoiceType = type,
+                PeriodStart = periodStart,
+                PeriodEnd = periodEnd,
+                IssueDate = today,
+                DueDate = dueDate,
+                TotalAmount = amount,
+                Status = dueDate < today ? InvoiceStatus.Overdue : InvoiceStatus.Issued,
+                CreatedAt = now,
+                Items = new List<InvoiceItem>
+                {
+                    new InvoiceItem
+                    {
+                        Description = description,
+                        Quantity = 1,
+                        UnitPrice = amount,
+                        Amount = amount
+                    }
+                }
             });
         }
-        if (contract.DepositAmount > 0 && !await db.Invoices.AnyAsync(x => x.ContractId == contract.Id && x.InvoiceType == InvoiceType.Deposit && x.Status != InvoiceStatus.Cancelled, ct))
-            Add(InvoiceType.Deposit, contract.DepositAmount, "Tiền cọc");
-        if (!await db.Invoices.AnyAsync(x => x.ContractId == contract.Id && x.InvoiceType == InvoiceType.MonthlyRent && x.Status != InvoiceStatus.Cancelled && x.PeriodStart < firstEnd && x.PeriodEnd > contract.StartDate, ct))
-            Add(InvoiceType.MonthlyRent, RentalPricing.Calculate(contract.MonthlyRent, contract.StartDate, firstEnd).TotalAmount, "Tiền thuê kỳ đầu", contract.StartDate, firstEnd);
+
+        if (contract.DepositAmount > 0 &&
+            !existing.Any(x => x.InvoiceType == InvoiceType.Deposit))
+        {
+            var depositDue = contract.StartDate > today ? contract.StartDate : today;
+            Add(InvoiceType.Deposit, contract.DepositAmount, "Tiền cọc", depositDue);
+        }
+
+        var periodIndex = 0;
+        var periodStart = contract.StartDate;
+        while (periodStart < contract.EndDate)
+        {
+            var nominalEnd = contract.StartDate.AddMonths(periodIndex + 1);
+            var periodEnd = nominalEnd < contract.EndDate ? nominalEnd : contract.EndDate;
+            var isShortFirstAndOnlyPeriod = periodIndex == 0 && periodEnd < nominalEnd;
+
+            // Hợp đồng ngắn hơn một tháng vẫn áp dụng mức thuê tối thiểu một tháng.
+            // Chỉ kỳ cuối bị lẻ ngày mới tính theo MonthlyRent / 30 * số ngày.
+            var amount = isShortFirstAndOnlyPeriod
+                ? contract.MonthlyRent
+                : periodEnd == nominalEnd
+                    ? contract.MonthlyRent
+                    : decimal.Round(
+                        contract.MonthlyRent * (periodEnd.DayNumber - periodStart.DayNumber) / 30m,
+                        0,
+                        MidpointRounding.AwayFromZero);
+
+            var alreadyExists = existing.Any(x =>
+                x.InvoiceType == InvoiceType.MonthlyRent &&
+                x.PeriodStart == periodStart &&
+                x.PeriodEnd == periodEnd);
+
+            if (!alreadyExists)
+            {
+                var configuredDueDay = Math.Min(
+                    contract.PaymentDueDay,
+                    DateTime.DaysInMonth(periodStart.Year, periodStart.Month));
+                var configuredDueDate = new DateOnly(periodStart.Year, periodStart.Month, configuredDueDay);
+                // Không đặt hạn thanh toán trước ngày bắt đầu của kỳ thuê.
+                var dueDate = configuredDueDate < periodStart ? periodStart : configuredDueDate;
+                if (periodIndex == 0 && dueDate < today)
+                    dueDate = today;
+
+                Add(
+                    InvoiceType.MonthlyRent,
+                    amount,
+                    $"Tiền thuê kỳ {periodIndex + 1}",
+                    dueDate,
+                    periodStart,
+                    periodEnd);
+            }
+
+            periodStart = periodEnd;
+            periodIndex++;
+        }
+
         db.Invoices.AddRange(invoices);
         await db.SaveChangesAsync(ct);
-        foreach (var invoice in invoices)
-            await notifications.CreateAsync(contract.TenantId, "Hóa đơn cần thanh toán trước khi nhận nhà", $"Hóa đơn {invoice.InvoiceCode} đã được phát hành.", NotificationType.Invoice, invoice.Id, ct);
+
+        // Chỉ thông báo ngay các khoản đến hạn đầu tiên để tránh gửi hàng loạt thông báo
+        // cho các kỳ còn nhiều tháng mới tới; toàn bộ lịch vẫn hiển thị trong trang hóa đơn.
+        foreach (var invoice in invoices.Where(x => x.InvoiceType == InvoiceType.Deposit ||
+                     x.PeriodStart == contract.StartDate))
+        {
+            await notifications.CreateAsync(
+                contract.TenantId,
+                "Hóa đơn cần thanh toán",
+                $"Hóa đơn {invoice.InvoiceCode} đã được phát hành. Hạn thanh toán: {invoice.DueDate:dd/MM/yyyy}.",
+                NotificationType.Invoice,
+                invoice.Id,
+                ct);
+        }
     }
 
     private static RentalContractResponse ToResponse(RentalContract contract) =>

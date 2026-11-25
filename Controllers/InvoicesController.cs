@@ -42,6 +42,8 @@ public sealed class InvoicesController(AppDbContext db, IPaymentService paymentS
             (keyword is { Length: > 100 }))
             return BadRequest(new { message = "Bộ lọc hoặc tham số phân trang không hợp lệ." });
 
+        await paymentService.EnsureScheduledInvoicesAsync(
+            userId, User.IsInRole("Landlord"), User.IsInRole("Tenant"), cancellationToken);
         await MarkOverdueInvoicesAsync(userId, cancellationToken);
 
         var isLandlord = User.IsInRole("Landlord");
@@ -70,7 +72,7 @@ public sealed class InvoicesController(AppDbContext db, IPaymentService paymentS
             ? new List<InvoiceListItem>()
             : await query
                 .OrderByDescending(x => x.CreatedAt)
-                .ThenByDescending(x => x.IssueDate)
+                .ThenBy(x => x.DueDate)
                 .ThenByDescending(x => x.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -84,6 +86,8 @@ public sealed class InvoicesController(AppDbContext db, IPaymentService paymentS
                     x.Contract.LandlordId,
                     x.Contract.TenantId,
                     x.InvoiceType.ToString(),
+                    x.PeriodStart,
+                    x.PeriodEnd,
                     x.IssueDate,
                     x.DueDate,
                     x.TotalAmount,

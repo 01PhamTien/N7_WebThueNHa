@@ -18,6 +18,8 @@ public interface IPaymentService
     Task<ServiceResult<PaymentResponse>> RejectPaymentAsync(
         Guid paymentId, Guid userId, bool isAdmin, RejectPaymentRequest request, CancellationToken cancellationToken);
 
+    Task EnsureScheduledInvoicesAsync(Guid userId, bool isLandlord, bool isTenant, CancellationToken cancellationToken);
+
     Task MarkOverdueInvoicesAsync(Guid userId, bool isLandlord, bool isTenant, CancellationToken cancellationToken);
 
     Task RefreshOverdueStatusAsync(Invoice invoice, CancellationToken cancellationToken);

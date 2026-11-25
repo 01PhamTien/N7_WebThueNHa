@@ -35,6 +35,8 @@ public sealed record InvoiceListItem(
     Guid LandlordId,
     Guid TenantId,
     string InvoiceType,
+    DateOnly? PeriodStart,
+    DateOnly? PeriodEnd,
     DateOnly IssueDate,
     DateOnly DueDate,
     decimal TotalAmount,

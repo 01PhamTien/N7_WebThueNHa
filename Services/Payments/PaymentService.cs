@@ -387,6 +387,114 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
         return ServiceResult<PaymentResponse>.Success(ToResponse(payment));
     }
 
+    public async Task EnsureScheduledInvoicesAsync(
+        Guid userId, bool isLandlord, bool isTenant, CancellationToken cancellationToken)
+    {
+        if (!isLandlord && !isTenant) return;
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        var contracts = await db.RentalContracts
+            .Where(x => x.Status == RentalContractStatus.Active &&
+                ((isLandlord && x.LandlordId == userId) || (isTenant && x.TenantId == userId)))
+            .ToListAsync(cancellationToken);
+
+        foreach (var contract in contracts)
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable, cancellationToken);
+
+            var existing = await db.Invoices
+                .Where(x => x.ContractId == contract.Id && x.Status != InvoiceStatus.Cancelled)
+                .Select(x => new { x.InvoiceType, x.PeriodStart, x.PeriodEnd })
+                .ToListAsync(cancellationToken);
+
+            var now = DateTime.UtcNow;
+            var missing = new List<Invoice>();
+            var periodIndex = 0;
+            var periodStart = contract.StartDate;
+
+            while (periodStart < contract.EndDate)
+            {
+                var nominalEnd = contract.StartDate.AddMonths(periodIndex + 1);
+                var periodEnd = nominalEnd < contract.EndDate ? nominalEnd : contract.EndDate;
+                var alreadyExists = existing.Any(x =>
+                    x.InvoiceType == InvoiceType.MonthlyRent &&
+                    x.PeriodStart == periodStart &&
+                    x.PeriodEnd == periodEnd);
+
+                // Không tự tạo công nợ cho các kỳ đã kết thúc trước khi tính năng được triển khai.
+                // Chỉ bù kỳ hiện tại còn hiệu lực và các kỳ tương lai của hợp đồng đang hoạt động.
+                if (!alreadyExists && periodEnd > today)
+                {
+                    var isShortFirstAndOnlyPeriod = periodIndex == 0 && periodEnd < nominalEnd;
+                    var amount = isShortFirstAndOnlyPeriod
+                        ? contract.MonthlyRent
+                        : periodEnd == nominalEnd
+                            ? contract.MonthlyRent
+                            : decimal.Round(
+                                contract.MonthlyRent * (periodEnd.DayNumber - periodStart.DayNumber) / 30m,
+                                0,
+                                MidpointRounding.AwayFromZero);
+
+                    var dueDay = Math.Min(contract.PaymentDueDay,
+                        DateTime.DaysInMonth(periodStart.Year, periodStart.Month));
+                    var configuredDueDate = new DateOnly(periodStart.Year, periodStart.Month, dueDay);
+                    var dueDate = configuredDueDate < periodStart ? periodStart : configuredDueDate;
+                    if (dueDate < today) dueDate = today;
+
+                    missing.Add(new Invoice
+                    {
+                        ContractId = contract.Id,
+                        InvoiceCode = $"INV-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
+                        InvoiceType = InvoiceType.MonthlyRent,
+                        PeriodStart = periodStart,
+                        PeriodEnd = periodEnd,
+                        IssueDate = today,
+                        DueDate = dueDate,
+                        TotalAmount = amount,
+                        Status = InvoiceStatus.Issued,
+                        CreatedAt = now,
+                        Items = new List<InvoiceItem>
+                        {
+                            new InvoiceItem
+                            {
+                                Description = $"Tiền thuê kỳ {periodIndex + 1}",
+                                Quantity = 1,
+                                UnitPrice = amount,
+                                Amount = amount
+                            }
+                        }
+                    });
+                }
+
+                periodStart = periodEnd;
+                periodIndex++;
+            }
+
+            if (missing.Count == 0)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                continue;
+            }
+
+            db.Invoices.AddRange(missing);
+            await db.SaveChangesAsync(cancellationToken);
+
+            foreach (var invoice in missing.Where(x => x.DueDate <= today.AddDays(7)))
+            {
+                await notifications.CreateAsync(
+                    contract.TenantId,
+                    "Hóa đơn tiền thuê sắp đến hạn",
+                    $"Hóa đơn {invoice.InvoiceCode} đã được bổ sung vào lịch thanh toán. Hạn thanh toán: {invoice.DueDate:dd/MM/yyyy}.",
+                    NotificationType.Invoice,
+                    invoice.Id,
+                    cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+    }
+
     public async Task MarkOverdueInvoicesAsync(
         Guid userId, bool isLandlord, bool isTenant, CancellationToken cancellationToken)
     {
