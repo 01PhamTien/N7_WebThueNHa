@@ -23,7 +23,8 @@ import {
   EnvironmentOutlined,
   EyeOutlined,
   FileTextOutlined,
-  HeartFilled
+  HeartFilled,
+  HomeOutlined
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { Page } from '../../components/Shared';
@@ -421,7 +422,7 @@ export function ContractsPage() {
                     title={<span className="tenant-code">{item.contractCode}</span>}
                     description={
                       <Space className="tenant-item-meta" wrap size={[12, 6]}>
-                        <span><HomeOutlinedFallback /> {item.propertyTitle}</span>
+                        <span><HomeOutlined /> {item.propertyTitle}</span>
                         <span><CalendarOutlined /> {dateText(item.startDate)} – {dateText(item.endDate)}</span>
                         <span>{money(item.monthlyRent)}/tháng</span>
                       </Space>
@@ -463,9 +464,6 @@ export function ContractsPage() {
   );
 }
 
-function HomeOutlinedFallback() {
-  return <FileTextOutlined />;
-}
 
 export function InvoicesPage() {
   const { message } = AntApp.useApp();
