@@ -713,12 +713,12 @@ export function PropertyDetailPage() {
               const estimate = calculateRent(monthlyRent, startDate, endDate);
               return (
                 <div className="booking-price-summary">
-                  <div>
-                    <Typography.Text type="secondary">Tiền thuê ước tính cho kỳ này</Typography.Text>
-                    <Typography.Title level={4}>{estimate.total.toLocaleString('vi-VN')} đ</Typography.Title>
-                  </div>
+                  <div className="booking-price-row"><span>Tiền thuê ước tính</span><strong>{estimate.total.toLocaleString('vi-VN')} đ</strong></div>
+                  <div className="booking-price-row"><span>Tiền cọc theo tin đăng</span><strong>{property.depositAmount.toLocaleString('vi-VN')} đ</strong></div>
+                  <div className="booking-price-row booking-price-total"><span>Dự kiến cần thanh toán ban đầu</span><strong>{(estimate.total + property.depositAmount).toLocaleString('vi-VN')} đ</strong></div>
                   <Typography.Text type="secondary">
                     {estimate.fullMonths === 1 && estimate.extraDays === 0 && endDate > startDate && addCalendarMonth(startDate) > endDate ? 'Áp dụng mức thuê tối thiểu 1 tháng.' : `${estimate.fullMonths} tháng tròn + ${estimate.extraDays} ngày lẻ · Đơn giá ngày lẻ khoảng ${estimate.dailyRate.toLocaleString('vi-VN')} đ/ngày.`}
+                    {' '}Chưa gồm điện, nước, gửi xe và phí sử dụng riêng. Đây là ước tính; số tiền chính thức được chốt trong hợp đồng.
                   </Typography.Text>
                 </div>
               );
