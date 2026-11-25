@@ -179,6 +179,7 @@ export function AdminOperations() {
     { title: 'Người thuê', dataIndex: 'tenantName', render: (value, row) => <Space orientation="vertical" size={0}>{value}<Typography.Text type="secondary">{row.tenantEmail}</Typography.Text></Space> },
     { title: 'Thời gian thuê', render: (_, row) => `${dateText(row.startDate)} – ${dateText(row.endDate)}` },
     { title: 'Giá đề xuất', dataIndex: 'proposedPrice', render: money },
+    { title: 'Ước tính kỳ thuê', dataIndex: 'estimatedRent', render: money },
     { title: 'Trạng thái', dataIndex: 'status', render: value => <Status value={value} label={bookingStatusLabels[value] || String(value)} /> },
     { title: 'Ngày gửi', dataIndex: 'createdAt', render: dateText }
   ];
