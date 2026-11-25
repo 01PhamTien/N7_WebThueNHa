@@ -278,6 +278,16 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
             property.ModerationStatus != PropertyModerationStatus.Approved)
             return Conflict(new { message = "Tin đăng cần được duyệt trước khi hiển thị." });
 
+        // Không cho ẩn/đóng tin khi hợp đồng đang có hiệu lực; bảo vệ quyền lợi người thuê.
+        var hasActiveContract = await db.RentalContracts.AnyAsync(x =>
+            x.PropertyId == id &&
+            x.Status == RentalContractStatus.Active &&
+            x.StartDate <= DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7)) &&
+            x.EndDate > DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7)),
+            cancellationToken);
+        if (hasActiveContract && request.Status != PropertyListingStatus.Published)
+            return Conflict(new { message = "Căn nhà đang có hợp đồng thuê hiệu lực. Không thể ẩn hoặc đóng tin đăng cho đến khi hợp đồng kết thúc." });
+
         property.ListingStatus = request.Status;
         property.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
