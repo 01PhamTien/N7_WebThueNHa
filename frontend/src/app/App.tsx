@@ -219,26 +219,11 @@ function Shell() {
     ]
   }] : [];
 
-  const tenantLinks: NonNullable<MenuProps['items']> = isTenant ? [{
-    key: 'tenant-group',
-    icon: <UserOutlined />,
-    label: 'Tài khoản của tôi',
-    children: [
-      { key: '/yeu-thich', icon: <HeartOutlined />, label: <Link to="/yeu-thich">Yêu thích</Link> },
-      { key: '/dat-thue', icon: <CalendarOutlined />, label: <Link to="/dat-thue">Yêu cầu thuê</Link> },
-      { key: '/hop-dong', icon: <FileTextOutlined />, label: <Link to="/hop-dong">Hợp đồng</Link> },
-      { key: '/hoa-don', label: <Link to="/hoa-don">Hóa đơn</Link> },
-      { key: '/tin-nhan', icon: <MessageOutlined />, label: <Link to="/tin-nhan">Tin nhắn</Link> },
-      { key: '/thong-bao', icon: <BellOutlined />, label: <Link to="/thong-bao">Thông báo</Link> }
-    ]
-  }] : [];
-
   const items: NonNullable<MenuProps['items']> = [
     { key: '/', icon: <HomeOutlined />, label: <Link to="/">Trang chủ</Link> },
     { key: '/nha', icon: <SearchOutlined />, label: <Link to="/nha">Tìm nhà</Link> },
     ...landlordLinks,
-    ...adminLinks,
-    ...tenantLinks
+    ...adminLinks
   ];
 
   const routeKeys = [
@@ -259,7 +244,30 @@ function Shell() {
   }
 
   const accountMenu: NonNullable<MenuProps['items']> = [
-    { key: 'profile', icon: <UserOutlined />, label: 'Hồ sơ cá nhân' },
+    {
+      key: 'account-summary',
+      disabled: true,
+      label: (
+        <div className="account-dropdown-heading">
+          <strong>{user?.fullName}</strong>
+          <small>{user?.email}</small>
+        </div>
+      )
+    },
+    { type: 'divider' },
+    { key: '/ho-so', icon: <UserOutlined />, label: 'Hồ sơ cá nhân' },
+    ...(isTenant ? [{
+      type: 'group' as const,
+      label: 'Tài khoản của tôi',
+      children: [
+        { key: '/yeu-thich', icon: <HeartOutlined />, label: 'Yêu thích' },
+        { key: '/dat-thue', icon: <CalendarOutlined />, label: 'Yêu cầu thuê' },
+        { key: '/hop-dong', icon: <FileTextOutlined />, label: 'Hợp đồng' },
+        { key: '/hoa-don', icon: <CreditCardOutlined />, label: 'Hóa đơn' },
+        { key: '/tin-nhan', icon: <MessageOutlined />, label: 'Tin nhắn' },
+        { key: '/thong-bao', icon: <BellOutlined />, label: 'Thông báo' }
+      ]
+    }] : []),
     ...(isLandlord ? [{ key: 'dashboard', icon: <HomeOutlined />, label: 'Dashboard chủ nhà' }] : []),
     ...(isAdmin ? [{ key: 'admin', icon: <SettingOutlined />, label: 'Dashboard Admin' }] : []),
     { type: 'divider' },
@@ -304,8 +312,15 @@ function Shell() {
                   trigger={['click']}
                   menu={{
                     items: accountMenu,
+                    selectedKeys: selectedKey ? [selectedKey] : [],
                     onClick: ({ key }) => {
-                      if (key === 'profile') navigate('/ho-so');
+                      if (key === '/ho-so') navigate('/ho-so');
+                      if (key === '/yeu-thich') navigate('/yeu-thich');
+                      if (key === '/dat-thue') navigate('/dat-thue');
+                      if (key === '/hop-dong') navigate('/hop-dong');
+                      if (key === '/hoa-don') navigate('/hoa-don');
+                      if (key === '/tin-nhan') navigate('/tin-nhan');
+                      if (key === '/thong-bao') navigate(notificationPath);
                       if (key === 'dashboard') navigate('/landlord');
                       if (key === 'admin') navigate('/admin');
                       if (key === 'logout') {
