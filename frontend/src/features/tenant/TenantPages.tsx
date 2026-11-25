@@ -601,21 +601,48 @@ export function ContractsPage() {
         destroyOnHidden
       >
         {detail && (
-          <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="Mã hợp đồng">{detail.contract.contractCode}</Descriptions.Item>
-            <Descriptions.Item label="Căn nhà">{detail.propertyTitle}</Descriptions.Item>
-            <Descriptions.Item label="Chủ nhà">{detail.landlordName}</Descriptions.Item>
-            <Descriptions.Item label="Người thuê">{detail.tenantName}</Descriptions.Item>
-            <Descriptions.Item label="Thời hạn">Từ {dateText(detail.contract.startDate)} đến trước {dateText(detail.contract.endDate)}</Descriptions.Item>
-            <Descriptions.Item label="Tiền thuê">{money(detail.contract.monthlyRent)}/tháng</Descriptions.Item>
-            <Descriptions.Item label="Tổng tiền thuê ước tính">{money(detail.contract.estimatedRent)}</Descriptions.Item>
-            <Descriptions.Item label="Tiền cọc">{money(detail.contract.depositAmount)}</Descriptions.Item>
-            <Descriptions.Item label="Ngày đến hạn hàng tháng">Ngày {detail.contract.paymentDueDay}</Descriptions.Item>
-            <Descriptions.Item label="Trạng thái"><StatusTag value={detail.contract.status} labels={contractLabels} /></Descriptions.Item>
-            <Descriptions.Item label="Chủ nhà ký">{detail.contract.landlordSignedAt ? dateTimeText(detail.contract.landlordSignedAt) : "Chưa ký"}</Descriptions.Item>
-            <Descriptions.Item label="Người thuê ký">{detail.contract.tenantSignedAt ? dateTimeText(detail.contract.tenantSignedAt) : "Chưa ký"}</Descriptions.Item>
-            <Descriptions.Item label="Điều khoản">{detail.contract.terms || 'Chưa có điều khoản bổ sung.'}</Descriptions.Item>
-          </Descriptions>
+          <Space direction="vertical" size={16} style={{width:'100%'}}>
+            <Typography.Title level={5} style={{margin:0}}>Thông tin hợp đồng</Typography.Title>
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="Mã hợp đồng">{detail.contract.contractCode}</Descriptions.Item>
+              <Descriptions.Item label="Trạng thái"><StatusTag value={detail.contract.status} labels={contractLabels} /></Descriptions.Item>
+              <Descriptions.Item label="Thời hạn">Từ {dateText(detail.contract.startDate)} đến trước {dateText(detail.contract.endDate)}</Descriptions.Item>
+              <Descriptions.Item label="Tiền thuê/tháng">{money(detail.contract.monthlyRent)}</Descriptions.Item>
+              <Descriptions.Item label="Tổng tiền thuê ước tính">{money(detail.contract.estimatedRent)}</Descriptions.Item>
+              <Descriptions.Item label="Tiền cọc">{money(detail.contract.depositAmount)}</Descriptions.Item>
+              <Descriptions.Item label="Ngày đến hạn hàng tháng">Ngày {detail.contract.paymentDueDay}</Descriptions.Item>
+              <Descriptions.Item label="Số người ở thực tế">{detail.numberOfPeople} / {detail.maxOccupants} người</Descriptions.Item>
+              <Descriptions.Item label="Điều khoản bổ sung">{detail.contract.terms || 'Chưa có điều khoản bổ sung.'}</Descriptions.Item>
+              <Descriptions.Item label="Chủ nhà ký">{detail.contract.landlordSignedAt ? dateTimeText(detail.contract.landlordSignedAt) : 'Chưa ký'}</Descriptions.Item>
+              <Descriptions.Item label="Người thuê ký">{detail.contract.tenantSignedAt ? dateTimeText(detail.contract.tenantSignedAt) : 'Chưa ký'}</Descriptions.Item>
+              <Descriptions.Item label="Ngày hợp đồng có hiệu lực">{detail.contract.signedAt ? dateTimeText(detail.contract.signedAt) : 'Chưa có hiệu lực'}</Descriptions.Item>
+            </Descriptions>
+            <Typography.Title level={5} style={{margin:0}}>Thông tin căn nhà</Typography.Title>
+            {detail.images.length>0 && <Row gutter={[8,8]}>{detail.images.map(img=><Col xs={12} md={8} key={img.id}><img src={img.imageUrl} alt={detail.propertyTitle} style={{width:'100%',height:130,objectFit:'cover',borderRadius:8}}/></Col>)}</Row>}
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="Tên căn nhà">{detail.propertyTitle}</Descriptions.Item>
+              <Descriptions.Item label="Loại hình">{detail.propertyTypeName}</Descriptions.Item>
+              <Descriptions.Item label="Địa chỉ">{[detail.addressLine,detail.wardName,detail.provinceName].filter(Boolean).join(', ')}</Descriptions.Item>
+              <Descriptions.Item label="Diện tích">{detail.area} m²</Descriptions.Item>
+              <Descriptions.Item label="Phòng ngủ / phòng tắm">{detail.bedrooms} / {detail.bathrooms}</Descriptions.Item>
+              <Descriptions.Item label="Sức chứa tối đa">{detail.maxOccupants} người</Descriptions.Item>
+              <Descriptions.Item label="Nội thất">{detail.furnishingDescription || 'Chưa cập nhật'}</Descriptions.Item>
+              <Descriptions.Item label="Tiện nghi">{detail.amenities.length ? detail.amenities.join(', ') : 'Chưa cập nhật'}</Descriptions.Item>
+              <Descriptions.Item label="Điện, nước và phí khác">{detail.additionalFeesDescription || 'Theo thỏa thuận trong hợp đồng'}</Descriptions.Item>
+              <Descriptions.Item label="Mô tả">{detail.propertyDescription || 'Chưa có mô tả'}</Descriptions.Item>
+            </Descriptions>
+            <Typography.Title level={5} style={{margin:0}}>Thông tin hai bên</Typography.Title>
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="Chủ nhà">{detail.landlordName}</Descriptions.Item>
+              <Descriptions.Item label="Email chủ nhà">{detail.landlordEmail || 'Chưa cung cấp'}</Descriptions.Item>
+              <Descriptions.Item label="Điện thoại chủ nhà">{detail.landlordPhone || 'Chưa cung cấp'}</Descriptions.Item>
+              <Descriptions.Item label="Người thuê">{detail.tenantName}</Descriptions.Item>
+              <Descriptions.Item label="Email người thuê">{detail.tenantEmail || 'Chưa cung cấp'}</Descriptions.Item>
+              <Descriptions.Item label="Điện thoại người thuê">{detail.tenantPhone || 'Chưa cung cấp'}</Descriptions.Item>
+            </Descriptions>
+            <Typography.Title level={5} style={{margin:0}}>Nội dung yêu cầu thuê ban đầu</Typography.Title>
+            <Typography.Paragraph>{detail.bookingMessage || 'Không có lời nhắn.'}</Typography.Paragraph>
+          </Space>
         )}
       </Modal>
 
