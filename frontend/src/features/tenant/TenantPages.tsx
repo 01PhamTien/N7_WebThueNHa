@@ -295,15 +295,30 @@ export function FavoritesPage() {
 }
 
 export function BookingsPage() {
-  const { message } = AntApp.useApp();
+  const { message, modal } = AntApp.useApp();
   const state = usePage<BookingItem>(tenantApi.bookings);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<BookingItem | null>(null);
+  const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
+
+  const openDetail = async (id: string) => {
+    setLoadingDetailId(id);
+    try {
+      const response = await tenantApi.booking(id);
+      setDetail(response.data);
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setLoadingDetailId(null);
+    }
+  };
 
   const cancelBooking = async (id: string) => {
     setCancellingId(id);
     try {
-      await tenantApi.cancelBooking(id);
-      message.success('Đã hủy yêu cầu thuê.');
+      const response = await tenantApi.cancelBooking(id);
+      setDetail(current => current?.id === id ? response.data : current);
+      message.success('Đã hủy yêu cầu thuê. Chủ nhà cũng sẽ nhận được thông báo.');
       state.reload();
     } catch (error) {
       message.error(errorText(error));
@@ -312,8 +327,25 @@ export function BookingsPage() {
     }
   };
 
+  const confirmCancel = (id: string) => modal.confirm({
+    title: 'Hủy yêu cầu thuê này?',
+    content: 'Yêu cầu sẽ chuyển sang trạng thái Đã hủy và chủ nhà sẽ được thông báo.',
+    okText: 'Hủy yêu cầu',
+    cancelText: 'Giữ yêu cầu',
+    okButtonProps: { danger: true, loading: cancellingId === id },
+    onOk: () => cancelBooking(id)
+  });
+
+  const nextStep = (status: string) => {
+    if (status === 'Pending') return 'Yêu cầu đã được gửi. Chủ nhà sẽ xem thông tin và phản hồi; bạn có thể hủy khi yêu cầu còn đang chờ.';
+    if (status === 'Accepted') return 'Chủ nhà đã đồng ý cho thuê. Bước tiếp theo là chủ nhà lập hợp đồng, bổ sung tiền cọc và điều khoản rồi gửi cho bạn xác nhận. Hãy theo dõi mục Hợp đồng thuê.';
+    if (status === 'Rejected') return 'Yêu cầu không được chấp nhận. Bạn có thể xem lý do bên dưới hoặc tìm căn nhà khác.';
+    if (status === 'Cancelled') return 'Yêu cầu này đã được hủy. Nếu vẫn muốn thuê căn nhà, bạn có thể liên hệ chủ nhà hoặc gửi yêu cầu mới khi tin đăng còn mở.';
+    return 'Yêu cầu đã hết hạn. Vui lòng liên hệ chủ nhà nếu bạn vẫn quan tâm căn nhà.';
+  };
+
   return (
-    <Page title="Yêu cầu thuê của tôi" description="Theo dõi tiến độ xử lý các yêu cầu thuê nhà bạn đã gửi.">
+    <Page title="Yêu cầu thuê của tôi" description="Theo dõi từng yêu cầu, xem lại thông tin đã gửi và biết bước tiếp theo sau khi chủ nhà phản hồi.">
       <State state={state} empty="Bạn chưa gửi yêu cầu thuê nào.">
         {items => (
           <Card className="tenant-list-card" bordered={false}>
@@ -322,26 +354,38 @@ export function BookingsPage() {
               renderItem={item => (
                 <List.Item
                   className="tenant-list-item"
-                  actions={item.status === 'Pending' ? [
+                  actions={[
                     <Button
-                      key="cancel"
-                      danger
+                      key="detail"
                       type="default"
-                      loading={cancellingId === item.id}
-                      onClick={() => void cancelBooking(item.id)}
+                      icon={<EyeOutlined />}
+                      loading={loadingDetailId === item.id}
+                      onClick={() => void openDetail(item.id)}
                     >
-                      Hủy yêu cầu
-                    </Button>
-                  ] : []}
+                      Chi tiết yêu cầu
+                    </Button>,
+                    ...(item.status === 'Pending' ? [
+                      <Button
+                        key="cancel"
+                        danger
+                        type="text"
+                        loading={cancellingId === item.id}
+                        onClick={() => confirmCancel(item.id)}
+                      >
+                        Hủy yêu cầu
+                      </Button>
+                    ] : [])
+                  ]}
                 >
                   <List.Item.Meta
-                    title={<Link to={'/nha/' + item.propertyId}>{item.propertyTitle}</Link>}
+                    title={<span className="tenant-booking-title">{item.propertyTitle}</span>}
                     description={
                       <Space className="tenant-item-meta" wrap size={[12, 6]}>
-                        <span><CalendarOutlined /> Từ {dateText(item.startDate)} đến trước {dateText(item.endDate)}</span>
+                        <span><CalendarOutlined /> {dateText(item.startDate)} – {dateText(item.endDate)}</span>
                         <span>{item.numberOfPeople} người</span>
-                        <span>Giá đề xuất {money(item.proposedPrice)}/tháng</span>
-                        {item.estimatedRent !== undefined && <span>Ước tính kỳ thuê {money(item.estimatedRent)}</span>}
+                        <span>{money(item.proposedPrice)}/tháng</span>
+                        {item.estimatedRent !== undefined && <span>Ước tính {money(item.estimatedRent)}</span>}
+                        <Link to={'/nha/' + item.propertyId}>Xem tin nhà</Link>
                       </Space>
                     }
                   />
@@ -353,6 +397,57 @@ export function BookingsPage() {
         )}
       </State>
       <PageFooter state={state} />
+
+      <Modal
+        title="Chi tiết yêu cầu thuê"
+        open={!!detail}
+        onCancel={() => setDetail(null)}
+        footer={[
+          <Button key="close" onClick={() => setDetail(null)}>Đóng</Button>,
+          ...(detail?.status === 'Pending' ? [
+            <Button key="cancel" danger loading={cancellingId === detail.id} onClick={() => confirmCancel(detail.id)}>Hủy yêu cầu</Button>
+          ] : []),
+          ...(detail?.status === 'Accepted' ? [
+            <Button key="contract" type="primary" onClick={() => { setDetail(null); window.location.assign('/hop-dong'); }}>Theo dõi hợp đồng</Button>
+          ] : [])
+        ]}
+        width="min(680px, calc(100vw - 32px))"
+        destroyOnHidden
+      >
+        {detail && (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Space wrap align="center">
+              <StatusTag value={detail.status} labels={bookingLabels} />
+              <Typography.Text type="secondary">Gửi lúc {dateTimeText(detail.createdAt)}</Typography.Text>
+            </Space>
+            <Alert
+              type={detail.status === 'Rejected' ? 'warning' : detail.status === 'Accepted' ? 'success' : detail.status === 'Cancelled' || detail.status === 'Expired' ? 'info' : 'info'}
+              showIcon
+              message={detail.status === 'Pending' ? 'Đang chờ chủ nhà phản hồi' : detail.status === 'Accepted' ? 'Chủ nhà đã xác nhận yêu cầu' : detail.status === 'Rejected' ? 'Yêu cầu không được chấp nhận' : bookingLabels[detail.status] || detail.status}
+              description={nextStep(detail.status)}
+            />
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="Căn nhà">
+                <Space direction="vertical" size={2}>
+                  <Typography.Text strong>{detail.propertyTitle}</Typography.Text>
+                  <Link to={'/nha/' + detail.propertyId} onClick={() => setDetail(null)}>Xem thông tin căn nhà</Link>
+                </Space>
+              </Descriptions.Item>
+              <Descriptions.Item label="Thời gian thuê">Từ {dateText(detail.startDate)} đến trước {dateText(detail.endDate)}</Descriptions.Item>
+              <Descriptions.Item label="Số người thuê">{detail.numberOfPeople} người</Descriptions.Item>
+              <Descriptions.Item label="Giá đề xuất">{money(detail.proposedPrice)}/tháng</Descriptions.Item>
+              <Descriptions.Item label="Ước tính tiền thuê cả kỳ">{money(detail.estimatedRent)}</Descriptions.Item>
+              <Descriptions.Item label="Lời nhắn">{detail.message || 'Không có lời nhắn'}</Descriptions.Item>
+              <Descriptions.Item label="Thời điểm chủ nhà phản hồi">{dateTimeText(detail.respondedAt)}</Descriptions.Item>
+              {detail.status === 'Rejected' && <Descriptions.Item label="Lý do từ chối">{detail.rejectionReason || 'Chủ nhà chưa cung cấp lý do.'}</Descriptions.Item>}
+              {detail.status === 'Accepted' && <Descriptions.Item label="Bước tiếp theo">Chờ chủ nhà lập và gửi hợp đồng để bạn xem, ký xác nhận.</Descriptions.Item>}
+            </Descriptions>
+            {detail.status === 'Accepted' && (
+              <Alert type="info" showIcon message="Hợp đồng và thanh toán là bước riêng" description="Việc chủ nhà chấp nhận yêu cầu chưa có nghĩa là hợp đồng đã được ký hoặc tiền cọc đã được thanh toán. Chỉ thanh toán theo hóa đơn/hợp đồng hiển thị trong tài khoản." />
+            )}
+          </Space>
+        )}
+      </Modal>
     </Page>
   );
 }
