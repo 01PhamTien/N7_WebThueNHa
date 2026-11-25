@@ -1,37 +1,46 @@
-# Quy ước tính tiền thuê nhà
+# Quy ước giá thuê và các khoản phí
 
-Hệ thống này phục vụ thuê nhà theo **giá thuê tháng**, không phải đặt phòng tính tiền theo đêm.
+Hệ thống phục vụ thuê nhà theo tháng, không phải đặt phòng theo đêm.
 
-## Quy tắc thống nhất
-
+## 1. Giá thuê
+- Giá thuê/tháng do chủ nhà niêm yết trên tin đăng.
+- Khách thuê không nhập hoặc đề xuất giá riêng khi gửi yêu cầu.
+- Khi tạo yêu cầu, hệ thống chụp lại giá niêm yết tại thời điểm đặt; hợp đồng sử dụng giá đã chụp đó để tránh thay đổi giá giữa chừng.
 - Ngày bắt đầu được tính tiền; ngày kết thúc không tính tiền (khoảng thuê dạng [ngày bắt đầu, ngày kết thúc)).
-- Mỗi tháng tròn được tính theo giá thuê tháng, tính từ ngày bắt đầu ban đầu.
-- Thời hạn ngắn hơn một tháng vẫn áp dụng **mức thuê tối thiểu bằng một tháng**.
-- Sau các tháng tròn, ngày lẻ được tính theo công thức: giá thuê tháng / 30 × số ngày lẻ.
-- Tiền thuê được làm tròn đến đồng gần nhất; không tự cộng tiền điện, nước, phí dịch vụ hoặc tiền cọc vào tiền thuê nếu chưa có khoản mục riêng.
+- Thời hạn ngắn hơn một tháng áp dụng mức thuê tối thiểu một tháng.
+- Mỗi tháng tròn tính bằng giá thuê tháng; ngày lẻ sau tháng tròn tính theo giá thuê tháng / 30 × số ngày lẻ.
+- Tiền thuê làm tròn đến đồng gần nhất.
 
-## Ví dụ
+## 2. Tiền cọc
+- Chủ nhà khai báo tiền cọc cụ thể trên tin đăng; có thể bằng 0 nếu không yêu cầu cọc.
+- Tiền cọc là khoản riêng, không cộng vào tiền thuê.
+- Hệ thống phát hành hóa đơn cọc riêng sau khi hai bên ký hợp đồng.
+- Giá trị cọc trong hợp đồng được lấy từ tin đăng tại lúc chủ nhà chấp nhận yêu cầu và có thể được hai bên rà soát trước khi ký.
+- Dữ liệu tin đăng cũ được chuyển mặc định sang mức cọc bằng một tháng tiền thuê; chủ nhà có thể chỉnh sửa.
 
-Giá thuê niêm yết: 6.000.000 đ/tháng.
+## 3. Số người ở
+- Tin đăng khai báo sức chứa tối đa.
+- Khách chọn số người ở thực tế khi gửi yêu cầu.
+- Backend từ chối yêu cầu vượt sức chứa; không chỉ dựa vào kiểm tra ở giao diện.
+- Không tự động cộng phụ phí người thứ ba/thứ tư. Nếu có phụ phí người ở thêm, chủ nhà phải công bố rõ và ghi thành điều khoản/khoản phí riêng trước khi ký.
 
-| Thời hạn | Cách tính | Tiền thuê |
-|---|---:|---:|
-| 2 ngày | Mức tối thiểu 1 tháng | 6.000.000 đ |
-| 15 ngày | Mức tối thiểu 1 tháng | 6.000.000 đ |
-| 1 tháng | 1 × 6.000.000 đ | 6.000.000 đ |
-| 1 tháng + 10 ngày | 6.000.000 + 6.000.000 / 30 × 10 | 8.000.000 đ |
+## 4. Điện, nước và phí dịch vụ
+- Không tự gộp điện, nước, internet, gửi xe hoặc phí quản lý vào tiền thuê tháng.
+- Chủ nhà công bố đơn giá và cách tính trên tin đăng, ví dụ điện theo kWh, nước theo đồng hồ hoặc theo người, gửi xe theo xe/tháng.
+- Mức phí áp dụng phải được ghi lại trong hợp đồng trước khi ký.
+- Khoản điện/nước thực tế được lập hóa đơn riêng theo chỉ số hoặc số lượng sử dụng. Không tự tính từ phần mô tả văn bản của tin đăng.
+- Gửi yêu cầu thuê không đồng nghĩa khách đã phải thanh toán; tiền thuê kỳ đầu và tiền cọc chỉ phát sinh hóa đơn sau khi hợp đồng được hai bên ký.
 
-## Lưu ý nghiệp vụ
+## 5. Ví dụ
+Giá niêm yết 6.000.000 đ/tháng, cọc 6.000.000 đ, thuê 3 tháng:
+- Tiền thuê 3 tháng: 18.000.000 đ.
+- Tiền cọc: 6.000.000 đ (hóa đơn riêng).
+- Thanh toán ban đầu nếu hợp đồng yêu cầu cọc một tháng và thu tháng đầu: 12.000.000 đ.
+- Điện, nước và gửi xe: tính riêng theo mức đã ghi trong hợp đồng.
 
-- Giao diện đặt thuê, API ước tính, hợp đồng và hóa đơn phải sử dụng cùng hàm `RentalPricing.Calculate`; không tự tính lại ở frontend.
-- Giá thuê tháng được chốt trong yêu cầu/hợp đồng. Khi chủ nhà chấp nhận mức giá đề xuất, hệ thống tính lại theo giá đã chốt.
-- Nếu sau này cần cho thuê ngắn ngày như căn hộ dịch vụ/khách sạn, cần bổ sung loại hình và bảng giá theo ngày riêng; không thay đổi ngầm quy tắc thuê nhà theo tháng.
+Với kỳ thuê 2 ngày, theo quy ước thuê nhà dài hạn hiện tại, tiền thuê tối thiểu vẫn bằng một tháng. Nếu muốn hỗ trợ thuê ngắn ngày như căn hộ dịch vụ, cần xây dựng loại hình và bảng giá theo ngày riêng, không thay đổi ngầm quy tắc này.
 
-## Checklist kiểm thử
-
-1. 2 ngày: tính đúng 1 tháng.
-2. 15 ngày: tính đúng 1 tháng.
-3. Từ ngày 01 đến ngày 01 tháng sau: tính đúng 1 tháng (ngày kết thúc không bao gồm).
-4. 1 tháng + 10 ngày: cộng thêm 10/30 giá tháng.
-5. Mốc ngày 29, 30, 31 qua tháng 2: không bị trôi ngày kỳ tháng.
-6. Ngày kết thúc bằng hoặc trước ngày bắt đầu, hoặc giá tháng không dương: trả về 0.
+## 6. Nguyên tắc triển khai
+- Giao diện ước tính, API, hợp đồng và hóa đơn phải dùng cùng quy ước `RentalPricing.Calculate`.
+- Không nhận giá thuê từ trình duyệt khi tạo yêu cầu; backend lấy giá niêm yết từ Property.
+- Không phát sinh phí không được công bố hoặc chưa được hai bên chấp thuận.
