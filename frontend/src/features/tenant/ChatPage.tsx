@@ -136,6 +136,11 @@ export function ChatPage() {
       setMessages(previous => previous.some(item => item.messageId === sent.messageId)
         ? previous
         : [...previous, { ...sent, isMine: true, attachments: [] }]);
+      if (active.isArchived) {
+        setActive(previous => previous ? { ...previous, isArchived: false } : previous);
+        setIncludeArchived(false);
+        setPage(1);
+      }
       loadConversations();
     } catch (error) {
       setText(content);
@@ -279,56 +284,59 @@ export function ChatPage() {
                   </article>
                 ))}
               </div>
-              {active.isArchived ? (
+              {active.isArchived && (
                 <Alert
                   type="info"
                   showIcon
-                  message="Hội thoại đang được lưu trữ"
-                  description="Đưa hội thoại về hộp thư đến để tiếp tục trao đổi."
+                  message="Hội thoại đã lưu trữ"
+                  description="Khi gửi tin nhắn hoặc tệp mới, hội thoại sẽ tự chuyển về Hộp thư đến."
+                  style={{ marginBottom: 8 }}
                 />
-              ) : (
-                <Space.Compact className="composer">
-                  <Input
-                    value={text}
-                    onChange={event => setText(event.target.value)}
-                    onPressEnter={() => void send()}
-                    maxLength={4000}
-                    placeholder="Nhập tin nhắn..."
-                  />
-                  <Button type="primary" onClick={() => void send()} disabled={!text.trim()}>Gửi</Button>
-                  <Upload
-                    showUploadList={false}
-                    accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
-                    beforeUpload={file => {
-                      const extension = file.name.split('.').pop()?.toLowerCase() || '';
-                      const allowed = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx'];
-                      if (file.size > 10 * 1024 * 1024) {
-                        message.error('Tệp đính kèm không được vượt quá 10 MB.');
-                        return Upload.LIST_IGNORE;
-                      }
-                      if (!allowed.includes(extension)) {
-                        message.error('Chỉ hỗ trợ JPG, JPEG, PNG, WEBP, PDF và DOC/DOCX.');
-                        return Upload.LIST_IGNORE;
-                      }
-                      tenantApi.uploadAttachment(active.conversationId, file)
-                        .then(() => tenantApi.messages(active.conversationId, 1, SIZE))
-                        .then(response => {
-                          setMessages(response.data.items || []);
-                          setMessagePage(1);
-                          setHasOlder(response.data.hasNext);
-                        })
-                        .then(() => {
-                          loadConversations();
-                          message.success('Đã gửi tệp');
-                        })
-                        .catch(error => message.error(errorText(error)));
-                      return false;
-                    }}
-                  >
-                    <Button>Tệp</Button>
-                  </Upload>
-                </Space.Compact>
               )}
+              <Space.Compact className="composer">
+                <Input
+                  value={text}
+                  onChange={event => setText(event.target.value)}
+                  onPressEnter={() => void send()}
+                  maxLength={4000}
+                  placeholder="Nhập tin nhắn..."
+                />
+                <Button type="primary" onClick={() => void send()} disabled={!text.trim()}>Gửi</Button>
+                <Upload
+                  showUploadList={false}
+                  accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
+                  beforeUpload={file => {
+                    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+                    const allowed = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx'];
+                    if (file.size > 10 * 1024 * 1024) {
+                      message.error('Tệp đính kèm không được vượt quá 10 MB.');
+                      return Upload.LIST_IGNORE;
+                    }
+                    if (!allowed.includes(extension)) {
+                      message.error('Chỉ hỗ trợ JPG, JPEG, PNG, WEBP, PDF và DOC/DOCX.');
+                      return Upload.LIST_IGNORE;
+                    }
+                    tenantApi.uploadAttachment(active.conversationId, file)
+                      .then(() => tenantApi.messages(active.conversationId, 1, SIZE))
+                      .then(response => {
+                        setMessages(response.data.items || []);
+                        setMessagePage(1);
+                        setHasOlder(response.data.hasNext);
+                        setActive(previous => previous ? { ...previous, isArchived: false } : previous);
+                        setIncludeArchived(false);
+                        setPage(1);
+                      })
+                      .then(() => {
+                        loadConversations();
+                        message.success('Đã gửi tệp');
+                      })
+                      .catch(error => message.error(errorText(error)));
+                    return false;
+                  }}
+                >
+                  <Button>Tệp</Button>
+                </Upload>
+              </Space.Compact>
             </>
           )}
         </section>
