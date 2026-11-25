@@ -57,14 +57,26 @@ public sealed class BookingsController : ControllerBase
             property.ListingStatus != PropertyListingStatus.Published)
             return Conflict(new { message = "Căn nhà hiện không ở trạng thái được phép nhận yêu cầu thuê." });
 
+        await using var transaction = await _db.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
+
         var hasAcceptedConflict = await _db.Bookings.AnyAsync(x =>
             x.PropertyId == request.PropertyId &&
             x.Status == BookingStatus.Accepted &&
             x.StartDate < request.EndDate &&
             x.EndDate > request.StartDate, cancellationToken);
 
-        if (hasAcceptedConflict)
-            return Conflict(new { message = "Khoảng thời gian này đã có yêu cầu thuê được chấp nhận." });
+        var hasContractConflict = await _db.RentalContracts.AnyAsync(x =>
+            x.PropertyId == request.PropertyId &&
+            x.Status != RentalContractStatus.Completed &&
+            x.Status != RentalContractStatus.Terminated &&
+            x.Status != RentalContractStatus.Cancelled &&
+            x.StartDate < request.EndDate &&
+            x.EndDate > request.StartDate,
+            cancellationToken);
+
+        if (hasAcceptedConflict || hasContractConflict)
+            return Conflict(new { message = "Khoảng thời gian này đã có yêu cầu thuê được chấp nhận hoặc hợp đồng khác." });
 
         var booking = new Booking
         {
@@ -79,7 +91,6 @@ public sealed class BookingsController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         _db.Bookings.Add(booking);
         await _db.SaveChangesAsync(cancellationToken);
         await _notifications.CreateAsync(
