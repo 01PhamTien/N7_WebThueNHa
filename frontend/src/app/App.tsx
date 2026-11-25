@@ -31,6 +31,7 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { ProtectedRoute, RoleGuard } from './guards';
 import { AppLayout } from '../layouts/AppLayout';
 import { Sidebar } from '../layouts/Sidebar';
+import { ManagementLayout } from '../layouts/ManagementLayout';
 import { tenantApi } from '../services/tenant';
 import { landlordAdminApi } from '../services/landlordAdmin';
 import { HomePage, PropertyListPage, PropertyDetailPage } from '../features/public/PropertyPages';
@@ -194,37 +195,9 @@ function Shell() {
     };
   }, [user?.userId, rolesKey, isLandlord, isTenant]);
 
-  const landlordLinks: NonNullable<MenuProps['items']> = isLandlord ? [{
-    key: 'landlord-group',
-    icon: <HomeOutlined />,
-    label: 'Khu vực chủ nhà',
-    children: [
-      { key: '/landlord', label: <Link to="/landlord">Tổng quan</Link> },
-      { key: '/landlord/properties', label: <Link to="/landlord/properties">Tin đăng</Link> },
-      { key: '/landlord/bookings', label: <Link to="/landlord/bookings">Yêu cầu thuê</Link> },
-      { key: '/landlord/contracts', label: <Link to="/landlord/contracts">Hợp đồng</Link> },
-      { key: '/landlord/invoices', label: <Link to="/landlord/invoices">Hóa đơn</Link> },
-      { key: '/landlord/chat', label: <Link to="/landlord/chat">Tin nhắn</Link> },
-      { key: '/landlord/notifications', label: <Link to="/landlord/notifications">Thông báo</Link> }
-    ]
-  }] : [];
-
-  const adminLinks: NonNullable<MenuProps['items']> = isAdmin ? [{
-    key: 'admin-group',
-    icon: <SettingOutlined />,
-    label: 'Quản trị',
-    children: [
-      { key: '/admin', label: <Link to="/admin">Tổng quan</Link> },
-      { key: '/admin/users', label: <Link to="/admin/users">Người dùng</Link> },
-      { key: '/admin/moderation', label: <Link to="/admin/moderation">Kiểm duyệt tin</Link> }
-    ]
-  }] : [];
-
   const items: NonNullable<MenuProps['items']> = [
     { key: '/', icon: <HomeOutlined />, label: <Link to="/">Trang chủ</Link> },
     { key: '/nha', icon: <SearchOutlined />, label: <Link to="/nha">Tìm nhà</Link> },
-    ...landlordLinks,
-    ...adminLinks
   ];
 
   const routeKeys = [
@@ -274,6 +247,48 @@ function Shell() {
     { type: 'divider' },
     { key: 'logout', icon: <LogoutOutlined />, label: 'Đăng xuất', danger: true }
   ];
+
+  const routeContent = (
+      <RouteErrorBoundary key={location.pathname}>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/nha" element={<PropertyListPage />} />
+        <Route path="/nha/:id" element={<PropertyDetailPage />} />
+        <Route path="/dang-nhap" element={<LoginPage />} />
+        <Route path="/dang-ky" element={<RegisterPage />} />
+        <Route path="/403" element={<ForbiddenPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/ho-so" element={<ProfilePage />} />
+          <Route element={<RoleGuard roles={['Landlord']} />}>
+            <Route path="/landlord" element={<LandlordDashboard />} />
+            <Route path="/landlord/properties" element={<LandlordProperties />} />
+            <Route path="/landlord/bookings" element={<LandlordBookings />} />
+            <Route path="/landlord/contracts" element={<LandlordContracts />} />
+            <Route path="/landlord/invoices" element={<LandlordInvoices />} />
+            <Route path="/landlord/chat" element={<LandlordChat />} />
+            <Route path="/landlord/notifications" element={<LandlordNotifications />} />
+          </Route>
+          <Route element={<RoleGuard roles={['Admin']} />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/moderation" element={<AdminModeration />} />
+          </Route>
+          <Route element={<RoleGuard roles={['Tenant']} />}>
+            <Route path="/yeu-thich" element={<FavoritesPage />} />
+            <Route path="/dat-thue" element={<BookingsPage />} />
+            <Route path="/hop-dong" element={<ContractsPage />} />
+            <Route path="/hoa-don" element={<InvoicesPage />} />
+            <Route path="/thong-bao" element={<NotificationsPage />} />
+            <Route path="/tin-nhan" element={<ChatPage />} />
+          </Route>
+        </Route>
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+      </RouteErrorBoundary>
+  );
+
+  const isManagementArea = location.pathname.startsWith('/admin') || location.pathname.startsWith('/landlord');
+  if (isManagementArea) return <ManagementLayout>{routeContent}</ManagementLayout>;
 
   return (
     <AppLayout
@@ -347,42 +362,7 @@ function Shell() {
         </Layout.Header>
       }
     >
-      <RouteErrorBoundary key={location.pathname}>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/nha" element={<PropertyListPage />} />
-        <Route path="/nha/:id" element={<PropertyDetailPage />} />
-        <Route path="/dang-nhap" element={<LoginPage />} />
-        <Route path="/dang-ky" element={<RegisterPage />} />
-        <Route path="/403" element={<ForbiddenPage />} />
-        <Route element={<ProtectedRoute />}>
-          <Route path="/ho-so" element={<ProfilePage />} />
-          <Route element={<RoleGuard roles={['Landlord']} />}>
-            <Route path="/landlord" element={<LandlordDashboard />} />
-            <Route path="/landlord/properties" element={<LandlordProperties />} />
-            <Route path="/landlord/bookings" element={<LandlordBookings />} />
-            <Route path="/landlord/contracts" element={<LandlordContracts />} />
-            <Route path="/landlord/invoices" element={<LandlordInvoices />} />
-            <Route path="/landlord/chat" element={<LandlordChat />} />
-            <Route path="/landlord/notifications" element={<LandlordNotifications />} />
-          </Route>
-          <Route element={<RoleGuard roles={['Admin']} />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/moderation" element={<AdminModeration />} />
-          </Route>
-          <Route element={<RoleGuard roles={['Tenant']} />}>
-            <Route path="/yeu-thich" element={<FavoritesPage />} />
-            <Route path="/dat-thue" element={<BookingsPage />} />
-            <Route path="/hop-dong" element={<ContractsPage />} />
-            <Route path="/hoa-don" element={<InvoicesPage />} />
-            <Route path="/thong-bao" element={<NotificationsPage />} />
-            <Route path="/tin-nhan" element={<ChatPage />} />
-          </Route>
-        </Route>
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-      </RouteErrorBoundary>
+      {routeContent}
     </AppLayout>
   );
 }
