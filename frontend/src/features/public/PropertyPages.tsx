@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  App as AntApp,
   Button,
   Card,
   Col,
@@ -8,7 +9,6 @@ import {
   Form,
   Input,
   InputNumber,
-  message,
   Modal,
   Row,
   Space,
@@ -235,6 +235,7 @@ export function HomePage() {
 
 export function PropertyListPage() {
   const [params, setParams] = useSearchParams();
+  const { message } = AntApp.useApp();
   const [items, setItems] = useState<PropertyItem[]>([]);
   const [meta, setMeta] = useState<PageResult<PropertyItem> | null>(null);
   const [busy, setBusy] = useState(true);
@@ -336,22 +337,26 @@ export function PropertyListPage() {
             placeholder="Tỉnh / thành phố"
             aria-label="Tỉnh thành phố"
           />
-          <InputNumber
-            value={minPrice}
-            min={0}
-            onChange={value => setMinPrice(value ?? undefined)}
-            placeholder="Giá từ"
-            addonAfter="đ"
-            style={{ width: '100%' }}
-          />
-          <InputNumber
-            value={maxPrice}
-            min={0}
-            onChange={value => setMaxPrice(value ?? undefined)}
-            placeholder="Giá đến"
-            addonAfter="đ"
-            style={{ width: '100%' }}
-          />
+          <Space.Compact style={{ width: '100%' }}>
+            <InputNumber
+              value={minPrice}
+              min={0}
+              onChange={value => setMinPrice(value ?? undefined)}
+              placeholder="Giá từ"
+              style={{ width: 'calc(100% - 42px)' }}
+            />
+            <Input disabled value="đ" aria-label="Đơn vị đồng" style={{ width: 42, textAlign: 'center' }} />
+          </Space.Compact>
+          <Space.Compact style={{ width: '100%' }}>
+            <InputNumber
+              value={maxPrice}
+              min={0}
+              onChange={value => setMaxPrice(value ?? undefined)}
+              placeholder="Giá đến"
+              style={{ width: 'calc(100% - 42px)' }}
+            />
+            <Input disabled value="đ" aria-label="Đơn vị đồng" style={{ width: 42, textAlign: 'center' }} />
+          </Space.Compact>
           <Space className="filter-actions">
             <Button type="primary" icon={<SearchOutlined />} onClick={submit}>Tìm kiếm</Button>
             <Button onClick={clearFilters}>Xóa lọc</Button>
@@ -397,6 +402,7 @@ export function PropertyDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { message } = AntApp.useApp();
   const [property, setProperty] = useState<PropertyItem | null>(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
