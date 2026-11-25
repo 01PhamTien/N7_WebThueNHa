@@ -54,7 +54,7 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
             StartDate = booking.StartDate,
             EndDate = booking.EndDate,
             MonthlyRent = booking.ProposedPrice,
-            DepositAmount = 0,
+            DepositAmount = booking.Property.DepositAmount,
             PaymentDueDay = 1,
             Status = RentalContractStatus.Draft,
             CreatedAt = now
