@@ -238,6 +238,9 @@ public sealed class BookingsController : ControllerBase
         if (booking.Status != BookingStatus.Pending)
             return Conflict(new { message = "Chỉ yêu cầu đang chờ mới được chấp nhận." });
 
+        if (booking.NumberOfPeople > booking.Property.MaxOccupants)
+            return Conflict(new { message = $"Số người trong yêu cầu vượt sức chứa hiện tại ({booking.Property.MaxOccupants} người). Vui lòng trao đổi lại với khách thuê." });
+
         if (booking.Property.ModerationStatus != PropertyModerationStatus.Approved ||
             booking.Property.ListingStatus != PropertyListingStatus.Published)
             return Conflict(new { message = "Căn nhà không còn ở trạng thái được phép cho thuê." });
