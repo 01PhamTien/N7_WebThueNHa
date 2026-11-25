@@ -245,8 +245,18 @@ public sealed class BookingsController : ControllerBase
             x.StartDate < booking.EndDate &&
             x.EndDate > booking.StartDate, cancellationToken);
 
-        if (hasAcceptedConflict)
-            return Conflict(new { message = "Không thể chấp nhận vì khoảng thời gian này đã có yêu cầu thuê được chấp nhận." });
+        var hasContractConflict = await _db.RentalContracts.AnyAsync(x =>
+            x.BookingId != booking.Id &&
+            x.PropertyId == booking.PropertyId &&
+            x.Status != RentalContractStatus.Completed &&
+            x.Status != RentalContractStatus.Terminated &&
+            x.Status != RentalContractStatus.Cancelled &&
+            x.StartDate < booking.EndDate &&
+            x.EndDate > booking.StartDate,
+            cancellationToken);
+
+        if (hasAcceptedConflict || hasContractConflict)
+            return Conflict(new { message = "Không thể chấp nhận vì thời hạn bị trùng với yêu cầu thuê đã chấp nhận hoặc hợp đồng khác." });
 
         booking.Status = BookingStatus.Accepted;
         booking.RespondedAt = DateTime.UtcNow;
