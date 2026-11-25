@@ -22,6 +22,7 @@ public sealed class PropertyModerationController(AppDbContext db, IPropertyModer
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetProperties(
         [FromQuery] PropertyModerationStatus status = PropertyModerationStatus.Pending,
+        [FromQuery] PropertyListingStatus? listingStatus = null,
         [FromQuery] string? keyword = null,
         [FromQuery] string? province = null,
         [FromQuery] int? propertyTypeId = null,
@@ -32,12 +33,16 @@ public sealed class PropertyModerationController(AppDbContext db, IPropertyModer
         if (page < 1 || pageSize < 1 || pageSize > MaxPageSize ||
             page > int.MaxValue / pageSize ||
             !Enum.IsDefined(status) ||
+            (listingStatus.HasValue && !Enum.IsDefined(listingStatus.Value)) ||
             (propertyTypeId.HasValue && propertyTypeId.Value < 1) ||
             (keyword is { Length: > 100 }) ||
             (province is { Length: > 120 }))
             return BadRequest(new { message = "Tham số lọc hoặc phân trang không hợp lệ." });
 
         var query = moderation.GetListQuery(status, keyword, province, propertyTypeId);
+
+        if (listingStatus.HasValue)
+            query = query.Where(x => x.ListingStatus == listingStatus.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
