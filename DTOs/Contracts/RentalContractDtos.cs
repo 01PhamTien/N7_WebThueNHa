@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Web2_ThueNha.Models;
+using Web2_ThueNha.DTOs.Properties;
 
 namespace Web2_ThueNha.DTOs.Contracts;
 
