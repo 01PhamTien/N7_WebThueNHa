@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, App as AntApp, Button, Empty, Input, List, Select, Space, Spin, Tag, Upload } from 'antd';
-import { HubConnectionBuilder, LogLevel, type HubConnection } from '@microsoft/signalr';
+import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { useLocation } from 'react-router-dom';
 import { tenantApi } from '../../services/tenant';
 import { errorText, TOKEN_KEY } from '../../services/api';
