@@ -225,6 +225,13 @@ export interface ModerationPropertyDto {
   title: string;
   landlordId?: string;
   landlordName: string;
+  propertyTypeId?: number;
+  propertyTypeName?: string;
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  latitude?: number | null;
+  longitude?: number | null;
   provinceName: string;
   pricePerMonth: number;
   moderationStatus: number;
