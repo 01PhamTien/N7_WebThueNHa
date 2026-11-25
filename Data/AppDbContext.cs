@@ -71,6 +71,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.Title).HasMaxLength(200).IsRequired();
             e.Property(x => x.Description).HasMaxLength(4000);
             e.Property(x => x.PricePerMonth).HasPrecision(18, 2);
+            e.Property(x => x.DepositAmount).HasPrecision(18, 2);
+            e.Property(x => x.FurnishingDescription).HasMaxLength(1000);
+            e.Property(x => x.AdditionalFeesDescription).HasMaxLength(1000);
             e.Property(x => x.Area).HasPrecision(10, 2);
             e.Property(x => x.AddressLine).HasMaxLength(300).IsRequired();
             e.Property(x => x.WardName).HasMaxLength(120);
