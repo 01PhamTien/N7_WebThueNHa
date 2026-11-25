@@ -109,6 +109,32 @@ export interface ContractDto {
   createdAt: string;
 }
 
+export interface ContractDetailDto {
+  contract: ContractDto & { bookingId: string; landlordId: string; tenantId: string; paymentDueDay: number; terms?: string | null; signedAt?: string | null; contractUrl?: string | null };
+  propertyTitle: string;
+  propertyTypeName: string;
+  propertyDescription?: string | null;
+  addressLine: string;
+  wardName?: string | null;
+  provinceName: string;
+  area: number;
+  bedrooms: number;
+  bathrooms: number;
+  maxOccupants: number;
+  furnishingDescription?: string | null;
+  additionalFeesDescription?: string | null;
+  amenities: string[];
+  images: PropertyImageDto[];
+  numberOfPeople: number;
+  bookingMessage?: string | null;
+  landlordName: string;
+  landlordEmail?: string | null;
+  landlordPhone?: string | null;
+  tenantName: string;
+  tenantEmail?: string | null;
+  tenantPhone?: string | null;
+}
+
 export interface UpdateContractRequest {
   startDate: string;
   endDate: string;
@@ -380,6 +406,7 @@ export const landlordAdminApi = {
 
   contracts: (params: PageParams & { status?: string; keyword?: string } = {}) =>
     api.get<PagedResult<ContractDto>>('/api/contracts', { params: { page: 1, pageSize: 10, ...params } }),
+  contract: (id: string) => api.get<ContractDetailDto>('/api/contracts/' + id),
   createContract: (bookingId: string) => api.post<ContractDto>('/api/contracts/from-booking/' + bookingId),
   updateContract: (id: string, data: UpdateContractRequest) => api.put<ContractDto>('/api/contracts/' + id, data),
   signContract: (id: string) => api.post<ContractDto>('/api/contracts/' + id + '/sign'),
