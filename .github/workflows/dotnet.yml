@@ -28,3 +28,34 @@ jobs:
 
       - name: Build
         run: dotnet build --configuration Release --no-restore
+
+      - name: Kiem tra Swagger JSON
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://127.0.0.1:5080
+          ConnectionStrings__DefaultConnection: Server=127.0.0.1;Database=SwaggerSmoke;User Id=sa;Password=SwaggerSmoke_Only_123!;TrustServerCertificate=True;Connect Timeout=1
+          Jwt__Key: SwaggerSmokeOnlyKey_12345678901234567890
+          Jwt__Issuer: SwaggerSmoke
+          Jwt__Audience: SwaggerSmoke
+        run: |
+          dotnet run --configuration Release --no-build > /tmp/n7-api.log 2>&1 &
+          app_pid=$!
+          trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+          status=000
+          for attempt in $(seq 1 30); do
+            status=$(curl --silent --output /tmp/swagger.json --write-out '%{http_code}' http://127.0.0.1:5080/swagger/v1/swagger.json || true)
+            if [ "$status" = "200" ]; then
+              break
+            fi
+            if ! kill -0 "$app_pid" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          if [ "$status" != "200" ]; then
+            echo "Swagger JSON trả về HTTP $status"
+            cat /tmp/n7-api.log
+            cat /tmp/swagger.json 2>/dev/null || true
+            exit 1
+          fi
+          grep -q '"openapi"' /tmp/swagger.json
