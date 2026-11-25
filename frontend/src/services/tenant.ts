@@ -20,7 +20,7 @@ export const tenantApi={
  removeFavorite:(id:string)=>api.delete('/api/favorites/'+id),
  bookings:(page:number,pageSize:number)=>api.get<PageResult<BookingItem>>('/api/bookings/mine',{params:{page,pageSize}}).then(response=>({...response,data:{...response.data,items:response.data.items.map(normalizeBooking)}})),
  booking:(id:string)=>api.get<BookingItem>('/api/bookings/'+id).then(response=>({...response,data:normalizeBooking(response.data)})),
- createBooking:(data:{propertyId:string;startDate:string;endDate:string;numberOfPeople:number;proposedPrice:number;message?:string})=>api.post('/api/bookings',data),
+ createBooking:(data:{propertyId:string;startDate:string;endDate:string;numberOfPeople:number;message?:string})=>api.post('/api/bookings',data),
  cancelBooking:(id:string)=>api.patch<BookingItem>('/api/bookings/'+id+'/cancel').then(response=>({...response,data:normalizeBooking(response.data)})),
  contracts:(page:number,pageSize:number)=>api.get<PageResult<ContractItem>>('/api/contracts',{params:{page,pageSize}}),
  contract:(id:string)=>api.get<ContractDetail>('/api/contracts/'+id),
