@@ -94,7 +94,7 @@ public sealed class ReviewsController(AppDbContext db) : ControllerBase
         if (contract.TenantId != userId)
             return Forbid();
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var hasEnded = contract.Status == RentalContractStatus.Completed ||
                        (contract.Status == RentalContractStatus.Active && contract.EndDate <= today);
         if (!hasEnded)
