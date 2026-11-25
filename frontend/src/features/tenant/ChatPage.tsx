@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, App as AntApp, Button, Empty, Input, List, Modal, Popconfirm, Select, Space, Spin, Tag, Upload } from 'antd';
+import { Alert, App as AntApp, Button, Empty, Input, List, Modal, Popconfirm, Segmented, Space, Spin, Tag, Upload } from 'antd';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { useLocation } from 'react-router-dom';
 import { tenantApi } from '../../services/tenant';
@@ -259,9 +259,10 @@ export function ChatPage() {
       <div className="chat">
         <aside>
           <div className="chat-inbox-toolbar">
-            <Select
-              size="small"
-              value={includeArchived ? 'archived' : 'inbox'}
+            <Segmented
+              size="middle"
+              block
+              value={includeArchived ? 'archived' : 'active'}
               onChange={value => {
                 setIncludeArchived(value === 'archived');
                 setPage(1);
@@ -271,7 +272,7 @@ export function ChatPage() {
                 messageRequestId.current += 1;
               }}
               options={[
-                { value: 'inbox', label: 'Hộp thư đến' },
+                { value: 'active', label: 'Đang hoạt động' },
                 { value: 'archived', label: 'Đã lưu trữ' }
               ]}
               aria-label="Chọn danh sách hội thoại"
