@@ -1,19 +1,30 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, App as AntApp, Avatar, Badge, Button, Card, Col, DatePicker, Descriptions, Drawer, Empty, Form, Input, InputNumber, List, Modal, Popconfirm, Row, Select, Space, Spin, Statistic, Table, Tag, Typography, Upload } from 'antd';
+import { useEffect, useState } from 'react';
+import type { DependencyList } from 'react';
+import { Alert, App as AntApp, Avatar, Badge, Button, Card, Col, DatePicker, Descriptions, Drawer, Empty, Form, Input, InputNumber, List, Modal, Popconfirm, Row, Select, Space, Statistic, Table, Tag, Typography, Upload } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { Link } from 'react-router-dom';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import dayjs from 'dayjs';
 import { TOKEN_KEY, errorText } from '../../services/api';
 import { landlordAdminApi as api } from '../../services/landlordAdmin';
+import type { AdminUserDto, BookingDto, ChatMessageDto, ContractDto, ConversationDto, InvoiceDetailDto, InvoiceListDto, ModerationPropertyDto, NotificationDto, PropertyDto, PropertyRequest } from '../../services/landlordAdmin';
 import { Page, Loading, EmptyState } from '../../components/Shared';
 
-type AnyRow = Record<string, any>;
 const money = (v?: number) => (v ?? 0).toLocaleString('vi-VN') + ' đ';
 const dateText = (v?: string) => v ? new Date(v).toLocaleDateString('vi-VN') : '—';
-const statusColor = (s: string) => ({ Pending: 'gold', Approved: 'green', Rejected: 'red', Published: 'green', Draft: 'default', Hidden: 'orange', Accepted: 'green', Active: 'green', AwaitingSignature: 'blue', Paid: 'green', Overdue: 'red', Succeeded: 'green', Failed: 'red' } as Record<string,string>)[s] || 'default';
-function Status({ value }: { value: string }) { return <Tag color={statusColor(value)}>{value}</Tag>; }
-function useRequest<T = any>(load: () => Promise<any>, deps: unknown[] = []) {
+const bookingStatusLabels: Record<number, string> = { 0: 'Chờ xử lý', 1: 'Đã chấp nhận', 2: 'Đã từ chối', 3: 'Đã hủy', 4: 'Hết hạn' };
+const moderationStatusLabels: Record<number, string> = { 0: 'Bản nháp', 1: 'Chờ duyệt', 2: 'Đã duyệt', 3: 'Đã từ chối' };
+const listingStatusLabels: Record<string, string> = { Draft: 'Bản nháp', Published: 'Đang đăng', Hidden: 'Đã ẩn', Closed: 'Đã đóng', '0': 'Bản nháp', '1': 'Đang đăng', '2': 'Đã ẩn', '3': 'Đã đóng' };
+const contractStatusLabels: Record<string, string> = { Draft: 'Bản nháp', AwaitingSignature: 'Chờ ký', Active: 'Đang hiệu lực', Completed: 'Hoàn thành', Terminated: 'Đã chấm dứt', Cancelled: 'Đã hủy' };
+const invoiceStatusLabels: Record<string, string> = { Draft: 'Bản nháp', Issued: 'Đã phát hành', PartiallyPaid: 'Đã thanh toán một phần', Paid: 'Đã thanh toán', Overdue: 'Quá hạn', Cancelled: 'Đã hủy' };
+const invoiceTypeLabels: Record<string, string> = { Deposit: 'Tiền cọc', MonthlyRent: 'Tiền thuê hàng tháng', Other: 'Khác' };
+const paymentStatusLabels: Record<string, string> = { Pending: 'Chờ xác nhận', Succeeded: 'Thành công', Failed: 'Thất bại', Cancelled: 'Đã hủy', Refunded: 'Đã hoàn tiền' };
+const moderationActionLabels: Record<number, string> = { 0: 'Đã duyệt', 1: 'Từ chối', 2: 'Đã ẩn', 3: 'Đã khôi phục' };
+const statusColor = (label: string) => ({ 'Chờ xử lý': 'gold', 'Chờ duyệt': 'gold', 'Chờ xác nhận': 'gold', 'Đã duyệt': 'green', 'Đang đăng': 'green', 'Đã chấp nhận': 'green', 'Đang hiệu lực': 'green', 'Đã thanh toán': 'green', 'Thành công': 'green', 'Đã từ chối': 'red', 'Từ chối': 'red', 'Quá hạn': 'red', 'Đã ẩn': 'orange', 'Chờ ký': 'blue' } as Record<string, string>)[label] || 'default';
+function Status({ value, label }: { value: string | number; label?: string }) {
+  const display = label ?? listingStatusLabels[String(value)] ?? contractStatusLabels[String(value)] ?? invoiceStatusLabels[String(value)] ?? paymentStatusLabels[String(value)] ?? String(value);
+  return <Tag color={statusColor(display)}>{display}</Tag>;
+}
+function useRequest<T>(load: () => Promise<{ data: T }>, deps: DependencyList = []) {
   const [data,setData] = useState<T | null>(null); const [busy,setBusy] = useState(true); const [error,setError] = useState('');
   const refresh = async () => { setBusy(true); setError(''); try { setData((await load()).data); } catch(e) { setError(errorText(e)); } finally { setBusy(false); } };
   useEffect(() => { void refresh(); }, deps);
