@@ -66,8 +66,6 @@ const theme = {
     controlHeight: 42
   },
   components: {
-    Button: { fontWeight: 600 },
-    Card: { borderRadiusLG: 18 },
     Menu: { itemBorderRadius: 10, horizontalItemSelectedColor: '#176b57' },
     Table: { headerBg: '#f5f8f6', rowHoverBg: '#f7faf8' }
   }
