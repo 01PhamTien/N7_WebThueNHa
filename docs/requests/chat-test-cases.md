@@ -40,8 +40,9 @@
 ## Kiểm tra giao diện sau tinh giản
 
 - Danh sách chat có hai lựa chọn dễ hiểu: **Hộp thư đến** và **Đã lưu trữ**; mỗi lựa chọn chỉ hiển thị đúng nhóm hội thoại.
-- Hội thoại đã lưu trữ vẫn xem được lịch sử nhưng không hiện ô gửi tin/đính kèm cho đến khi khôi phục.
+- Hội thoại đã lưu trữ vẫn xem được lịch sử và vẫn có thể gửi tin/tệp; khi người dùng gửi mới, hội thoại tự chuyển về Hộp thư đến của chính họ.
 - Giao diện không hiển thị nút sửa hoặc xóa tin nhắn đã gửi; lịch sử tin nhắn được giữ nguyên.
+- Trạng thái lưu trữ của participant còn lại không bị thay đổi khi người gửi tự đưa hội thoại về Hộp thư đến.
 - Upload từ giao diện chặn trước tệp trên 10 MB hoặc phần mở rộng không hỗ trợ; Backend vẫn phải kiểm tra lại độc lập.
 - Khi mở hội thoại, số tin chưa đọc giảm sau khi tải lại danh sách.
 
