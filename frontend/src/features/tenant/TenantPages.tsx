@@ -682,7 +682,16 @@ export function InvoicesPage() {
         message.info('Chưa nhận được đường dẫn thanh toán từ máy chủ.');
       }
     } catch (error) {
-      message.error(errorText(error));
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status === 503) {
+        const invoice = state.data?.items.find(item => item.id === id);
+        setManualInvoiceId(id);
+        setManualAmount(invoice?.totalAmount ?? null);
+        setTransactionCode('');
+        message.warning('SePay chưa được cấu hình trên máy chủ. Bạn có thể báo đã chuyển khoản để chủ nhà xác nhận thủ công.');
+      } else {
+        message.error(errorText(error));
+      }
     } finally {
       setCheckoutId(null);
     }
