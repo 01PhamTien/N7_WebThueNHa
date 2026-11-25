@@ -682,16 +682,7 @@ export function InvoicesPage() {
         message.info('Chưa nhận được đường dẫn thanh toán từ máy chủ.');
       }
     } catch (error) {
-      const status = (error as { response?: { status?: number } })?.response?.status;
-      if (status === 503) {
-        const invoice = state.data?.items.find(item => item.id === id);
-        setManualInvoiceId(id);
-        setManualAmount(invoice?.totalAmount ?? null);
-        setTransactionCode('');
-        message.warning('SePay chưa được cấu hình trên máy chủ. Bạn có thể báo đã chuyển khoản để chủ nhà xác nhận thủ công.');
-      } else {
-        message.error(errorText(error));
-      }
+      message.error(errorText(error));
     } finally {
       setCheckoutId(null);
     }
@@ -701,7 +692,7 @@ export function InvoicesPage() {
     if (!manualInvoiceId || !manualAmount || manualAmount <= 0) { message.error('Vui lòng nhập số tiền hợp lệ.'); return; }
     setManualBusy(true);
     try {
-      await tenantApi.manualPayment(manualInvoiceId, { paymentMethod: 1, amount: manualAmount, transactionCode: transactionCode.trim() || null });
+      await tenantApi.manualPayment(manualInvoiceId, { paymentMethod: 0, amount: manualAmount, transactionCode: transactionCode.trim() || null });
       message.success('Đã gửi thông tin thanh toán. Chủ nhà sẽ kiểm tra và xác nhận khi nhận được tiền.');
       setManualInvoiceId(null); setTransactionCode(''); setManualAmount(null);
       state.reload();
@@ -740,7 +731,7 @@ export function InvoicesPage() {
                         Thanh toán SePay
                       </Button>,
                       <Button key="manual" onClick={() => { setManualInvoiceId(item.id); setManualAmount(item.totalAmount); setTransactionCode(''); }}>
-                        Báo đã chuyển khoản
+                        Báo đã thanh toán tiền mặt
                       </Button>
                     ] : [])
                   ]}
@@ -766,12 +757,12 @@ export function InvoicesPage() {
       </State>
       <PageFooter state={state} />
 
-      <Modal title="Báo đã chuyển khoản" open={!!manualInvoiceId} onCancel={() => setManualInvoiceId(null)} onOk={() => void submitManualPayment()} confirmLoading={manualBusy} okText="Gửi xác nhận" cancelText="Đóng">
-        <Alert type="warning" showIcon message="Chỉ gửi sau khi bạn đã thực hiện chuyển khoản thật" description="Chủ nhà sẽ đối chiếu tiền trong tài khoản ngân hàng trước khi xác nhận. Việc gửi thông tin này chưa có nghĩa là hóa đơn đã được thanh toán." style={{marginBottom:16}}/>
-        <Typography.Text strong>Số tiền đã chuyển</Typography.Text>
+      <Modal title="Báo đã thanh toán tiền mặt" open={!!manualInvoiceId} onCancel={() => setManualInvoiceId(null)} onOk={() => void submitManualPayment()} confirmLoading={manualBusy} okText="Gửi xác nhận" cancelText="Đóng">
+        <Alert type="warning" showIcon message="Chỉ gửi sau khi đã thanh toán tiền mặt cho chủ nhà" description="Chủ nhà sẽ xác nhận sau khi trực tiếp nhận đủ tiền mặt. Việc gửi thông tin này chưa có nghĩa là hóa đơn đã được thanh toán." style={{marginBottom:16}}/>
+        <Typography.Text strong>Số tiền đã thanh toán bằng tiền mặt</Typography.Text>
         <InputNumber min={1} precision={0} value={manualAmount} onChange={value => setManualAmount(value)} style={{width:'100%',marginTop:8,marginBottom:16}}/>
-        <Typography.Text strong>Mã giao dịch ngân hàng (nếu có)</Typography.Text>
-        <Input value={transactionCode} onChange={event => setTransactionCode(event.target.value)} maxLength={150} placeholder="Nhập mã tham chiếu giao dịch" style={{marginTop:8}}/>
+        <Typography.Text strong>Ghi chú / biên nhận (nếu có)</Typography.Text>
+        <Input value={transactionCode} onChange={event => setTransactionCode(event.target.value)} maxLength={150} placeholder="Ví dụ: Biên nhận tiền mặt hoặc ghi chú" style={{marginTop:8}}/>
       </Modal>
       <Modal
         title="Chi tiết hóa đơn và lịch sử thanh toán"
