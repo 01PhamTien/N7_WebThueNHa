@@ -13,7 +13,7 @@ export function Page({
   return (
     <main className="page page-shell">
       <header className="page-heading">
-        <div>
+        <div className="page-heading-copy">
           <h1>{title}</h1>
           {description && <p className="muted">{description}</p>}
         </div>
@@ -24,7 +24,7 @@ export function Page({
 }
 
 export function Loading() {
-  return <div className="center"><Spin size="large" /></div>;
+  return <div className="center loading-state" role="status" aria-live="polite"><Spin size="large" /><span>Đang tải dữ liệu...</span></div>;
 }
 
 export function EmptyState({ description = 'Chưa có dữ liệu' }: { description?: string }) {
