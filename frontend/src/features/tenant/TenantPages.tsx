@@ -784,6 +784,7 @@ export function InvoicesPage() {
                     description={
                       <Space className="tenant-item-meta" wrap size={[12, 6]}>
                         <span><FileTextOutlined /> {item.propertyTitle}</span>
+                        {item.periodStart && item.periodEnd && <span>Kỳ thuê: {dateText(item.periodStart)} – trước {dateText(item.periodEnd)}</span>}
                         <span>Hạn thanh toán: {dateText(item.dueDate)}</span><InvoiceDueHint dueDate={item.dueDate} status={item.status} />
                       </Space>
                     }
