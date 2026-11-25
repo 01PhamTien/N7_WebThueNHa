@@ -528,7 +528,7 @@ public static class DemoDataSeeder
     }
 
     private static User CreateUser(
-        int prefix,
+        uint prefix,
         int index,
         string fullName,
         string email,
