@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Web2_ThueNha.Models;
 
 namespace Web2_ThueNha.DTOs.Bookings;
 
@@ -45,8 +46,17 @@ public sealed record BookingResponse(
     DateTime? RespondedAt,
     string? RejectionReason,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt)
+{
+    public decimal EstimatedRent =>
+        RentalPricing.Calculate(ProposedPrice, StartDate, EndDate).TotalAmount;
 
+    public int FullMonths =>
+        RentalPricing.Calculate(ProposedPrice, StartDate, EndDate).FullMonths;
+
+    public int ExtraDays =>
+        RentalPricing.Calculate(ProposedPrice, StartDate, EndDate).ExtraDays;
+}
 
 public sealed record PagedResponse<T>(
     IReadOnlyList<T> Items,
