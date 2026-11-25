@@ -1,8 +1,11 @@
-import{api}from'./api';import type{PageResult,PropertyItem,FavoriteItem,BookingItem,ContractItem,ContractDetail,InvoiceItem,InvoiceDetail,NotificationItem,ConversationItem,ChatMessage,CurrentUser}from'../types/api';
+import{api}from'./api';import type{PageResult,PropertyItem,FavoriteItem,BookingItem,ContractItem,ContractDetail,InvoiceItem,InvoiceDetail,NotificationItem,ConversationItem,ChatMessage,CurrentUser,PropertyReviewSummary,MyReviewItem}from'../types/api';
 export const tenantApi={
  unreadCount:()=>api.get<{unreadCount:number}>('/api/notifications/unread-count'),
  properties:(params:Record<string,string|number|undefined>)=>api.get<PageResult<PropertyItem>>('/api/properties',{params}),
  property:(id:string)=>api.get<PropertyItem>('/api/properties/'+id),
+ propertyReviews:(id:string)=>api.get<PropertyReviewSummary>('/api/reviews/properties/'+id),
+ myReviews:()=>api.get<MyReviewItem[]>('/api/reviews/mine'),
+ createReview:(contractId:string,data:{rating:number;comment?:string})=>api.post('/api/reviews/contracts/'+contractId,data),
  favorites:(page:number,pageSize:number)=>api.get<PageResult<FavoriteItem>>('/api/favorites',{params:{page,pageSize}}),
  favoriteStatus:(id:string)=>api.get<{propertyId:string;isFavorite:boolean}>('/api/favorites/'+id+'/status'),
  addFavorite:(id:string)=>api.post('/api/favorites/'+id),
