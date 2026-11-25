@@ -1246,3 +1246,18 @@ body { background: var(--canvas); color: var(--ink); }
   .profile-card .ant-card-body { padding: 18px; }
   .property-reviews-heading { align-items: flex-start; flex-direction: column; }
 }
+
+
+.booking-price-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 18px;
+  padding: 14px 16px;
+  background: #f6faf7;
+  border: 1px solid #e2ece5;
+  border-radius: 12px;
+}
+.booking-price-summary .ant-typography { margin: 0; }
+.booking-price-summary .ant-typography h4,
+.booking-price-summary h4.ant-typography { color: var(--brand-dark); }
