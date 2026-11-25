@@ -55,6 +55,8 @@
 | INV-23 | Tạo MonthlyRent trùng kỳ với hóa đơn đã hủy | Cho phép tạo lại kỳ đó | Chưa chạy |
 | INV-24 | Kỳ Other có ngày kết thúc bằng ngày bắt đầu | 400; khoảng ngày phải có độ dài lớn hơn 0 | Chưa chạy |
 | INV-25 | Tạo MonthlyRent có nhiều hơn một dòng chi tiết | 400; phí điện/nước/phát sinh lập hóa đơn loại Other | Chưa chạy |
+| INV-26 | Tạo MonthlyRent với items rỗng | Backend tự tạo một dòng Tiền thuê nhà với đơn giá tính từ hợp đồng | Chưa chạy |
+| INV-27 | Tạo MonthlyRent gửi một dòng placeholder có giá khác hợp đồng | Backend bỏ qua placeholder và thay bằng dòng tiền thuê được tự tính | Chưa chạy |
 
 ## Quy tắc schema
 - Dùng bảng `Invoices`, `InvoiceItems`, `Payments` và `AppDbContext` hiện có.
