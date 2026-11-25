@@ -143,27 +143,36 @@ function Shell() {
 
   useEffect(() => {
     let active = true;
-    if (!user) {
-      setUnread(0);
-      return () => { active = false; };
-    }
 
-    const request = isLandlord
-      ? landlordAdminApi.unreadCount()
-      : isTenant
-        ? tenantApi.unreadCount()
-        : null;
+    const refreshUnread = () => {
+      if (!user) {
+        setUnread(0);
+        return;
+      }
 
-    if (!request) {
-      setUnread(0);
-      return () => { active = false; };
-    }
+      const request = isLandlord
+        ? landlordAdminApi.unreadCount()
+        : isTenant
+          ? tenantApi.unreadCount()
+          : null;
 
-    request
-      .then(response => { if (active) setUnread(response.data.unreadCount); })
-      .catch(() => { if (active) setUnread(0); });
+      if (!request) {
+        setUnread(0);
+        return;
+      }
 
-    return () => { active = false; };
+      request
+        .then(response => { if (active) setUnread(response.data.unreadCount); })
+        .catch(() => { if (active) setUnread(0); });
+    };
+
+    refreshUnread();
+    window.addEventListener('web2:notifications-updated', refreshUnread);
+
+    return () => {
+      active = false;
+      window.removeEventListener('web2:notifications-updated', refreshUnread);
+    };
   }, [user?.userId, rolesKey, isLandlord, isTenant]);
 
   const landlordLinks: NonNullable<MenuProps['items']> = isLandlord ? [{
