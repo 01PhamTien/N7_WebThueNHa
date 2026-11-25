@@ -1,22 +1,22 @@
-using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.Models;
 using Web2_ThueNha.Models.Contracts;
 using Web2_ThueNha.Models.Payments;
-using Web2_ThueNha.Services.Notifications;
 using Web2_ThueNha.DTOs.Payments;
+
+using Web2_ThueNha.Services;
+using Web2_ThueNha.Services.Payments;
 
 namespace Web2_ThueNha.Controllers;
 
 [ApiController]
 [Route("api/invoices")]
 [Authorize(Roles = "Landlord,Tenant")]
-public sealed class InvoicesController(AppDbContext db, INotificationService notifications) : ControllerBase
+public sealed class InvoicesController(AppDbContext db, IPaymentService paymentService) : ControllerBase
 {
     private const int MaxPageSize = 50;
 
@@ -106,12 +106,7 @@ public sealed class InvoicesController(AppDbContext db, INotificationService not
             (invoice.Contract.LandlordId != userId && invoice.Contract.TenantId != userId))
             return NotFound(new { message = "Không tìm thấy hóa đơn." });
 
-        if (invoice.Status is InvoiceStatus.Issued or InvoiceStatus.PartiallyPaid &&
-            invoice.DueDate < DateOnly.FromDateTime(DateTime.UtcNow))
-        {
-            invoice.Status = InvoiceStatus.Overdue;
-            await db.SaveChangesAsync(cancellationToken);
-        }
+        await paymentService.RefreshOverdueStatusAsync(invoice, cancellationToken);
 
         return Ok(ToDetail(invoice));
     }
@@ -132,146 +127,31 @@ public sealed class InvoicesController(AppDbContext db, INotificationService not
         if (!TryGetUserId(out var userId))
             return Unauthorized();
 
-        if (!Enum.IsDefined(request.InvoiceType) ||
-            request.IssueDate == default ||
-            request.DueDate == default ||
-            request.DueDate < request.IssueDate ||
-            request.Items is null ||
-            request.Items.Count is < 1 or > 20 ||
-            request.Items.Any(x =>
-                string.IsNullOrWhiteSpace(x.Description) ||
-                x.Description.Trim().Length > 300 ||
-                x.Quantity <= 0 ||
-                x.UnitPrice <= 0 ||
-                decimal.Round(x.Quantity * x.UnitPrice, 2, MidpointRounding.AwayFromZero) <= 0))
-            return BadRequest(new { message = "Thông tin hóa đơn hoặc dòng chi tiết không hợp lệ." });
+        var result = await paymentService.CreateInvoiceAsync(contractId, userId, request, cancellationToken);
+        if (result.StatusCode == StatusCodes.Status201Created && result.Data is not null)
+            return CreatedAtAction(nameof(GetInvoice), new { id = result.Data.Id }, result.Data);
 
-        await using var transaction = await db.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable, cancellationToken);
-
-        var contract = await db.RentalContracts
-            .SingleOrDefaultAsync(x => x.Id == contractId, cancellationToken);
-
-        if (contract is null)
-            return NotFound(new { message = "Không tìm thấy hợp đồng." });
-
-        if (contract.LandlordId != userId)
-            return Forbid();
-
-        if (contract.Status != RentalContractStatus.Active)
-            return Conflict(new { message = "Chỉ hợp đồng đã được cả hai bên xác nhận mới phát hành hóa đơn." });
-
-        if (request.InvoiceType == InvoiceType.Deposit)
-        {
-            if (request.PeriodStart.HasValue || request.PeriodEnd.HasValue)
-                return BadRequest(new { message = "Hóa đơn tiền cọc không có kỳ thanh toán." });
-
-            if (contract.DepositAmount <= 0)
-                return Conflict(new { message = "Hợp đồng không có khoản tiền cọc cần thu." });
-        }
-        else if (request.InvoiceType == InvoiceType.MonthlyRent)
-        {
-            if (!request.PeriodStart.HasValue || !request.PeriodEnd.HasValue ||
-                request.PeriodEnd < request.PeriodStart ||
-                request.PeriodStart < contract.StartDate ||
-                request.PeriodEnd > contract.EndDate)
-                return BadRequest(new { message = "Kỳ hóa đơn tiền thuê phải nằm trong thời hạn hợp đồng." });
-        }
-        else if (request.PeriodStart.HasValue != request.PeriodEnd.HasValue ||
-                 (request.PeriodStart.HasValue && request.PeriodEnd < request.PeriodStart))
-        {
-            return BadRequest(new { message = "Khoảng thời gian hóa đơn không hợp lệ." });
-        }
-
-        var totalAmount = request.Items.Sum(x =>
-            decimal.Round(x.Quantity * x.UnitPrice, 2, MidpointRounding.AwayFromZero));
-
-        if (totalAmount <= 0 || totalAmount > 9999999999999999.99m)
-            return BadRequest(new { message = "Tổng hóa đơn phải lớn hơn 0 và không vượt giới hạn decimal(18,2)." });
-
-        if (request.InvoiceType == InvoiceType.Deposit && totalAmount != contract.DepositAmount)
-            return BadRequest(new { message = "Tổng hóa đơn tiền cọc phải bằng tiền cọc trong hợp đồng." });
-
-        var duplicate = request.InvoiceType switch
-        {
-            InvoiceType.Deposit => await db.Invoices.AnyAsync(x =>
-                x.ContractId == contractId &&
-                x.InvoiceType == InvoiceType.Deposit &&
-                x.Status != InvoiceStatus.Cancelled, cancellationToken),
-            InvoiceType.MonthlyRent => await db.Invoices.AnyAsync(x =>
-                x.ContractId == contractId &&
-                x.InvoiceType == InvoiceType.MonthlyRent &&
-                x.PeriodStart == request.PeriodStart &&
-                x.PeriodEnd == request.PeriodEnd &&
-                x.Status != InvoiceStatus.Cancelled, cancellationToken),
-            _ => false
-        };
-
-        if (duplicate)
-            return Conflict(new { message = "Hóa đơn cùng loại và kỳ thanh toán đã tồn tại." });
-
-        var invoiceCode = $"INV-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}";
-        var invoice = new Invoice
-        {
-            ContractId = contractId,
-            InvoiceCode = invoiceCode,
-            InvoiceType = request.InvoiceType,
-            PeriodStart = request.PeriodStart,
-            PeriodEnd = request.PeriodEnd,
-            IssueDate = request.IssueDate,
-            DueDate = request.DueDate,
-            TotalAmount = totalAmount,
-            Status = request.DueDate < DateOnly.FromDateTime(DateTime.UtcNow)
-                ? InvoiceStatus.Overdue
-                : InvoiceStatus.Issued,
-            CreatedAt = DateTime.UtcNow,
-            Items = request.Items.Select(x => new InvoiceItem
-            {
-                Description = x.Description.Trim(),
-                Quantity = x.Quantity,
-                UnitPrice = x.UnitPrice,
-                Amount = decimal.Round(x.Quantity * x.UnitPrice, 2, MidpointRounding.AwayFromZero)
-            }).ToList()
-        };
-
-        db.Invoices.Add(invoice);
-        try
-        {
-            await db.SaveChangesAsync(cancellationToken);
-            await notifications.CreateAsync(
-                contract.TenantId,
-                "Hóa đơn mới được phát hành",
-                $"Bạn có hóa đơn {invoice.InvoiceCode} cần thanh toán.",
-                NotificationType.Invoice,
-                invoice.Id,
-                cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-        }
-        catch (DbUpdateException exception) when (
-            exception.GetBaseException() is SqlException sqlException &&
-            sqlException.Number is 2601 or 2627)
-        {
-            return Conflict(new { message = "Hóa đơn trùng loại/kỳ thanh toán đã được tạo bởi một request khác." });
-        }
-
-        return CreatedAtAction(nameof(GetInvoice), new { id = invoice.Id }, ToDetail(invoice));
+        return ToActionResult(result);
     }
 
-    private async Task MarkOverdueInvoicesAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        var isLandlord = User.IsInRole("Landlord");
-        var isTenant = User.IsInRole("Tenant");
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        await db.Invoices
-            .Where(x =>
-                ((isLandlord && x.Contract.LandlordId == userId) ||
-                 (isTenant && x.Contract.TenantId == userId)) &&
-                x.DueDate < today &&
-                (x.Status == InvoiceStatus.Issued || x.Status == InvoiceStatus.PartiallyPaid))
-            .ExecuteUpdateAsync(
-                setters => setters.SetProperty(x => x.Status, InvoiceStatus.Overdue),
-                cancellationToken);
-    }
+    private Task MarkOverdueInvoicesAsync(Guid userId, CancellationToken cancellationToken) =>
+        paymentService.MarkOverdueInvoicesAsync(
+            userId,
+            User.IsInRole("Landlord"),
+            User.IsInRole("Tenant"),
+            cancellationToken);
+
+
+    private IActionResult ToActionResult<T>(ServiceResult<T> result) =>
+        result.StatusCode switch
+        {
+            StatusCodes.Status200OK => Ok(result.Data),
+            StatusCodes.Status400BadRequest => BadRequest(new { message = result.Message }),
+            StatusCodes.Status403Forbidden => Forbid(),
+            StatusCodes.Status404NotFound => NotFound(new { message = result.Message }),
+            StatusCodes.Status409Conflict => Conflict(new { message = result.Message }),
+            _ => StatusCode(result.StatusCode, result.Message is null ? null : new { message = result.Message })
+        };
 
     private bool TryGetUserId(out Guid userId) =>
         Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId);
@@ -296,5 +176,5 @@ public sealed class InvoicesController(AppDbContext db, INotificationService not
             invoice.CreatedAt,
             invoice.Items.Select(x => new InvoiceItemResponse(
                 x.Id, x.Description, x.Quantity, x.UnitPrice, x.Amount)).ToList(),
-            invoice.Payments.OrderBy(x => x.CreatedAt).Select(PaymentsController.ToResponse).ToList());
+            invoice.Payments.OrderBy(x => x.CreatedAt).Select(PaymentService.ToResponse).ToList());
 }

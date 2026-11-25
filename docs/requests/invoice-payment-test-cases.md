@@ -56,3 +56,25 @@
 ## Ghi nhận
 - Ghi commit SHA, .NET SDK, SQL Server và status code thực tế.
 - Không commit JWT, connection string hoặc dữ liệu cá nhân thật.
+
+## Kiểm thử hồi quy sau khi tách Service (Issue #36)
+
+> Các ca dưới đây cần chạy lại trên SQL Server sau khi chuyển nghiệp vụ từ Controller sang Service. Chỉ ghi Passed khi có status code/response thực tế.
+
+| Mã | Tình huống | Kết quả mong đợi | Kết quả thực tế |
+|---|---|---|---|
+| SVC-01 | Khởi động ứng dụng với DI mới | Resolve được IContractService và IPaymentService; không lỗi startup | Chưa chạy |
+| SVC-02 | Tenant hoặc Landlord tạo hợp đồng từ Booking Accepted | Giữ nguyên 201 lần đầu, 200 khi gọi lặp; response RentalContractResponse | Chưa chạy |
+| SVC-03 | Người ngoài tạo hợp đồng từ Booking | 403; không tạo dữ liệu | Chưa chạy |
+| SVC-04 | Landlord cập nhật hợp đồng Draft/AwaitingSignature | 200; cập nhật điều khoản và reset chữ ký nếu đã gửi ký | Chưa chạy |
+| SVC-05 | Gửi ký hợp đồng không ở Draft | 409; không đổi trạng thái | Chưa chạy |
+| SVC-06 | Hai bên ký hợp đồng | Mỗi bên chỉ ghi timestamp của mình; chỉ Active khi đủ hai chữ ký | Chưa chạy |
+| SVC-07 | Gửi lại thao tác ký từ cùng một bên | Không ghi đè timestamp; không tạo notification lặp | Chưa chạy |
+| SVC-08 | Landlord phát hành Deposit/MonthlyRent | Giữ nguyên route, 201 và InvoiceDetailResponse | Chưa chạy |
+| SVC-09 | Hợp đồng chưa Active phát hành hóa đơn | 409; không tạo Invoice/InvoiceItem/Notification | Chưa chạy |
+| SVC-10 | Tenant tạo thanh toán Cash/BankTransfer | Giữ nguyên route, 201; Payment ở Pending | Chưa chạy |
+| SVC-11 | Tenant cố gửi trạng thái thanh toán thành công | Không có endpoint/field cho client tự xác nhận; payment mới vẫn Pending | Chưa chạy |
+| SVC-12 | Landlord/Admin xác nhận hoặc từ chối | Giữ nguyên role, status code, ReviewedById/ReviewedAt và InvoiceStatus | Chưa chạy |
+| SVC-13 | Hai request xác nhận thanh toán đồng thời | Serializable; tổng Succeeded không vượt TotalAmount | Chưa chạy |
+| SVC-14 | Thông báo trong các thao tác tạo/gửi ký/ký/phát hành/xác nhận/từ chối | Notification cùng transaction; request lỗi hoặc lặp idempotent không tạo notification mới | Chưa chạy |
+| SVC-15 | So sánh route, DTO và response trước/sau refactor | Không đổi API contract hiện tại | Chưa chạy |
