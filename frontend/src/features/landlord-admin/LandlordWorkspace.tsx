@@ -93,9 +93,69 @@ export function LandlordInvoices() {
 }
 
 export function LandlordNotifications() {
-  const q=useRequest(()=>api.notifications({page:1,pageSize:30}),[]); const unread=useRequest(()=>api.unreadCount(),[]); const {message}=AntApp.useApp();
+  const q=useRequest(()=>api.notifications({page:1,pageSize:30}),[]);
+  const unread=useRequest(()=>api.unreadCount(),[]);
+  const {message}=AntApp.useApp();
+  const [markingAll,setMarkingAll]=useState(false);
+  const [markingId,setMarkingId]=useState<string|null>(null);
   const items=q.data?.items||[];
-  return <Page title="Thông báo"><ErrorLine error={q.error}/><Space style={{marginBottom:16}}><Badge count={unread.data?.unreadCount||0} showZero><Tag>Chưa đọc</Tag></Badge><Button onClick={async()=>{try{await api.readAllNotifications();q.refresh();unread.refresh();}catch(e){message.error(errorText(e));}}}>Đánh dấu tất cả đã đọc</Button></Space><Card style={{marginTop:16}}>{q.busy?<Loading/>:<List dataSource={items} locale={{emptyText:<EmptyState/>}} renderItem={(n:NotificationDto)=><List.Item actions={!n.isRead?[<Button type="link" onClick={async()=>{try{await api.readNotification(n.id);q.refresh();unread.refresh();}catch(e){message.error(errorText(e));}}}>Đánh dấu đã đọc</Button>]:[]}><List.Item.Meta title={<Space>{n.title}{!n.isRead&&<Badge status="processing" text="Mới"/>}</Space>} description={n.content}/>{dateText(n.createdAt)}</List.Item>}/>}</Card></Page>;
+
+  const markAllRead=async()=>{
+    setMarkingAll(true);
+    try{
+      await api.readAllNotifications();
+      q.refresh();
+      unread.refresh();
+      window.dispatchEvent(new Event('web2:notifications-updated'));
+      message.success('Đã đánh dấu tất cả thông báo là đã đọc.');
+    }catch(e){message.error(errorText(e));}
+    finally{setMarkingAll(false);}
+  };
+
+  const markRead=async(id:string)=>{
+    setMarkingId(id);
+    try{
+      await api.readNotification(id);
+      q.refresh();
+      unread.refresh();
+      window.dispatchEvent(new Event('web2:notifications-updated'));
+      message.success('Đã đánh dấu thông báo là đã đọc.');
+    }catch(e){message.error(errorText(e));}
+    finally{setMarkingId(null);}
+  };
+
+  return (
+    <Page title="Thông báo" description="Cập nhật về tin đăng, yêu cầu thuê, hợp đồng và thanh toán.">
+      <ErrorLine error={q.error||unread.error}/>
+      <div className="tenant-page-toolbar">
+        <div className="tenant-unread-summary">
+          <span className="tenant-unread-icon"><BellOutlined/></span>
+          <div>
+            <Typography.Text strong>{unread.data?.unreadCount||0} thông báo chưa đọc</Typography.Text>
+            <Typography.Text type="secondary">Trên toàn bộ tài khoản</Typography.Text>
+          </div>
+        </div>
+        <Button loading={markingAll} disabled={!unread.data?.unreadCount||q.busy||!!q.error} onClick={()=>void markAllRead()}>
+          Đánh dấu tất cả đã đọc
+        </Button>
+      </div>
+      <Card className="tenant-list-card" bordered={false}>
+        {q.busy?<Loading/>:<List
+          dataSource={items}
+          locale={{emptyText:<EmptyState description="Bạn chưa có thông báo nào."/>}}
+          renderItem={(n:NotificationDto)=>(
+            <List.Item className={'tenant-list-item tenant-notification-item'+(!n.isRead?' is-unread':'')}
+              actions={!n.isRead?[<Button key="read" type="text" loading={markingId===n.id} onClick={()=>void markRead(n.id)}>Đánh dấu đã đọc</Button>]:[]}>
+              <List.Item.Meta
+                title={<Space wrap>{n.title}{!n.isRead&&<Badge status="processing" text="Mới"/>}</Space>}
+                description={<div className="tenant-notification-content"><Typography.Paragraph>{n.content}</Typography.Paragraph><Typography.Text type="secondary">{dateText(n.createdAt)}</Typography.Text></div>}
+              />
+            </List.Item>
+          )}
+        />}
+      </Card>
+    </Page>
+  );
 }
 
 export function LandlordChat() {
