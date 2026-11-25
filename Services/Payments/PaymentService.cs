@@ -64,7 +64,7 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
                     "Kỳ hóa đơn tiền thuê phải nằm trong thời hạn hợp đồng.");
         }
         else if (request.PeriodStart.HasValue != request.PeriodEnd.HasValue ||
-                 (request.PeriodStart.HasValue && request.PeriodEnd < request.PeriodStart))
+                 (request.PeriodStart.HasValue && request.PeriodEnd <= request.PeriodStart))
         {
             return ServiceResult<InvoiceDetailResponse>.BadRequest("Khoảng thời gian hóa đơn không hợp lệ.");
         }
@@ -121,6 +121,23 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
         if (duplicate)
             return ServiceResult<InvoiceDetailResponse>.Conflict(
                 "Hóa đơn cùng loại và kỳ thanh toán đã tồn tại.");
+
+        if (request.InvoiceType == InvoiceType.MonthlyRent)
+        {
+            var overlapsExistingPeriod = await db.Invoices.AnyAsync(x =>
+                x.ContractId == contractId &&
+                x.InvoiceType == InvoiceType.MonthlyRent &&
+                x.Status != InvoiceStatus.Cancelled &&
+                x.PeriodStart.HasValue &&
+                x.PeriodEnd.HasValue &&
+                x.PeriodStart.Value < request.PeriodEnd!.Value &&
+                x.PeriodEnd.Value > request.PeriodStart!.Value,
+                cancellationToken);
+
+            if (overlapsExistingPeriod)
+                return ServiceResult<InvoiceDetailResponse>.Conflict(
+                    "Kỳ tiền thuê bị trùng với một hóa đơn chưa hủy. Vui lòng chọn khoảng ngày chưa được lập hóa đơn.");
+        }
 
         var now = DateTime.UtcNow;
         var invoice = new Invoice
