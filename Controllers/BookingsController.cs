@@ -33,7 +33,7 @@ public sealed class BookingsController : ControllerBase
         if (!TryGetCurrentUserId(out var tenantId))
             return Unauthorized();
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         if (request.StartDate < today)
             return BadRequest(new { message = "Ngày bắt đầu không được ở trong quá khứ." });
 
