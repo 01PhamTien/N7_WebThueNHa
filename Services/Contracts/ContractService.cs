@@ -5,6 +5,7 @@ using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Contracts;
 using Web2_ThueNha.Models;
 using Web2_ThueNha.Models.Contracts;
+using Web2_ThueNha.Models.Payments;
 using Web2_ThueNha.Services.Notifications;
 
 namespace Web2_ThueNha.Services.Contracts;
@@ -87,7 +88,7 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
         await notifications.CreateAsync(
             recipientId,
             "Hợp đồng thuê đã được tạo",
-            $"Một hợp đồng nháp đã được tạo cho căn nhà {booking.Property.Title}.",
+            $"Một hợp đồng đã được tạo cho căn nhà {booking.Property.Title}.",
             NotificationType.Contract,
             contract.Id,
             cancellationToken);
@@ -180,7 +181,7 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
             return ServiceResult<RentalContractResponse>.Forbidden();
 
         if (contract.Status != RentalContractStatus.Draft)
-            return ServiceResult<RentalContractResponse>.Conflict("Chỉ hợp đồng Draft mới được gửi xác nhận.");
+            return ServiceResult<RentalContractResponse>.Conflict("Chỉ hợp đồng đang chuẩn bị mới được gửi xác nhận.");
 
         contract.Status = RentalContractStatus.AwaitingSignature;
         await db.SaveChangesAsync(cancellationToken);
@@ -243,6 +244,7 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
                 ? contract.LandlordSignedAt.Value
                 : contract.TenantSignedAt.Value;
             contract.Status = RentalContractStatus.Active;
+            await IssueInitialInvoicesAsync(contract, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -265,6 +267,37 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
         await transaction.CommitAsync(cancellationToken);
 
         return ServiceResult<RentalContractResponse>.Success(ToResponse(contract));
+    }
+
+    // Cùng transaction với chữ ký cuối cùng. Không phát sinh hóa đơn nếu chưa đủ hai chữ ký.
+    private async Task IssueInitialInvoicesAsync(RentalContract contract, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now.AddHours(7));
+        var firstEnd = contract.StartDate.AddMonths(1);
+        if (firstEnd > contract.EndDate) firstEnd = contract.EndDate;
+        var due = contract.StartDate > today ? contract.StartDate : today;
+        var invoices = new List<Invoice>();
+        void Add(InvoiceType type, decimal amount, string description, DateOnly? start = null, DateOnly? end = null)
+        {
+            invoices.Add(new Invoice
+            {
+                ContractId = contract.Id,
+                InvoiceCode = $"INV-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
+                InvoiceType = type, PeriodStart = start, PeriodEnd = end,
+                IssueDate = today, DueDate = due, TotalAmount = amount,
+                Status = InvoiceStatus.Issued, CreatedAt = now,
+                Items = new List<InvoiceItem> { new InvoiceItem { Description = description, Quantity = 1, UnitPrice = amount, Amount = amount } }
+            });
+        }
+        if (contract.DepositAmount > 0 && !await db.Invoices.AnyAsync(x => x.ContractId == contract.Id && x.InvoiceType == InvoiceType.Deposit && x.Status != InvoiceStatus.Cancelled, ct))
+            Add(InvoiceType.Deposit, contract.DepositAmount, "Tiền cọc");
+        if (!await db.Invoices.AnyAsync(x => x.ContractId == contract.Id && x.InvoiceType == InvoiceType.MonthlyRent && x.Status != InvoiceStatus.Cancelled && x.PeriodStart < firstEnd && x.PeriodEnd > contract.StartDate, ct))
+            Add(InvoiceType.MonthlyRent, RentalPricing.Calculate(contract.MonthlyRent, contract.StartDate, firstEnd).TotalAmount, "Tiền thuê kỳ đầu", contract.StartDate, firstEnd);
+        db.Invoices.AddRange(invoices);
+        await db.SaveChangesAsync(ct);
+        foreach (var invoice in invoices)
+            await notifications.CreateAsync(contract.TenantId, "Hóa đơn cần thanh toán trước khi nhận nhà", $"Hóa đơn {invoice.InvoiceCode} đã được phát hành.", NotificationType.Invoice, invoice.Id, ct);
     }
 
     private static RentalContractResponse ToResponse(RentalContract contract) =>
