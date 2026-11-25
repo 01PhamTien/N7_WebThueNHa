@@ -133,6 +133,21 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<User>, 
 
 var app = builder.Build();
 
+// Chỉ tự áp dụng migration và tạo dữ liệu demo trong môi trường Development.
+// Production không chạy seeder và không tự tạo tài khoản/dữ liệu mẫu.
+if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("SeedDemoData"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+
+    var passwordHasher = scope.ServiceProvider
+        .GetRequiredService<Microsoft.AspNetCore.Identity.IPasswordHasher<User>>();
+    await DemoDataSeeder.SeedAsync(db, passwordHasher);
+
+    app.Logger.LogInformation("Đã kiểm tra và khởi tạo dữ liệu demo NhàỞ cho môi trường Development.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
