@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { Component, useEffect, useState } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import {
   App as AntApp,
@@ -95,6 +96,38 @@ function NotFoundPage() {
       </div>
     </main>
   );
+}
+
+class RouteErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Lỗi không xử lý được trong trang:', error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main className="page status-page">
+          <div className="status-page-card">
+            <span className="status-code">Oops!</span>
+            <h1>Trang này gặp sự cố</h1>
+            <p>Dữ liệu có thể chưa tải được hoặc đã xảy ra lỗi giao diện. Bạn có thể thử tải lại trang.</p>
+            <Space wrap>
+              <Button type="primary" onClick={() => this.setState({ hasError: false })}>Thử lại</Button>
+              <Button href="/">Về trang chủ</Button>
+            </Space>
+          </div>
+        </main>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 function Shell() {
@@ -271,6 +304,7 @@ function Shell() {
         </Layout.Header>
       }
     >
+      <RouteErrorBoundary key={location.pathname}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/nha" element={<PropertyListPage />} />
@@ -305,6 +339,7 @@ function Shell() {
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </RouteErrorBoundary>
     </AppLayout>
   );
 }
