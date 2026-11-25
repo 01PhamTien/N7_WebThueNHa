@@ -37,8 +37,11 @@ public sealed class BookingsController : ControllerBase
         if (request.StartDate < today)
             return BadRequest(new { message = "Ngày bắt đầu không được ở trong quá khứ." });
 
-        if (request.EndDate <= request.StartDate)
-            return BadRequest(new { message = "Ngày kết thúc phải sau ngày bắt đầu." });
+        if (request.EndDate < request.StartDate.AddMonths(1))
+            return BadRequest(new
+            {
+                message = "Nhà này cho thuê theo tháng; thời gian thuê tối thiểu là một tháng lịch."
+            });
 
         var property = await _db.Properties
             .AsNoTracking()
