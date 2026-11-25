@@ -145,7 +145,8 @@ public sealed record PropertyResponse(
     string ListingStatus,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
-    IReadOnlyCollection<PropertyImageResponse> Images);
+    IReadOnlyCollection<PropertyImageResponse> Images,
+    IReadOnlyCollection<string> Amenities);
 
 public sealed record PagedPropertyResponse(
     IReadOnlyCollection<PropertyResponse> Items,
