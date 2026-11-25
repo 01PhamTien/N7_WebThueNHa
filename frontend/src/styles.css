@@ -1156,3 +1156,69 @@ body { background: var(--canvas); color: var(--ink); }
   .profile-form-footer .ant-space { display: flex; width: 100%; }
   .profile-form-footer .ant-space .ant-btn { flex: 1; }
 }
+
+/* Dedicated management consoles for Admin and Landlord */
+.management-layout { min-height: 100vh; background: #f4f7f5; }
+.management-sider { position: sticky !important; top: 0; left: 0; height: 100vh; overflow: auto; background: #123f34 !important; box-shadow: 8px 0 28px rgba(17, 57, 43, .08); }
+.management-sider .ant-layout-sider-children { display: flex; flex-direction: column; min-height: 100%; }
+.management-sider .ant-layout-sider-trigger { color: rgba(255,255,255,.8); background: #0d352c; border-top: 1px solid rgba(255,255,255,.08); }
+.management-brand { display: flex; align-items: center; gap: 12px; min-height: 82px; padding: 17px 20px; color: #fff !important; border-bottom: 1px solid rgba(255,255,255,.1); }
+.management-brand-mark { display: grid; flex: 0 0 auto; width: 42px; height: 42px; place-items: center; color: #164b3c; background: #d9f0e3; border-radius: 13px; font-size: 19px; }
+.management-brand strong, .management-brand small { display: block; }
+.management-brand strong { color: #fff; font-size: 19px; font-weight: 850; letter-spacing: -.5px; }
+.management-brand small { margin-top: 3px; color: #a7c8b8; font-size: 9px; font-weight: 800; letter-spacing: 1.25px; }
+.management-nav-caption { padding: 25px 22px 10px; color: #82a999; font-size: 9px; font-weight: 850; letter-spacing: 1.3px; }
+.management-menu { flex: 1; padding: 0 11px 16px; color: #d2e4da; background: transparent !important; border-inline-end: 0 !important; }
+.management-menu .ant-menu-item { display: flex; align-items: center; min-height: 45px; margin: 4px 0; padding-inline: 14px !important; color: #c3d9ce; border-radius: 11px; font-size: 12px; font-weight: 650; }
+.management-menu .ant-menu-item .anticon { font-size: 16px; }
+.management-menu .ant-menu-item a { color: inherit; }
+.management-menu .ant-menu-item:hover { color: #fff !important; background: rgba(255,255,255,.09) !important; }
+.management-menu .ant-menu-item-selected { color: #fff !important; background: #24765f !important; box-shadow: inset 3px 0 #a7e2bf; }
+.management-menu .ant-menu-item-selected a { color: #fff !important; }
+.management-menu .ant-menu-item-divider { margin: 13px 9px; border-color: rgba(255,255,255,.12); }
+.management-sider-bottom { padding: 12px; border-top: 1px solid rgba(255,255,255,.1); }
+.management-sider-bottom .ant-btn { height: 42px; color: #c6ddd1; text-align: left; border-radius: 10px; }
+.management-sider-bottom .ant-btn:hover { color: #fff !important; background: rgba(255,255,255,.09) !important; }
+.management-main { min-width: 0; background: #f4f7f5; }
+.management-header { position: sticky; top: 0; z-index: 15; display: flex; align-items: center; justify-content: space-between; height: 76px; padding: 0 30px; line-height: normal; background: rgba(255,255,255,.96); border-bottom: 1px solid #e6ede8; box-shadow: 0 4px 16px rgba(27,58,43,.035); backdrop-filter: blur(12px); }
+.management-header-title { display: flex; flex-direction: column; gap: 3px; }
+.management-header-title .ant-typography-secondary { font-size: 10px; font-weight: 750; letter-spacing: .8px; text-transform: uppercase; }
+.management-header-title h4.ant-typography { margin: 0; color: #203d31; font-size: 17px; font-weight: 800; }
+.management-user-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.management-user-meta strong { max-width: 190px; overflow: hidden; color: #30483c; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.management-user-meta span { color: #819087; font-size: 10px; }
+.management-avatar-button { padding: 3px; border-radius: 50%; }
+.management-content { min-height: calc(100vh - 124px); }
+.management-content .page { width: 100%; max-width: 1500px; padding: 32px 30px 44px; }
+.management-content .page-heading { margin-bottom: 23px; }
+.management-content .page-heading h1 { font-size: clamp(23px, 2.3vw, 30px); }
+.management-content .page-content { gap: 16px; }
+.management-stat-card { height: 100%; border: 1px solid #e6ede8; border-radius: 16px; box-shadow: 0 5px 18px rgba(28,60,43,.035); }
+.management-stat-card .ant-statistic-title { min-height: 34px; color: #738279; font-size: 11px; font-weight: 650; }
+.management-stat-card .ant-statistic-content { color: #1d604c; font-size: 28px; font-weight: 800; }
+.management-stat-card > .ant-card-body { display: flex; flex-direction: column; gap: 7px; padding: 18px; }
+.management-stat-card .ant-typography-secondary { font-size: 10px; }
+.management-quick-card, .management-table-card { border: 1px solid #e6ede8; border-radius: 16px; box-shadow: 0 5px 18px rgba(28,60,43,.035); }
+.management-quick-card .ant-card-head { min-height: 58px; border-bottom-color: #edf2ee; }
+.management-quick-card .ant-card-head-title { color: #294538; font-size: 13px; font-weight: 800; }
+.management-quick-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.management-quick-actions .ant-btn { min-height: 40px; border-radius: 10px; font-size: 12px; font-weight: 650; }
+.management-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.management-toolbar .ant-input-affix-wrapper, .management-toolbar .ant-select-selector { border-radius: 10px !important; }
+.management-toolbar .ant-btn { min-height: 40px; border-radius: 10px; font-size: 12px; font-weight: 700; }
+.management-table-card .ant-card-body { padding: 18px; }
+.management-table-card .ant-table { font-size: 12px; }
+.management-table-card .ant-table-thead > tr > th { color: #607369; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.management-table-card .ant-table-tbody > tr > td { padding-block: 13px; }
+.management-footer { padding: 16px 30px; color: #87948c; background: transparent; font-size: 10px; text-align: center; }
+@media (max-width: 768px) {
+  .management-header { height: 66px; padding-inline: 16px; }
+  .management-header-title .ant-typography-secondary { font-size: 9px; }
+  .management-header-title h4.ant-typography { font-size: 14px; }
+  .management-user-meta { display: none; }
+  .management-content .page { padding: 24px 16px 34px; }
+  .management-content .page-heading { align-items: flex-start; }
+  .management-stat-card .ant-statistic-content { font-size: 24px; }
+  .management-table-card .ant-card-body { padding: 12px; }
+  .management-footer { padding: 12px 16px; }
+}
