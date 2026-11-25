@@ -6,7 +6,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { TOKEN_KEY, errorText } from '../../services/api';
 import { landlordAdminApi as api } from '../../services/landlordAdmin';
-import type { BookingDto, ChatMessageDto, ContractDto, ConversationDto, InvoiceDetailDto, InvoiceListDto, PaymentDto, PropertyDto, PropertyImageDto, PropertyRequest, CreateInvoiceRequest, NotificationDto } from '../../services/landlordAdmin';
+import type { BookingDto, ChatAttachmentDto, ChatMessageDto, ContractDto, ConversationDto, InvoiceDetailDto, InvoiceListDto, PaymentDto, PropertyDto, PropertyImageDto, PropertyRequest, CreateInvoiceRequest, NotificationDto } from '../../services/landlordAdmin';
 import { Page, Loading, EmptyState } from '../../components/Shared';
 import { bookingStatusLabels, contractStatusLabels, invoiceStatusLabels, invoiceTypeLabels, listingStatusLabels, moderationStatusLabels, paymentStatusLabels, money, dateText, Status, ErrorLine, Paging, useRequest } from './workspaceShared';
 
@@ -100,7 +100,7 @@ export function LandlordNotifications() {
 
 export function LandlordChat() {
   const q=useRequest(()=>api.conversations({page:1,pageSize:30}),[]); const [active,setActive]=useState<ConversationDto|null>(null); const [messages,setMessages]=useState<ChatMessageDto[]>([]); const [text,setText]=useState(''); const {message}=AntApp.useApp();
-  useEffect(()=>{if(!active)return;let mounted=true;const conn=new HubConnectionBuilder().withUrl((import.meta.env.VITE_API_BASE_URL||location.origin)+'/hubs/chat',{accessTokenFactory:()=>sessionStorage.getItem(TOKEN_KEY)||''}).withAutomaticReconnect().configureLogging(LogLevel.Warning).build();conn.on('NhanTinNhan',(m:ChatMessageDto)=>{if(mounted)setMessages(old=>old.some(x=>x.messageId===m.messageId)?old:[...old,m]);});
+  useEffect(()=>{if(!active)return;let mounted=true;const conn=new HubConnectionBuilder().withUrl((import.meta.env.VITE_API_BASE_URL||location.origin)+'/hubs/chat',{accessTokenFactory:()=>sessionStorage.getItem(TOKEN_KEY)||''}).withAutomaticReconnect().configureLogging(LogLevel.Warning).build();conn.on('NhanTinNhan',(payload:ChatMessageDto & {attachment?:ChatAttachmentDto})=>{const m:ChatMessageDto={...payload,attachments:payload.attachments??(payload.attachment?[payload.attachment]:[])};if(mounted)setMessages(old=>old.some(x=>x.messageId===m.messageId)?old:[...old,m]);});
     conn.on('SuaTinNhan',(m:{messageId:string;content:string;editedAt:string})=>{if(mounted)setMessages(old=>old.map(x=>x.messageId===m.messageId?{...x,content:m.content,editedAt:m.editedAt}:x));});
     conn.on('XoaTinNhan',(m:{messageId:string})=>{if(mounted)setMessages(old=>old.filter(x=>x.messageId!==m.messageId));});void conn.start().then(()=>conn.invoke('JoinConversation',active.conversationId)).catch(()=>{if(mounted)message.error('Không thể kết nối chat realtime. Vui lòng tải lại hội thoại.');});return()=>{mounted=false;void conn.stop();};},[active?.conversationId]);
   const select=async(c:ConversationDto)=>{setActive(c);try{const r=await api.messages(c.conversationId);setMessages(r.data.items||[]);await api.markChatRead(c.conversationId);q.refresh();}catch(e){message.error(errorText(e));}};
