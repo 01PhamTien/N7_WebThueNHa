@@ -55,7 +55,7 @@ const bookingLabels: Record<string, string> = {
 };
 
 const contractLabels: Record<string, string> = {
-  Draft: 'Bản nháp',
+  Draft: 'Đang chuẩn bị',
   AwaitingSignature: 'Chờ ký',
   Active: 'Đang hiệu lực',
   Completed: 'Hoàn thành',
@@ -339,7 +339,7 @@ export function BookingsPage() {
 
   const nextStep = (status: string) => {
     if (status === 'Pending') return 'Yêu cầu đã được gửi. Chủ nhà sẽ xem thông tin và phản hồi; bạn có thể hủy khi yêu cầu còn đang chờ.';
-    if (status === 'Accepted') return 'Chủ nhà đã đồng ý cho thuê. Bước tiếp theo là chủ nhà lập hợp đồng, bổ sung tiền cọc và điều khoản rồi gửi cho bạn xác nhận. Hãy theo dõi mục Hợp đồng thuê.';
+    if (status === 'Accepted') return 'Chủ nhà đã đồng ý cho thuê. Hãy theo dõi hợp đồng để kiểm tra điều khoản, ký và thanh toán ban đầu trước khi nhận nhà.';
     if (status === 'Rejected') return 'Yêu cầu không được chấp nhận. Bạn có thể xem lý do bên dưới hoặc tìm căn nhà khác.';
     if (status === 'Cancelled') return 'Yêu cầu này đã được hủy. Nếu vẫn muốn thuê căn nhà, bạn có thể liên hệ chủ nhà hoặc gửi yêu cầu mới khi tin đăng còn mở.';
     if (status === 'Expired') return 'Yêu cầu đã hết hạn. Vui lòng liên hệ chủ nhà nếu bạn vẫn quan tâm căn nhà.';
@@ -442,7 +442,7 @@ export function BookingsPage() {
               <Descriptions.Item label="Lời nhắn">{detail.message || 'Không có lời nhắn'}</Descriptions.Item>
               <Descriptions.Item label="Thời điểm chủ nhà phản hồi">{dateTimeText(detail.respondedAt)}</Descriptions.Item>
               {detail.status === 'Rejected' && <Descriptions.Item label="Lý do từ chối">{detail.rejectionReason || 'Chủ nhà chưa cung cấp lý do.'}</Descriptions.Item>}
-              {detail.status === 'Accepted' && <Descriptions.Item label="Bước tiếp theo">Chờ chủ nhà lập và gửi hợp đồng để bạn xem, ký xác nhận.</Descriptions.Item>}
+              {detail.status === 'Accepted' && <Descriptions.Item label="Bước tiếp theo">Kiểm tra hợp đồng, ký xác nhận và thanh toán hóa đơn ban đầu trước khi nhận nhà.</Descriptions.Item>}
             </Descriptions>
             {detail.status === 'Accepted' && (
               <Alert type="info" showIcon message="Hợp đồng và thanh toán là bước riêng" description="Việc chủ nhà chấp nhận yêu cầu chưa có nghĩa là hợp đồng đã được ký hoặc tiền cọc đã được thanh toán. Chỉ thanh toán theo hóa đơn/hợp đồng hiển thị trong tài khoản." />
@@ -514,7 +514,7 @@ export function ContractsPage() {
     setSigningId(id);
     try {
       await tenantApi.signContract(id);
-      message.success('Đã xác nhận chữ ký hợp đồng.');
+      message.success('Đã xác nhận chữ ký. Khi đủ hai chữ ký, hóa đơn ban đầu sẽ được phát hành.');
       state.setData(previous => previous ? {...previous, items: previous.items.map(item => item.id === id ? {...item, tenantSignedAt: new Date().toISOString()} : item)} : previous);
       state.reload();
       if (detail?.contract.id === id) { const response = await tenantApi.contract(id); setDetail(response.data); }
@@ -555,6 +555,7 @@ export function ContractsPage() {
                         Ký hợp đồng
                       </Button>
                     ] : []),
+                    ...(item.status === 'Active' ? [<Button key="invoices" href="/hoa-don">Xem hóa đơn</Button>] : []),
                     ...(canReview(item) && !reviewedContractIds.has(item.id) ? [
                       <Button
                         key="review"
