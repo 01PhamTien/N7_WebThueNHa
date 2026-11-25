@@ -1,7 +1,7 @@
 name: Frontend build
 on:
   pull_request:
-    branches: [develop]
+    branches: [main, develop]
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
