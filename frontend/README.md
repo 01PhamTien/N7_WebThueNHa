@@ -30,3 +30,10 @@ Danh sách Property, Favorite, Booking, Contract, Invoice, Notification và Conv
 
 ## Quy ước
 Giữ API calls trong service module; không ghép endpoint trong component. Không thay đổi API contract, framework hoặc UI library của dự án. Chạy `npm run build` trước khi bàn giao.
+
+## Dashboard Landlord/Admin (Issue #42)
+Các route được bảo vệ bằng `RoleGuard` và dùng chung AuthContext, Axios instance, theme, AppLayout:
+- Landlord: `/landlord`, `/landlord/properties`, `/landlord/bookings`, `/landlord/contracts`, `/landlord/invoices`, `/landlord/chat`, `/landlord/notifications`.
+- Admin: `/admin`, `/admin/users`, `/admin/moderation`.
+
+Các module gọi API qua `src/services/landlordAdmin.ts`. Dashboard chỉ hiển thị số liệu mà API hiện có trả về. Thao tác xác nhận/từ chối thanh toán chỉ xuất hiện cho Payment có `PaymentProvider = Manual`; SePay được để Backend/IPN xử lý. Các form tạo/sửa tin đăng và thao tác ảnh tuân theo quy tắc Backend: nội dung thay đổi sẽ cần kiểm duyệt lại.
