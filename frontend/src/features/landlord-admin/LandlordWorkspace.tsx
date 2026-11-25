@@ -29,12 +29,58 @@ function invoiceDueHint(dueDate: string, status: string) {
 }
 
 export function LandlordDashboard() {
-  const p=useRequest(()=>api.myProperties({page:1,pageSize:1}),[]);
-  const b=useRequest(()=>api.incomingBookings({page:1,pageSize:1,status:'Pending'}),[]);
-  const c=useRequest(()=>api.contracts({page:1,pageSize:1,status:'Active'}),[]);
-  const i=useRequest(()=>api.invoices({page:1,pageSize:1,status:'Overdue'}),[]);
-  const stats=[['Tin đăng',p.data?.totalCount??0],['Booking chờ xử lý',b.data?.totalCount??0],['Hợp đồng hiệu lực',c.data?.totalItems??0],['Hóa đơn quá hạn',i.data?.totalItems??0]];
-  return <Page title="Tổng quan chủ nhà" description="Số liệu được lấy trực tiếp từ các API nghiệp vụ hiện có."><ErrorLine error={p.error||b.error||c.error||i.error}/><Row gutter={[16,16]}>{stats.map(([label,value])=><Col xs={12} lg={6} key={String(label)}><Card className="management-stat-card"><Statistic title={label as string} value={value as number} loading={p.busy||b.busy||c.busy||i.busy}/></Card></Col>)}</Row><Card className="management-quick-card" style={{marginTop:20}}><Typography.Title level={5}>Bắt đầu quản lý</Typography.Title><Space wrap className="management-quick-actions"><Button type="primary" href="/landlord/properties">Quản lý tin đăng</Button><Button href="/landlord/bookings">Xử lý yêu cầu thuê</Button><Button href="/landlord/contracts">Hợp đồng</Button><Button href="/landlord/invoices">Hóa đơn</Button></Space></Card></Page>;
+  const properties=useRequest(()=>api.myProperties({page:1,pageSize:1}),[]);
+  const bookings=useRequest(()=>api.incomingBookings({page:1,pageSize:5,status:'Pending'}),[]);
+  const activeContracts=useRequest(()=>api.contracts({page:1,pageSize:1,status:'Active'}),[]);
+  const signingContracts=useRequest(()=>api.contracts({page:1,pageSize:5,status:'AwaitingSignature'}),[]);
+  const overdueInvoices=useRequest(()=>api.invoices({page:1,pageSize:5,status:'Overdue'}),[]);
+  const pendingPayments=useRequest(()=>api.incomingPayments({page:1,pageSize:5,status:'Pending'}),[]);
+  const notifications=useRequest(()=>api.unreadCount(),[]);
+  const conversations=useRequest(()=>api.conversations({page:1,pageSize:30}),[]);
+  const busy=properties.busy||bookings.busy||activeContracts.busy||signingContracts.busy||overdueInvoices.busy||pendingPayments.busy||notifications.busy||conversations.busy;
+  const error=[properties,bookings,activeContracts,signingContracts,overdueInvoices,pendingPayments,notifications,conversations].map(x=>x.error).filter(Boolean).join(' · ');
+  const unreadChats=(conversations.data?.items||[]).reduce((sum,item)=>sum+item.unreadCount,0);
+  const stats=[
+    {label:'Tổng tin đăng',value:properties.data?.totalCount??0,href:'/landlord/properties',hint:'Toàn bộ bất động sản'},
+    {label:'Yêu cầu thuê chờ xử lý',value:bookings.data?.totalCount??0,href:'/landlord/bookings',hint:'Cần phản hồi người thuê'},
+    {label:'Hợp đồng đang hiệu lực',value:activeContracts.data?.totalItems??0,href:'/landlord/contracts',hint:'Đang có khách thuê'},
+    {label:'Chờ ký hợp đồng',value:signingContracts.data?.totalItems??0,href:'/landlord/contracts',hint:'Hoàn tất chữ ký hai bên'},
+    {label:'Hóa đơn quá hạn',value:overdueInvoices.data?.totalItems??0,href:'/landlord/invoices',hint:'Theo dõi và nhắc thanh toán'},
+    {label:'Thanh toán chờ xác nhận',value:pendingPayments.data?.totalItems??0,href:'/landlord/payments',hint:'Kiểm tra giao dịch đến'},
+    {label:'Thông báo chưa đọc',value:notifications.data?.unreadCount??0,href:'/landlord/notifications',hint:'Cập nhật hoạt động'},
+    {label:'Tin nhắn chưa đọc',value:unreadChats,href:'/landlord/chat',hint:'Trao đổi với người thuê'}
+  ];
+  const recentActions=[
+    {title:'Yêu cầu thuê mới',description:'Xem hồ sơ và chấp nhận hoặc từ chối yêu cầu.',count:bookings.data?.totalCount??0,href:'/landlord/bookings',color:'gold'},
+    {title:'Hợp đồng cần chữ ký',description:'Kiểm tra điều khoản và hoàn tất ký kết.',count:signingContracts.data?.totalItems??0,href:'/landlord/contracts',color:'blue'},
+    {title:'Thanh toán cần kiểm tra',description:'Đối chiếu giao dịch, xác nhận tiền mặt hoặc chuyển khoản thủ công.',count:pendingPayments.data?.totalItems??0,href:'/landlord/payments',color:'processing'},
+    {title:'Hóa đơn quá hạn',description:'Theo dõi công nợ và liên hệ người thuê.',count:overdueInvoices.data?.totalItems??0,href:'/landlord/invoices',color:'red'}
+  ];
+  return <Page title="Tổng quan chủ nhà" description="Bảng điều hành hoạt động cho thuê: tài sản, yêu cầu thuê, hợp đồng, công nợ và chăm sóc người thuê.">
+    <ErrorLine error={error}/>
+    <Row gutter={[16,16]}>{stats.map(item=><Col xs={12} md={6} xl={6} key={item.label}><Card className="management-stat-card" hoverable><a href={item.href} style={{display:'block',color:'inherit'}}><Statistic title={item.label} value={item.value} loading={busy}/><Typography.Text type="secondary">{item.hint}</Typography.Text></a></Card></Col>)}</Row>
+    <Row gutter={[16,16]} style={{marginTop:20}}>
+      <Col xs={24} xl={14}><Card title="Việc cần xử lý" extra={<Typography.Link href="/landlord/bookings">Mở trung tâm quản lý</Typography.Link>}>
+        <List dataSource={recentActions} renderItem={item=><List.Item actions={[<Button key="open" size="small" href={item.href}>Xử lý</Button>]}><List.Item.Meta title={<Space>{item.title}<Tag color={item.color}>{item.count}</Tag></Space>} description={item.description}/></List.Item>}/>
+      </Card></Col>
+      <Col xs={24} xl={10}><Card title="Lối tắt quản lý"><List dataSource={[
+        {title:'Tin đăng & phòng cho thuê',description:'Tạo, cập nhật ảnh, giá và trạng thái tin.',href:'/landlord/properties'},
+        {title:'Yêu cầu thuê',description:'Duyệt khách và tạo hợp đồng.',href:'/landlord/bookings'},
+        {title:'Hợp đồng thuê',description:'Theo dõi thời hạn, chữ ký và điều khoản.',href:'/landlord/contracts'},
+        {title:'Hóa đơn & công nợ',description:'Lịch hóa đơn, hạn thanh toán và quá hạn.',href:'/landlord/invoices'},
+        {title:'Quản lý thanh toán',description:'Đối chiếu giao dịch và xác nhận thủ công.',href:'/landlord/payments'},
+        {title:'Tin nhắn & thông báo',description:'Chăm sóc người thuê và cập nhật mới.',href:'/landlord/chat'}
+      ]} renderItem={item=><List.Item><List.Item.Meta title={<Typography.Link href={item.href}>{item.title}</Typography.Link>} description={item.description}/></List.Item>}/></Card></Col>
+    </Row>
+    <Row gutter={[16,16]} style={{marginTop:20}}>
+      <Col xs={24} lg={12}><Card title="Yêu cầu thuê mới" extra={<Typography.Link href="/landlord/bookings">Xem tất cả</Typography.Link>}>
+        <List loading={bookings.busy} dataSource={bookings.data?.items||[]} locale={{emptyText:<Empty description="Chưa có yêu cầu thuê chờ xử lý"/>}} renderItem={item=><List.Item actions={[<Button key="detail" size="small" href="/landlord/bookings">Mở</Button>]}><List.Item.Meta title={item.propertyTitle} description={<span>{item.tenantName} · {dateText(item.startDate)} – {dateText(item.endDate)}</span>}/><Typography.Text strong>{money(item.estimatedRent)}</Typography.Text></List.Item>}/>
+      </Card></Col>
+      <Col xs={24} lg={12}><Card title="Hóa đơn quá hạn" extra={<Typography.Link href="/landlord/invoices">Xem công nợ</Typography.Link>}>
+        <List loading={overdueInvoices.busy} dataSource={overdueInvoices.data?.items||[]} locale={{emptyText:<Empty description="Không có hóa đơn quá hạn"/>}} renderItem={item=><List.Item actions={[<Button key="detail" size="small" href="/landlord/invoices">Chi tiết</Button>]}><List.Item.Meta title={item.propertyTitle} description={<span>{item.invoiceCode} · Hạn {dateText(item.dueDate)}</span>}/><Typography.Text type="danger" strong>{money(item.totalAmount)}</Typography.Text></List.Item>}/>
+      </Card></Col>
+    </Row>
+  </Page>;
 }
 
 const propertyFields = [
