@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ namespace Web2_ThueNha.Controllers;
 
 [ApiController]
 [Route("api/properties")]
-public sealed class PropertiesController(AppDbContext db, IPropertyQueryRepository propertyQueries) : ControllerBase
+public sealed class PropertiesController(AppDbContext db, IPropertyQueryRepository propertyQueries, IWebHostEnvironment environment) : ControllerBase
 {
     private const int MaxPageSize = 50;
 
@@ -325,6 +326,79 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
         db.PropertyImages.Add(image);
         RequireModerationAfterImageChange(property);
         await db.SaveChangesAsync(cancellationToken);
+        return Created($"/api/properties/{id}", new PropertyImageResponse(
+            image.Id, image.ImageUrl, image.IsPrimary, image.DisplayOrder));
+    }
+
+    [HttpPost("{id:guid}/images/upload")]
+    [Authorize(Roles = "Landlord")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(9 * 1024 * 1024)]
+    public async Task<IActionResult> UploadImage(
+        Guid id, IFormFile file, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+            return Unauthorized();
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "Vui lòng chọn hình ảnh." });
+        if (file.Length > 8 * 1024 * 1024)
+            return BadRequest(new { message = "Mỗi hình ảnh tối đa 8 MB." });
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var contentType = extension switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            _ => null
+        };
+        if (contentType is null || !string.Equals(file.ContentType, contentType, StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Chỉ hỗ trợ ảnh JPG, PNG hoặc WEBP hợp lệ." });
+
+        var header = new byte[12];
+        await using (var input = file.OpenReadStream())
+        {
+            var read = await input.ReadAsync(header.AsMemory(), cancellationToken);
+            var valid = extension switch
+            {
+                ".jpg" or ".jpeg" => read >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF,
+                ".png" => read >= 8 && header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47 && header[4] == 0x0D && header[5] == 0x0A && header[6] == 0x1A && header[7] == 0x0A,
+                ".webp" => read >= 12 && header[0] == 'R' && header[1] == 'I' && header[2] == 'F' && header[3] == 'F' && header[8] == 'W' && header[9] == 'E' && header[10] == 'B' && header[11] == 'P',
+                _ => false
+            };
+            if (!valid)
+                return BadRequest(new { message = "Nội dung tệp không phải hình ảnh hợp lệ." });
+        }
+
+        var property = await db.Properties.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (property is null)
+            return NotFound(new { message = "Không tìm thấy căn nhà." });
+        if (property.LandlordId != userId)
+            return Forbid();
+
+        var imageCount = await db.PropertyImages.CountAsync(x => x.PropertyId == id, cancellationToken);
+        if (imageCount >= 20)
+            return Conflict(new { message = "Mỗi tin đăng được tối đa 20 hình ảnh." });
+
+        var webRoot = environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot");
+        var folder = Path.Combine(webRoot, "uploads", "properties", id.ToString("N"));
+        Directory.CreateDirectory(folder);
+        var storedName = $"{Guid.NewGuid():N}{extension}";
+        await using (var output = System.IO.File.Create(Path.Combine(folder, storedName)))
+            await file.CopyToAsync(output, cancellationToken);
+
+        var imageUrl = $"/uploads/properties/{id:N}/{storedName}";
+        var image = new PropertyImage
+        {
+            PropertyId = id,
+            ImageUrl = imageUrl,
+            IsPrimary = imageCount == 0,
+            DisplayOrder = imageCount
+        };
+        db.PropertyImages.Add(image);
+        RequireModerationAfterImageChange(property);
+        await db.SaveChangesAsync(cancellationToken);
+
         return Created($"/api/properties/{id}", new PropertyImageResponse(
             image.Id, image.ImageUrl, image.IsPrimary, image.DisplayOrder));
     }
