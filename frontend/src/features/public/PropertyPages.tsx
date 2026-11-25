@@ -530,7 +530,6 @@ export function PropertyDetailPage() {
     startDate: string;
     endDate: string;
     numberOfPeople: number;
-    proposedPrice: number;
     message?: string;
   }) => {
     try {
@@ -580,7 +579,13 @@ export function PropertyDetailPage() {
                 <div><b>{property.area} m²</b><span>Diện tích</span></div>
                 <div><b>{property.bedrooms}</b><span>Phòng ngủ</span></div>
                 <div><b>{property.bathrooms}</b><span>Phòng tắm</span></div>
+                <div><b>{property.maxOccupants} người</b><span>Sức chứa tối đa</span></div>
               </div>
+              <h3>Tiền cọc và chi phí</h3>
+              <p>Tiền cọc: <strong>{money(property.depositAmount)}</strong></p>
+              <p>{property.additionalFeesDescription || 'Điện, nước và các khoản sử dụng riêng được thỏa thuận, ghi rõ trong hợp đồng.'}</p>
+              <h3>Nội thất và trang bị</h3>
+              <p className="detail-description">{property.furnishingDescription || 'Chủ nhà chưa cập nhật danh sách nội thất.'}</p>
               <h3>Mô tả</h3>
               <p className="detail-description">{property.description || 'Chủ nhà chưa bổ sung mô tả cho căn nhà này.'}</p>
             </Card>
@@ -627,7 +632,6 @@ export function PropertyDetailPage() {
                         startDate,
                         endDate: addCalendarMonth(startDate),
                         numberOfPeople: 1,
-                        proposedPrice: property.pricePerMonth
                       });
                       setBookingOpen(true);
                     }}>
@@ -664,7 +668,7 @@ export function PropertyDetailPage() {
             type="info"
             showIcon
             message="Giá niêm yết là giá thuê mỗi tháng"
-            description="Thời hạn dưới một tháng áp dụng mức thuê tối thiểu một tháng. Sau tháng tròn, ngày lẻ tính theo giá tháng chia 30 nhân số ngày. Ngày kết thúc không tính tiền. Gửi yêu cầu chưa phát sinh thanh toán; tiền cọc và lịch thanh toán được xác nhận trong hợp đồng."
+            description={`Giá thuê niêm yết ${money(property.pricePerMonth)}/tháng; tiền cọc ${money(property.depositAmount)}. Sức chứa tối đa ${property.maxOccupants} người. Thời hạn dưới một tháng tính tối thiểu một tháng; ngày lẻ sau tháng tròn tính theo giá tháng / 30. Điện, nước và phí khác theo thỏa thuận công khai.`}
             style={{ marginBottom: 16 }}
           />
           <Form.Item name="startDate" label="Ngày bắt đầu" rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu.' }]}>
@@ -705,7 +709,7 @@ export function PropertyDetailPage() {
             {({ getFieldValue }) => {
               const startDate = getFieldValue('startDate');
               const endDate = getFieldValue('endDate');
-              const monthlyRent = Number(getFieldValue('proposedPrice') || property?.pricePerMonth || 0);
+              const monthlyRent = Number(property?.pricePerMonth || 0);
               if (!startDate || !endDate || endDate <= startDate || monthlyRent <= 0) return null;
               const estimate = calculateRent(monthlyRent, startDate, endDate);
               return (
@@ -721,11 +725,8 @@ export function PropertyDetailPage() {
               );
             }}
           </Form.Item>
-          <Form.Item name="numberOfPeople" label="Số người ở" rules={[{ required: true, message: 'Vui lòng nhập số người.' }]}>
-            <InputNumber min={1} max={100} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="proposedPrice" label="Giá thuê đề xuất mỗi tháng" rules={[{ required: true, type: 'number', min: 1, message: 'Giá đề xuất phải lớn hơn 0.' }]}>
-            <InputNumber min={1} max={999999999} precision={2} style={{ width: '100%' }} />
+          <Form.Item name="numberOfPeople" label={`Số người ở (tối đa ${property.maxOccupants})`} rules={[{ required: true, message: 'Vui lòng nhập số người.' },{ type:'number', max:property.maxOccupants, message:`Căn nhà chỉ nhận tối đa ${property.maxOccupants} người.` }]}>
+            <InputNumber min={1} max={property.maxOccupants} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="message" label="Lời nhắn">
             <Input.TextArea maxLength={1000} showCount rows={3} />
