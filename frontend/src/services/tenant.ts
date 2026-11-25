@@ -29,7 +29,5 @@ export const tenantApi={
  markChatRead:(id:string)=>api.patch('/api/chat/conversations/'+id+'/read'),
  archiveConversation:(id:string,isArchived:boolean)=>api.patch('/api/chat/conversations/'+id+'/archive',{isArchived}),
  sendMessage:(id:string,content:string)=>api.post<{messageId:string;conversationId:string;senderId:string;senderName:string;content:string;messageType:string;sentAt:string}>('/api/chat/conversations/'+id+'/messages',{content}),
- editMessage:(conversationId:string,messageId:string,content:string)=>api.put('/api/chat/conversations/'+conversationId+'/messages/'+messageId,{content}),
- deleteMessage:(conversationId:string,messageId:string)=>api.delete('/api/chat/conversations/'+conversationId+'/messages/'+messageId),
  uploadAttachment:(id:string,file:File)=>{const body=new FormData();body.append('file',file);return api.post('/api/chat/conversations/'+id+'/attachments',body)}
 };
