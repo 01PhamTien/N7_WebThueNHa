@@ -172,6 +172,22 @@ export function ChatPage() {
     }
   };
 
+  const downloadAttachment = async (attachmentId: string, fileName: string) => {
+    try {
+      const response = await tenantApi.downloadAttachment(attachmentId);
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      message.error(errorText(error));
+    }
+  };
+
   return (
     <main className="page">
       <h1>Tin nhắn</h1>
@@ -243,38 +259,51 @@ export function ChatPage() {
                     {item.content && <p>{item.content}</p>}
                     {item.attachments.map(attachment => (
                       <p key={attachment.attachmentId}>
-                        <a href={(import.meta.env.VITE_API_BASE_URL || '') + attachment.downloadUrl} target="_blank" rel="noreferrer">
+                        <Button
+                          type="link"
+                          size="small"
+                          onClick={() => void downloadAttachment(attachment.attachmentId, attachment.fileName)}
+                        >
                           {attachment.fileName}
-                        </a>
+                        </Button>
                       </p>
                     ))}
                   </article>
                 ))}
               </div>
-              <Space.Compact className="composer">
-                <Input
-                  value={text}
-                  onChange={event => setText(event.target.value)}
-                  onPressEnter={() => void send()}
-                  maxLength={4000}
-                  placeholder="Nhập tin nhắn..."
+              {active.isArchived ? (
+                <Alert
+                  type="info"
+                  showIcon
+                  message="Hội thoại đang được lưu trữ"
+                  description="Đưa hội thoại về hộp thư đến để tiếp tục trao đổi."
                 />
-                <Button type="primary" onClick={() => void send()} disabled={!text.trim()}>Gửi</Button>
-                <Upload
-                  showUploadList={false}
-                  accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
-                  beforeUpload={file => {
-                    tenantApi.uploadAttachment(active.conversationId, file)
-                      .then(() => tenantApi.messages(active.conversationId, 1, SIZE))
-                      .then(response => setMessages(response.data.items))
-                      .then(() => message.success('Đã gửi tệp'))
-                      .catch(error => message.error(errorText(error)));
-                    return false;
-                  }}
-                >
-                  <Button>Tệp</Button>
-                </Upload>
-              </Space.Compact>
+              ) : (
+                <Space.Compact className="composer">
+                  <Input
+                    value={text}
+                    onChange={event => setText(event.target.value)}
+                    onPressEnter={() => void send()}
+                    maxLength={4000}
+                    placeholder="Nhập tin nhắn..."
+                  />
+                  <Button type="primary" onClick={() => void send()} disabled={!text.trim()}>Gửi</Button>
+                  <Upload
+                    showUploadList={false}
+                    accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
+                    beforeUpload={file => {
+                      tenantApi.uploadAttachment(active.conversationId, file)
+                        .then(() => tenantApi.messages(active.conversationId, 1, SIZE))
+                        .then(response => setMessages(response.data.items))
+                        .then(() => message.success('Đã gửi tệp'))
+                        .catch(error => message.error(errorText(error)));
+                      return false;
+                    }}
+                  >
+                    <Button>Tệp</Button>
+                  </Upload>
+                </Space.Compact>
+              )}
             </>
           )}
         </section>
