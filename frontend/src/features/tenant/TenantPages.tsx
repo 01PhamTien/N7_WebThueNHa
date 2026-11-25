@@ -8,6 +8,7 @@ import {
   Descriptions,
   Empty,
   Input,
+  InputNumber,
   List,
   Modal,
   Pagination,
@@ -654,6 +655,10 @@ export function InvoicesPage() {
   const [detail, setDetail] = useState<InvoiceDetail | null>(null);
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
   const [checkoutId, setCheckoutId] = useState<string | null>(null);
+  const [manualInvoiceId, setManualInvoiceId] = useState<string | null>(null);
+  const [manualAmount, setManualAmount] = useState<number | null>(null);
+  const [transactionCode, setTransactionCode] = useState('');
+  const [manualBusy, setManualBusy] = useState(false);
 
   const openDetail = async (id: string) => {
     setLoadingDetailId(id);
@@ -683,6 +688,19 @@ export function InvoicesPage() {
     }
   };
 
+  const submitManualPayment = async () => {
+    if (!manualInvoiceId || !manualAmount || manualAmount <= 0) { message.error('Vui lòng nhập số tiền hợp lệ.'); return; }
+    setManualBusy(true);
+    try {
+      await tenantApi.manualPayment(manualInvoiceId, { paymentMethod: 1, amount: manualAmount, transactionCode: transactionCode.trim() || null });
+      message.success('Đã gửi thông tin thanh toán. Chủ nhà sẽ kiểm tra và xác nhận khi nhận được tiền.');
+      setManualInvoiceId(null); setTransactionCode(''); setManualAmount(null);
+      state.reload();
+      await openDetail(manualInvoiceId);
+    } catch (error) { message.error(errorText(error)); }
+    finally { setManualBusy(false); }
+  };
+
   return (
     <Page title="Hóa đơn và thanh toán" description="Tra cứu các khoản cần thanh toán và lịch sử giao dịch của bạn.">
       <State state={state} empty="Bạn chưa có hóa đơn nào.">
@@ -710,7 +728,10 @@ export function InvoicesPage() {
                         loading={checkoutId === item.id}
                         onClick={() => void checkout(item.id)}
                       >
-                        Thanh toán
+                        Thanh toán SePay
+                      </Button>,
+                      <Button key="manual" onClick={() => { setManualInvoiceId(item.id); setManualAmount(item.totalAmount); setTransactionCode(''); }}>
+                        Báo đã chuyển khoản
                       </Button>
                     ] : [])
                   ]}
@@ -736,6 +757,13 @@ export function InvoicesPage() {
       </State>
       <PageFooter state={state} />
 
+      <Modal title="Báo đã chuyển khoản" open={!!manualInvoiceId} onCancel={() => setManualInvoiceId(null)} onOk={() => void submitManualPayment()} confirmLoading={manualBusy} okText="Gửi xác nhận" cancelText="Đóng">
+        <Alert type="warning" showIcon message="Chỉ gửi sau khi bạn đã thực hiện chuyển khoản thật" description="Chủ nhà sẽ đối chiếu tiền trong tài khoản ngân hàng trước khi xác nhận. Việc gửi thông tin này chưa có nghĩa là hóa đơn đã được thanh toán." style={{marginBottom:16}}/>
+        <Typography.Text strong>Số tiền đã chuyển</Typography.Text>
+        <InputNumber min={1} precision={0} value={manualAmount} onChange={value => setManualAmount(value)} style={{width:'100%',marginTop:8,marginBottom:16}}/>
+        <Typography.Text strong>Mã giao dịch ngân hàng (nếu có)</Typography.Text>
+        <Input value={transactionCode} onChange={event => setTransactionCode(event.target.value)} maxLength={150} placeholder="Nhập mã tham chiếu giao dịch" style={{marginTop:8}}/>
+      </Modal>
       <Modal
         title="Chi tiết hóa đơn và lịch sử thanh toán"
         open={!!detail}
