@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Avatar, Button, Dropdown, Layout, Menu, Space, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -11,7 +12,6 @@ import {
   HomeOutlined,
   LogoutOutlined,
   MessageOutlined,
-  SettingOutlined,
   TeamOutlined,
   UserOutlined
 } from '@ant-design/icons';
@@ -20,7 +20,7 @@ import { useAuth } from '../app/AuthContext';
 
 const { Sider, Header, Content, Footer } = Layout;
 
-export function ManagementLayout({ children }: { children: React.ReactNode }) {
+export function ManagementLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
