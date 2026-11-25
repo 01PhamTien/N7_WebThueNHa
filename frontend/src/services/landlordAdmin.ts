@@ -256,7 +256,7 @@ export interface ChatPageParams extends PageParams {
 }
 
 export const landlordAdminApi = {
-  myProperties: (params: PageParams & { status?: string } = {}) =>
+  myProperties: (params: PageParams & { status?: string; keyword?: string } = {}) =>
     api.get<PagedResult<PropertyDto>>('/api/properties/mine', { params: { page: 1, pageSize: 10, ...params } }),
   property: (id: string) => api.get<PropertyDto>('/api/properties/' + id),
   createProperty: (data: PropertyRequest) => api.post<PropertyDto>('/api/properties', data),
@@ -266,19 +266,19 @@ export const landlordAdminApi = {
   deletePropertyImage: (id: string, imageId: string) => api.delete<void>('/api/properties/' + id + '/images/' + imageId),
   primaryPropertyImage: (id: string, imageId: string) => api.put<void>('/api/properties/' + id + '/images/' + imageId + '/primary'),
 
-  incomingBookings: (params: PageParams & { status?: string } = {}) =>
+  incomingBookings: (params: PageParams & { status?: string; keyword?: string } = {}) =>
     api.get<PagedResult<BookingDto>>('/api/bookings/incoming', { params: { page: 1, pageSize: 10, ...params } }),
   booking: (id: string) => api.get<BookingDto>('/api/bookings/' + id),
   acceptBooking: (id: string) => api.patch<BookingDto>('/api/bookings/' + id + '/accept'),
   rejectBooking: (id: string, reason: string) => api.patch<BookingDto>('/api/bookings/' + id + '/reject', { reason }),
 
-  contracts: (params: PageParams & { status?: string } = {}) =>
+  contracts: (params: PageParams & { status?: string; keyword?: string } = {}) =>
     api.get<PagedResult<ContractDto>>('/api/contracts', { params: { page: 1, pageSize: 10, ...params } }),
   createContract: (bookingId: string) => api.post<ContractDto>('/api/contracts/from-booking/' + bookingId),
   updateContract: (id: string, data: UpdateContractRequest) => api.put<ContractDto>('/api/contracts/' + id, data),
   submitContract: (id: string) => api.post<ContractDto>('/api/contracts/' + id + '/submit'),
 
-  invoices: (params: PageParams & { status?: string; type?: string } = {}) =>
+  invoices: (params: PageParams & { status?: string; type?: string; keyword?: string } = {}) =>
     api.get<PagedResult<InvoiceListDto>>('/api/invoices', { params: { page: 1, pageSize: 10, ...params } }),
   invoice: (id: string) => api.get<InvoiceDetailDto>('/api/invoices/' + id),
   createInvoice: (contractId: string, data: CreateInvoiceRequest) =>
@@ -320,7 +320,7 @@ export const landlordAdminApi = {
   updateUserRoles: (id: string, roles: string[]) =>
     api.put<{ userId: string; roles: string[] }>('/api/admin/users/' + id + '/roles', { roles }),
 
-  moderationProperties: (params: PageParams & { status?: string; keyword?: string; province?: string; propertyTypeId?: number } = {}) =>
+  moderationProperties: (params: PageParams & { status?: string; listingStatus?: string; keyword?: string; province?: string; propertyTypeId?: number } = {}) =>
     api.get<PagedResult<ModerationPropertyDto>>('/api/admin/properties', { params: { page: 1, pageSize: 10, ...params } }),
   moderationDetail: (id: string) => api.get<ModerationPropertyDto>('/api/admin/properties/' + id),
   approveProperty: (id: string) => api.post<void>('/api/admin/properties/' + id + '/approve'),
