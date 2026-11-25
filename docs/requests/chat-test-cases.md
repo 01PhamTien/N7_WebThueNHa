@@ -21,7 +21,8 @@
 | C07 | Tenant A gui tin vao conversation khong tham gia | 404 | Chua chay |
 | C08 | Gui noi dung rong/chi co khoang trang | 400 | Chua chay |
 | C09 | Danh sach conversation page/pageSize hop le | 200; chi participant cua user hien tai; item co unreadCount | Chua chay |
-| C10 | includeArchived=false/true | Mac dinh an conversation archived; true hien ca hai | Chua chay |
+| C10 | includeArchived=false | Chi tra ve hoi thoai chua luu tru cua participant hien tai | Chua chay |
+| C10a | includeArchived=true | Chi tra ve hoi thoai da luu tru cua participant hien tai | Chua chay |
 | C11 | page=0, pageSize=0 hoac vuot max | 400 | Chua chay |
 | C12 | Page vuot totalPages | 200; items rong va metadata dung | Chua chay |
 | C13 | Lich su tin nhan page 1/page 2 | Khong trung tin; thu tu trong tung trang tang dan theo SentAt/Id | Chua chay |
