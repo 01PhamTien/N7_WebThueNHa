@@ -14,19 +14,31 @@ public static class RentalPricing
         if (monthlyRent <= 0 || endDate <= startDate)
             return new RentalPriceBreakdown(0, 0, 0m, 0m);
 
-        var fullMonths = 0;
-        var remainderStart = startDate;
+        // Mỗi kỳ tháng được tính từ ngày bắt đầu ban đầu, tránh trôi ngày
+        // khi ngày 29/30/31 phải rút ngắn ở tháng 2 hoặc tháng có ít ngày.
+        var fullMonths = Math.Max(
+            0,
+            (endDate.Year - startDate.Year) * 12 + endDate.Month - startDate.Month);
 
-        while (remainderStart <= DateOnly.MaxValue.AddMonths(-1))
+        while (fullMonths > 0 && startDate.AddMonths(fullMonths) > endDate)
+            fullMonths--;
+
+        while (true)
         {
-            var nextMonth = remainderStart.AddMonths(1);
-            if (nextMonth > endDate)
-                break;
+            try
+            {
+                if (startDate.AddMonths(fullMonths + 1) > endDate)
+                    break;
 
-            fullMonths++;
-            remainderStart = nextMonth;
+                fullMonths++;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                break;
+            }
         }
 
+        var remainderStart = startDate.AddMonths(fullMonths);
         var extraDays = endDate.DayNumber - remainderStart.DayNumber;
         var dailyRate = decimal.Round(monthlyRent / 30m, 0, MidpointRounding.AwayFromZero);
         var totalAmount = decimal.Round(
