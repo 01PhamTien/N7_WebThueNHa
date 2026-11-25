@@ -30,6 +30,7 @@ import type {
   AdminPaymentListDto,
   AdminReviewDto,
   AdminModerationLogDto,
+  PagedResult,
   CreateAdminUserRequest,
   ModerationPropertyDto,
   PropertyImageDto,
@@ -100,14 +101,7 @@ export function AdminDashboard() {
   );
 }
 
-interface AdminOperationsPageResult<T> {
-  items: T[];
-  page: number;
-  pageSize: number;
-  totalItems: number;
-}
-
-const emptyAdminPage = <T,>(): { data: AdminOperationsPageResult<T> } => ({
+const emptyAdminPage = <T,>(): { data: PagedResult<T> } => ({
   data: { items: [], page: 1, pageSize: 10, totalItems: 0 }
 });
 
@@ -160,7 +154,7 @@ export function AdminOperations() {
   };
 
   const renderTable = <T extends { id: string }>(
-    q: ReturnType<typeof useRequest<AdminOperationsPageResult<T>>>,
+    q: ReturnType<typeof useRequest<PagedResult<T>>>,
     columns: ColumnsType<T>,
     emptyText: string
   ) => (
