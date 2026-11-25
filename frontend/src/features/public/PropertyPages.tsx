@@ -15,7 +15,8 @@ import {
   Row,
   Space,
   Spin,
-  Tag
+  Tag,
+  Typography
 } from 'antd';
 import {
   ArrowRightOutlined,
@@ -45,6 +46,23 @@ function addCalendarMonth(value: string): string {
 
 function localDateValue(date = new Date()): string {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+}
+
+function calculateRent(monthlyRent: number, startDate: string, endDate: string) {
+  let cursor = startDate;
+  let fullMonths = 0;
+  while (addCalendarMonth(cursor) <= endDate) {
+    cursor = addCalendarMonth(cursor);
+    fullMonths += 1;
+  }
+  const utc = (value: string) => {
+    const [year, month, day] = value.split('-').map(Number);
+    return Date.UTC(year, month - 1, day);
+  };
+  const extraDays = Math.max(0, Math.round((utc(endDate) - utc(cursor)) / 86400000));
+  const dailyRate = Math.round(monthlyRent / 30);
+  const total = Math.round(monthlyRent * fullMonths + monthlyRent * extraDays / 30);
+  return { fullMonths, extraDays, dailyRate, total };
 }
 
 function PropertyCard({ item, to }: { item: PropertyItem; to: string }) {
@@ -626,8 +644,8 @@ export function PropertyDetailPage() {
           <Alert
             type="info"
             showIcon
-            message="Tin đăng này cho thuê theo tháng"
-            description="Thời gian thuê tối thiểu là một tháng lịch. Gửi yêu cầu chưa phát sinh thanh toán; tiền thuê và tiền cọc cuối cùng sẽ được ghi rõ trong hợp đồng."
+            message="Giá niêm yết là giá thuê mỗi tháng"
+            description="Tháng tròn tính theo giá tháng; phần ngày lẻ tính bằng giá tháng chia 30 nhân số ngày. Gửi yêu cầu chưa phát sinh thanh toán; tiền cọc và lịch thanh toán được xác nhận trong hợp đồng."
             style={{ marginBottom: 16 }}
           />
           <Form.Item name="startDate" label="Ngày bắt đầu" rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu.' }]}>
@@ -639,7 +657,7 @@ export function PropertyDetailPage() {
           >
             {({ getFieldValue }) => {
               const startDate = getFieldValue('startDate') || localDateValue();
-              const minimumEndDate = addCalendarMonth(startDate);
+              const minimumEndDate = startDate;
               return (
                 <Form.Item
                   name="endDate"
@@ -647,14 +665,41 @@ export function PropertyDetailPage() {
                   rules={[
                     { required: true, message: 'Vui lòng chọn ngày kết thúc.' },
                     {
-                      validator: (_, value) => !value || value >= minimumEndDate
+                      validator: (_, value) => !value || value > startDate
                         ? Promise.resolve()
-                        : Promise.reject(new Error('Thời gian thuê tối thiểu là một tháng lịch.'))
+                        : Promise.reject(new Error('Ngày kết thúc phải sau ngày bắt đầu.'))
                     }
                   ]}
                 >
-                  <Input type="date" min={minimumEndDate} />
+                  <Input type="date" min={startDate} />
                 </Form.Item>
+              );
+            }}
+          </Form.Item>
+          <Form.Item
+            noStyle
+            shouldUpdate={(previous, current) =>
+              previous.startDate !== current.startDate ||
+              previous.endDate !== current.endDate ||
+              previous.proposedPrice !== current.proposedPrice
+            }
+          >
+            {({ getFieldValue }) => {
+              const startDate = getFieldValue('startDate');
+              const endDate = getFieldValue('endDate');
+              const monthlyRent = Number(getFieldValue('proposedPrice') || property.pricePerMonth || 0);
+              if (!startDate || !endDate || endDate <= startDate || monthlyRent <= 0) return null;
+              const estimate = calculateRent(monthlyRent, startDate, endDate);
+              return (
+                <div className="booking-price-summary">
+                  <div>
+                    <Typography.Text type="secondary">Tiền thuê ước tính cho kỳ này</Typography.Text>
+                    <Typography.Title level={4}>{estimate.total.toLocaleString('vi-VN')} đ</Typography.Title>
+                  </div>
+                  <Typography.Text type="secondary">
+                    {estimate.fullMonths} tháng tròn + {estimate.extraDays} ngày lẻ · Đơn giá ngày lẻ khoảng {estimate.dailyRate.toLocaleString('vi-VN')} đ/ngày.
+                  </Typography.Text>
+                </div>
               );
             }}
           </Form.Item>
