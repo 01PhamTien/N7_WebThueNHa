@@ -94,6 +94,21 @@ namespace Web2_ThueNha.Migrations
                     b.Property<Guid>("CreatedById")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal>("DepositAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("AdditionalFeesDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("FurnishingDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("MaxOccupants")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("LandlordId")
                         .HasColumnType("uniqueidentifier");
 
