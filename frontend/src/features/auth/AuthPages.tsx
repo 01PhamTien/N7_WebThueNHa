@@ -80,11 +80,15 @@ export function LoginPage() {
     setSubmitting(true);
     try {
       const user = await login(values);
+      // Tài khoản quản trị/chủ nhà luôn vào đúng khu vực quản lý,
+      // không dùng đường dẫn tenant cũ còn lưu trong state của lần đăng nhập trước.
+      const roleHome = user.roles.includes('Admin')
+        ? '/admin'
+        : user.roles.includes('Landlord')
+          ? '/landlord'
+          : null;
       const from = (location.state as { from?: string } | null)?.from;
-      navigate(
-        from || (user.roles.includes('Admin') ? '/admin' : user.roles.includes('Landlord') ? '/landlord' : '/'),
-        { replace: true }
-      );
+      navigate(roleHome || from || '/', { replace: true });
     } catch (error) {
       message.error(errorText(error));
     } finally {
