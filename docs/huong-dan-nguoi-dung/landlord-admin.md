@@ -253,7 +253,7 @@ Nút thao tác chỉ xuất hiện khi trạng thái hiện tại cho phép hàn
 - **Trạng thái kiểm duyệt:** Draft, Pending, Approved, Rejected.
 - **Trạng thái hiển thị tin:** Draft, Published, Hidden, Closed.
 
-Một tin có thể đã được duyệt (`Approved`) nhưng đang bị ẩn (`Hidden`). Trong giao diện hiện tại, bộ lọc danh sách kiểm duyệt gồm Draft, Pending, Approved và Rejected; trạng thái Hidden được xem trong chi tiết tin thông qua trạng thái hiển thị.
+Một tin có thể đã được duyệt (`Approved`) nhưng đang bị ẩn (`Hidden`). Khi chọn trạng thái hiển thị Published, Hidden hoặc Closed, giao diện tự chuyển bộ lọc kiểm duyệt sang Approved để hiển thị đúng nhóm tin tương ứng. Với Draft, bộ lọc kiểm duyệt chuyển về Pending; có thể thay đổi bộ lọc kiểm duyệt nếu cần xem nhóm khác.
 
 ## 4. Lưu ý khi thao tác
 
