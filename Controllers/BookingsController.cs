@@ -132,6 +132,7 @@ public sealed class BookingsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] BookingStatus? status = null,
+        [FromQuery] string? keyword = null,
         CancellationToken cancellationToken = default)
     {
         if (!TryGetCurrentUserId(out var landlordId))
@@ -140,8 +141,9 @@ public sealed class BookingsController : ControllerBase
         if (!IsValidPaging(page, pageSize))
             return BadRequest(new { message = "page phải lớn hơn hoặc bằng 1; pageSize phải từ 1 đến 50." });
 
-        if (status.HasValue && !Enum.IsDefined(status.Value))
-            return BadRequest(new { message = "Trạng thái yêu cầu thuê không hợp lệ." });
+        if ((status.HasValue && !Enum.IsDefined(status.Value)) ||
+            (keyword is { Length: > 100 }))
+            return BadRequest(new { message = "Tham số tìm kiếm hoặc trạng thái yêu cầu thuê không hợp lệ." });
 
         var query = _db.Bookings.AsNoTracking()
             .Where(x => _db.Properties.Any(p =>
@@ -149,6 +151,15 @@ public sealed class BookingsController : ControllerBase
 
         if (status.HasValue)
             query = query.Where(x => x.Status == status.Value);
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var term = keyword.Trim();
+            query = query.Where(x =>
+                x.Tenant.FullName.Contains(term) ||
+                x.Tenant.Email.Contains(term) ||
+                x.Property.Title.Contains(term));
+        }
 
         return await CreatePagedResponse(query, page, pageSize, cancellationToken);
     }
