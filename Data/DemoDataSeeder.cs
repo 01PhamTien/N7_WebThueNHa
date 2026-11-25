@@ -294,7 +294,7 @@ public static class DemoDataSeeder
                 var periodEnd = periodStart.AddMonths(1).AddDays(-1);
                 var monthlyStatus = contract.Status == RentalContractStatus.Draft
                     ? InvoiceStatus.Draft
-                    : (index + month) % 4 switch
+                    : ((index + month) % 4) switch
                     {
                         0 => InvoiceStatus.Paid,
                         1 => InvoiceStatus.PartiallyPaid,
@@ -552,6 +552,6 @@ public static class DemoDataSeeder
         return user;
     }
 
-    private static Guid DemoId(int prefix, int index) =>
+    private static Guid DemoId(uint prefix, int index) =>
         Guid.Parse(prefix.ToString("x8") + "-d3a0-4e00-9000-" + index.ToString("D12"));
 }
