@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Properties;
+using Web2_ThueNha.Repositories.Properties;
 
 namespace Web2_ThueNha.Controllers;
 
 [ApiController]
 [Route("api/properties")]
-public sealed class PropertiesController(AppDbContext db) : ControllerBase
+public sealed class PropertiesController(AppDbContext db, IPropertyQueryRepository propertyQueries) : ControllerBase
 {
     private const int MaxPageSize = 50;
 
@@ -37,9 +38,7 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
             (minArea.HasValue && maxArea.HasValue && minArea > maxArea))
             return BadRequest(new { message = "Tham số lọc hoặc phân trang không hợp lệ." });
 
-        var query = db.Properties.AsNoTracking()
-            .Where(x => x.ListingStatus == PropertyListingStatus.Published &&
-                        x.ModerationStatus == PropertyModerationStatus.Approved);
+        var query = propertyQueries.GetPublicPropertiesQuery();
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -96,10 +95,7 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetProperty(Guid id, CancellationToken cancellationToken)
     {
-        var property = await db.Properties.AsNoTracking()
-            .Include(x => x.PropertyType)
-            .Include(x => x.Images.OrderBy(i => i.DisplayOrder))
-            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var property = await propertyQueries.GetDetailAsync(id, cancellationToken);
 
         if (property is null)
             return NotFound(new { message = "Không tìm thấy căn nhà." });
@@ -134,8 +130,7 @@ public sealed class PropertiesController(AppDbContext db) : ControllerBase
             return BadRequest(new { message = "Tham số phân trang hoặc trạng thái không hợp lệ." });
 
         // Luôn giới hạn dữ liệu theo chủ nhà trong JWT; không nhận LandlordId từ client.
-        IQueryable<Property> query = db.Properties.AsNoTracking()
-            .Where(x => x.LandlordId == userId);
+        IQueryable<Property> query = propertyQueries.GetLandlordPropertiesQuery(userId);
 
         if (status.HasValue)
             query = query.Where(x => x.ListingStatus == status.Value);

@@ -8,6 +8,10 @@ using Web2_ThueNha.Services.Contracts;
 using Web2_ThueNha.Services.Payments;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.Hubs;
+using Web2_ThueNha.Middleware;
+using Web2_ThueNha.Repositories.Favorites;
+using Web2_ThueNha.Repositories.Moderation;
+using Web2_ThueNha.Repositories.Properties;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -118,6 +122,9 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
+builder.Services.AddScoped<IPropertyModerationRepository, PropertyModerationRepository>();
+builder.Services.AddScoped<IPropertyQueryRepository, PropertyQueryRepository>();
 builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<User>, Microsoft.AspNetCore.Identity.PasswordHasher<User>>();
@@ -134,6 +141,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

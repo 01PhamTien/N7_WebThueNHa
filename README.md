@@ -177,3 +177,14 @@ API thông báo cá nhân dùng `INotificationService` và bảng `Notifications
 Request API đọc thông báo nằm trong `Requests/notifications.http`; checklist API thông báo nằm trong `docs/requests/notification-test-cases.md`; checklist tích hợp nghiệp vụ nằm trong `docs/requests/notification-integration-test-cases.md`.
 
 Thông báo không được tạo khi nghiệp vụ trả lỗi hoặc request lặp không làm thay đổi trạng thái. SignalR chỉ phát realtime sau khi transaction đã commit; retry SignalR không gọi lại thao tác tạo notification.
+
+
+## Middleware và Repository
+
+- `ExceptionHandlingMiddleware` được đăng ký trước HTTPS redirection, Authentication và Authorization để chuẩn hóa lỗi phát sinh trong pipeline thành ProblemDetails có `traceId`.
+- Ở Production, response chỉ chứa thông báo an toàn; log chỉ ghi loại exception, phương thức, đường dẫn và TraceIdentifier, không ghi nội dung exception/SQL.
+- Repository được tách theo truy vấn có phạm vi rõ ràng: `PropertyQueryRepository` cho truy vấn đọc Property; `FavoriteRepository` cho truy vấn/thao tác Favorites; `PropertyModerationRepository` cho truy vấn danh sách, chi tiết, lịch sử và bản ghi kiểm duyệt.
+- Controller vẫn giữ các thao tác ghi nghiệp vụ Property và transaction kiểm duyệt tại AppDbContext để không làm thay đổi luồng hiện có. Không tạo generic repository cho mọi DbSet.
+- Interface/implementation được đăng ký Scoped qua Dependency Injection trong `Program.cs`.
+
+Checklist kiểm thử (chưa đánh dấu Passed trước khi chạy thật): `docs/requests/middleware-repository-test-cases.md`.
