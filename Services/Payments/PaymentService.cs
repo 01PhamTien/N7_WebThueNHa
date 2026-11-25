@@ -400,6 +400,9 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
 
         foreach (var contract in contracts)
         {
+            await using var transaction = await db.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable, cancellationToken);
+
             var existing = await db.Invoices
                 .Where(x => x.ContractId == contract.Id && x.Status != InvoiceStatus.Cancelled)
                 .Select(x => new { x.InvoiceType, x.PeriodStart, x.PeriodEnd })
@@ -468,7 +471,11 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
                 periodIndex++;
             }
 
-            if (missing.Count == 0) continue;
+            if (missing.Count == 0)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                continue;
+            }
 
             db.Invoices.AddRange(missing);
             await db.SaveChangesAsync(cancellationToken);
@@ -483,6 +490,8 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
                     invoice.Id,
                     cancellationToken);
             }
+
+            await transaction.CommitAsync(cancellationToken);
         }
     }
 
