@@ -103,7 +103,7 @@ Mở **Yêu cầu thuê** tại `/landlord/bookings`.
 - Kết hợp từ khóa với bộ lọc trạng thái và phân trang.
 
 1. Chọn bộ lọc trạng thái để xem yêu cầu đang chờ (`Pending`), đã chấp nhận (`Accepted`), đã từ chối (`Rejected`), đã hủy (`Cancelled`) hoặc hết hạn (`Expired`).
-2. Xem thông tin trong danh sách: căn nhà, người thuê, thời gian thuê, giá đề xuất và trạng thái.
+2. Xem thông tin trong danh sách: căn nhà, người thuê, thời gian thuê, giá đề xuất mỗi tháng, tổng tiền thuê ước tính cho kỳ và trạng thái.
 3. Chọn **Chi tiết** để xem số người thuê và lời nhắn của người thuê.
 4. Với yêu cầu đang **Pending**:
    - Chọn **Chấp nhận** và xác nhận để chấp nhận yêu cầu.
@@ -118,10 +118,10 @@ Mở **Hợp đồng** tại `/landlord/contracts`.
 
 - Nhập từ khóa để tìm theo mã hợp đồng, tên người thuê hoặc tiêu đề căn nhà; có thể kết hợp bộ lọc trạng thái.
 
-1. Danh sách hiển thị mã hợp đồng, căn nhà, người thuê, thời hạn, tiền thuê và trạng thái.
+1. Danh sách hiển thị mã hợp đồng, căn nhà, người thuê, thời hạn, đơn giá mỗi tháng, tổng tiền thuê ước tính cả kỳ và trạng thái.
 2. Hợp đồng mới tạo từ Booking Accepted ở trạng thái **Draft** (bản nháp).
 3. Với hợp đồng Draft, chọn **Chỉnh sửa** để cập nhật:
-   - Ngày bắt đầu và ngày kết thúc.
+   - Ngày bắt đầu và ngày kết thúc (ngày kết thúc không tính vào số ngày thuê).
    - Tiền thuê mỗi tháng.
    - Tiền đặt cọc.
    - Ngày đến hạn thanh toán hàng tháng (từ ngày 1 đến ngày 28).
@@ -144,9 +144,11 @@ Mở **Hóa đơn** tại `/landlord/invoices`.
 
 **Tạo hóa đơn**
 
-Giao diện hiện có nút **Tạo hóa đơn**. Biểu mẫu yêu cầu Contract ID (UUID), loại hóa đơn, ngày phát hành, hạn thanh toán, kỳ thanh toán (bắt buộc với tiền thuê hàng tháng), nội dung dòng hóa đơn, số lượng và đơn giá. Hạn thanh toán không được trước ngày phát hành; ngày kết thúc kỳ không được trước ngày bắt đầu kỳ. Hợp đồng phải thuộc Chủ nhà và ở trạng thái **Active** (đã được cả hai bên ký) thì Backend mới cho phát hành hóa đơn.
+Giao diện hiện có nút **Tạo hóa đơn**. Biểu mẫu yêu cầu Contract ID (UUID), loại hóa đơn, ngày phát hành, hạn thanh toán và kỳ thanh toán (bắt buộc với tiền thuê hàng tháng). Hạn thanh toán không được trước ngày phát hành; ngày kết thúc kỳ phải sau ngày bắt đầu kỳ. Hợp đồng phải thuộc Chủ nhà và ở trạng thái **Active** (đã được cả hai bên ký) thì Backend mới cho phát hành hóa đơn.
 
-> **Lưu ý:** Với loại **Tiền thuê hàng tháng**, cần nhập cả ngày bắt đầu và ngày kết thúc kỳ thanh toán theo định dạng `YYYY-MM-DD`. Với loại khác, hai trường kỳ thanh toán có thể để trống. Kiểm tra thông báo kết quả sau khi gửi để biết hóa đơn đã được tạo thành công hay chưa.
+> **Quy ước tiền thuê:** Mỗi tháng lịch tròn tính theo đơn giá tháng trong hợp đồng; phần ngày lẻ tính bằng đơn giá tháng chia 30 nhân số ngày lẻ. Ngày kết thúc kỳ không được tính vào số ngày thuê. Ví dụ, đơn giá 3.000.000đ/tháng thì 2 ngày là 200.000đ, 15 ngày là 1.500.000đ, một tháng tròn là 3.000.000đ và một tháng cộng 2 ngày là 3.200.000đ. Với hóa đơn **Tiền thuê hàng tháng**, Backend tự tính tiền từ hợp đồng, không dùng đơn giá do trình duyệt gửi lên; chỉ nhập một dòng tiền thuê. Phí điện, nước và khoản phát sinh lập hóa đơn loại **Khác**. Không thể tạo kỳ tiền thuê chồng lấn với hóa đơn chưa hủy.
+
+Với loại **Khác**, nhập nội dung, số lượng và đơn giá của từng khoản. Hai trường kỳ thanh toán có thể để trống nếu khoản phí không gắn với một khoảng thời gian. Kiểm tra thông báo kết quả sau khi gửi để biết hóa đơn đã được tạo thành công hay chưa.
 
 **Phân biệt Manual và SePay**
 
@@ -169,7 +171,7 @@ Giới hạn tệp đính kèm theo Backend:
 - Định dạng được hỗ trợ: **JPG/JPEG, PNG, WEBP, PDF, DOC, DOCX**.
 - Phần mở rộng, kiểu nội dung và chữ ký tệp phải phù hợp; đổi tên đuôi tệp không hợp lệ sẽ không giúp tải lên thành công.
 
-Khi mở hội thoại, hệ thống tải lịch sử tin nhắn và đánh dấu hội thoại đã đọc. Dùng hai nút **Đang hoạt động** và **Đã lưu trữ** để chuyển giữa các danh sách. Trong hội thoại, chọn **Lưu trữ** để ẩn hội thoại khỏi danh sách đang hoạt động; chọn **Khôi phục** trong danh sách đã lưu trữ để đưa hội thoại trở lại. Lưu trữ không xóa tin nhắn hoặc dữ liệu hội thoại. Tin nhắn mới được đồng bộ realtime khi kết nối hoạt động. Nếu tải/gửi tin nhắn hoặc tệp thất bại, giao diện hiển thị thông báo lỗi; hãy kiểm tra kết nối, quyền truy cập và định dạng/dung lượng tệp rồi thử lại.
+Khi mở hội thoại, hệ thống tải lịch sử tin nhắn và đánh dấu hội thoại đã đọc. Dùng bộ lọc **Hộp thư đến** để xem hội thoại đang hoạt động và **Đã lưu trữ** để xem các hội thoại đã cất đi. Trong hội thoại, chọn **Lưu trữ** để chuyển hội thoại khỏi hộp thư đến; chọn **Đưa về hộp thư đến** để tiếp tục trao đổi. Lưu trữ không xóa tin nhắn hoặc dữ liệu hội thoại. Giao diện không cung cấp thao tác sửa hoặc xóa tin nhắn đã gửi. Tin nhắn mới được đồng bộ realtime khi kết nối hoạt động. Nếu tải/gửi tin nhắn hoặc tệp thất bại, giao diện hiển thị thông báo lỗi; hãy kiểm tra kết nối, quyền truy cập và định dạng/dung lượng tệp rồi thử lại.
 
 ### 2.7. Thông báo
 
