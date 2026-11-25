@@ -63,7 +63,7 @@ export function LandlordProperties() {
   const [page,setPage]=useState(1); const [status,setStatus]=useState<string|undefined>();
   const q=useRequest(()=>api.myProperties({page,pageSize:10,status}),[page,status]);
   const [editing,setEditing]=useState<PropertyDto|null>(null); const [images,setImages]=useState<PropertyDto|null>(null);
-  const [form]=Form.useForm<InvoiceFormValues>(); const {message}=AntApp.useApp();
+  const [form]=Form.useForm(); const {message}=AntApp.useApp();
   const openEdit=(row?:PropertyDto)=>{setEditing(row||({} as PropertyDto));form.setFieldsValue(row||{propertyTypeId:1,bedrooms:0,bathrooms:0});};
   const save=async(v:PropertyRequest)=>{try{if(editing?.id) await api.updateProperty(editing.id,v); else await api.createProperty(v);message.success('Đã lưu tin đăng. Tin sẽ ở trạng thái chờ duyệt sau khi tạo/cập nhật.');setEditing(null);form.resetFields();await q.refresh();}catch(e){message.error(errorText(e));}};
   const columns:ColumnsType<PropertyDto>=[
@@ -95,7 +95,7 @@ export function LandlordBookings() {
 }
 
 export function LandlordContracts() {
-  const [page,setPage]=useState(1); const [status,setStatus]=useState<string|undefined>(); const q=useRequest(()=>api.contracts({page,pageSize:10,status}),[page,status]); const [edit,setEdit]=useState<ContractDto|null>(null); const [form]=Form.useForm(); const {message}=AntApp.useApp();
+  const [page,setPage]=useState(1); const [status,setStatus]=useState<string|undefined>(); const q=useRequest(()=>api.contracts({page,pageSize:10,status}),[page,status]); const [edit,setEdit]=useState<ContractDto|null>(null); const [form]=Form.useForm<ContractFormValues>(); const {message}=AntApp.useApp();
   const columns:ColumnsType<ContractDto>=[
     {title:'Mã hợp đồng',dataIndex:'contractCode'},
     {title:'Căn nhà',dataIndex:'propertyTitle'},
@@ -109,7 +109,7 @@ export function LandlordContracts() {
 }
 
 export function LandlordInvoices() {
-  const [page,setPage]=useState(1); const [status,setStatus]=useState<string|undefined>(); const [type,setType]=useState<string|undefined>(); const q=useRequest(()=>api.invoices({page,pageSize:10,status,type}),[page,status,type]); const [detail,setDetail]=useState<InvoiceDetailDto|null>(null); const [contract,setContract]=useState(''); const [form]=Form.useForm(); const {message}=AntApp.useApp();
+  const [page,setPage]=useState(1); const [status,setStatus]=useState<string|undefined>(); const [type,setType]=useState<string|undefined>(); const q=useRequest(()=>api.invoices({page,pageSize:10,status,type}),[page,status,type]); const [detail,setDetail]=useState<InvoiceDetailDto|null>(null); const [contract,setContract]=useState(''); const [form]=Form.useForm<InvoiceFormValues>(); const {message}=AntApp.useApp();
   const columns:ColumnsType<InvoiceListDto>=[
     {title:'Hóa đơn',dataIndex:'invoiceCode'}, {title:'Căn nhà',dataIndex:'propertyTitle'}, {title:'Loại',dataIndex:'invoiceType',render:(v:string)=><span>{invoiceTypeLabels[v] || v}</span>}, {title:'Hạn thanh toán',dataIndex:'dueDate'}, {title:'Tổng tiền',dataIndex:'totalAmount',render:money}, {title:'Trạng thái',dataIndex:'status',render:(v:string)=><Status value={v} label={invoiceStatusLabels[v] || v}/>},
     {title:'Thao tác',render:(_,r)=><Button size="small" onClick={async()=>{try{setDetail((await api.invoice(r.id)).data);}catch(e){message.error(errorText(e));}}}>Chi tiết & thanh toán</Button>}
