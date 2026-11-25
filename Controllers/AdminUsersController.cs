@@ -2,6 +2,7 @@ using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.DTOs.Admin;
@@ -14,8 +15,62 @@ namespace Web2_ThueNha.Controllers;
 public sealed class AdminUsersController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IPasswordHasher<User> _passwordHasher;
 
-    public AdminUsersController(AppDbContext db) => _db = db;
+    public AdminUsersController(AppDbContext db, IPasswordHasher<User> passwordHasher)
+    {
+        _db = db;
+        _passwordHasher = passwordHasher;
+    }
+
+    /// <summary>Tạo tài khoản do quản trị viên khởi tạo và gán vai trò.</summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(AdminUserDetail), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateUser(
+        CreateAdminUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        if (await _db.Users.AnyAsync(x => x.Email == email, cancellationToken))
+            return Conflict(new { message = "Email này đã được sử dụng." });
+
+        var requestedNames = request.Roles
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (requestedNames.Length == 0)
+            return BadRequest(new { message = "Tài khoản phải có ít nhất một vai trò." });
+
+        var roles = await _db.Roles
+            .Where(x => requestedNames.Contains(x.Name))
+            .ToListAsync(cancellationToken);
+        if (roles.Count != requestedNames.Length)
+            return BadRequest(new { message = "Vai trò không hợp lệ. Chỉ dùng Admin, Landlord hoặc Tenant." });
+
+        var user = new User
+        {
+            FullName = request.FullName.Trim(),
+            Email = email,
+            PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim(),
+            AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim(),
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
+        foreach (var role in roles)
+            user.UserRoles.Add(new UserRole { User = user, RoleId = role.Id });
+
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return CreatedAtAction(nameof(GetUser), new { userId = user.Id },
+            new AdminUserDetail(user.Id, user.FullName, user.Email, user.PhoneNumber,
+                user.AvatarUrl, user.IsActive, user.CreatedAt, user.UpdatedAt,
+                roles.Select(x => x.Name).ToArray()));
+    }
 
     /// <summary>Danh sách tài khoản, hỗ trợ tìm kiếm, lọc trạng thái và phân trang.</summary>
     [HttpGet]
@@ -99,6 +154,32 @@ public sealed class AdminUsersController : ControllerBase
             .SingleOrDefaultAsync(cancellationToken);
 
         return user is null ? NotFound(new { message = "Không tìm thấy tài khoản." }) : Ok(user);
+    }
+
+    /// <summary>Cập nhật thông tin hồ sơ tài khoản; email đăng nhập không thay đổi.</summary>
+    [HttpPut("{userId:guid}")]
+    public async Task<IActionResult> UpdateUser(
+        Guid userId,
+        UpdateAdminUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var user = await _db.Users.SingleOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        if (user is null)
+            return NotFound(new { message = "Không tìm thấy tài khoản." });
+
+        user.FullName = request.FullName.Trim();
+        user.PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim();
+        user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+        user.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var roles = await _db.UserRoles
+            .Where(x => x.UserId == userId)
+            .Select(x => x.Role.Name)
+            .ToArrayAsync(cancellationToken);
+
+        return Ok(new AdminUserDetail(user.Id, user.FullName, user.Email, user.PhoneNumber,
+            user.AvatarUrl, user.IsActive, user.CreatedAt, user.UpdatedAt, roles));
     }
 
     /// <summary>Khóa hoặc mở khóa tài khoản. Không cho phép tự khóa tài khoản đang đăng nhập.</summary>
@@ -228,6 +309,11 @@ public sealed class AdminUsersController : ControllerBase
             roles = roles.Select(x => x.Name).ToArray()
         });
     }
+
+    /// <summary>Xóa mềm tài khoản bằng cách ngừng hoạt động, giữ lịch sử giao dịch và quan hệ dữ liệu.</summary>
+    [HttpDelete("{userId:guid}")]
+    public Task<IActionResult> DeleteUser(Guid userId, CancellationToken cancellationToken) =>
+        UpdateStatus(userId, new UpdateUserStatusRequest { IsActive = false }, cancellationToken);
 
     private Guid? GetCurrentUserId()
     {
