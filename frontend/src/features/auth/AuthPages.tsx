@@ -304,7 +304,7 @@ export function ProfilePage() {
                       !value || /^[0-9+().\\-\\s]{8,20}$/.test(value)
                         ? Promise.resolve()
                         : Promise.reject(new Error('Số điện thoại chưa đúng định dạng.'))
-                  }]}$/, message: 'Số điện thoại chưa đúng định dạng.' }]}
+                  }]}
                 >
                   <Input autoComplete="tel" placeholder="Nhập số điện thoại" />
                 </Form.Item>
