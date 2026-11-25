@@ -270,6 +270,8 @@ public sealed class ChatController : ControllerBase
 
         participant.Conversation.LastMessageAt = message.SentAt;
         participant.LastReadAt = message.SentAt;
+        // Nếu người dùng gửi tin từ hội thoại đã lưu trữ, tự đưa hội thoại về hộp thư đến của họ.
+        participant.IsArchived = false;
 
         await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         _db.Messages.Add(message);
@@ -542,6 +544,8 @@ public sealed class ChatController : ControllerBase
 
         participant.Conversation.LastMessageAt = now;
         participant.LastReadAt = now;
+        // Gửi tệp cũng là một hoạt động mới, đưa hội thoại về hộp thư đến của người gửi.
+        participant.IsArchived = false;
         _db.Messages.Add(message);
 
         try
