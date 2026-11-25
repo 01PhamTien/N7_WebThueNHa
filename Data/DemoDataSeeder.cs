@@ -17,10 +17,7 @@ public static class DemoDataSeeder
         IPasswordHasher<User> passwordHasher,
         CancellationToken cancellationToken = default)
     {
-        // Một tài khoản đánh dấu giúp seed idempotent. Toàn bộ quá trình nằm trong transaction.
-        if (await db.Users.AnyAsync(x => x.Email == AdminEmail, cancellationToken))
-            return;
-
+        // Dữ liệu được đánh ID ổn định; mỗi lần chạy chỉ bổ sung bản ghi còn thiếu.
         var roles = await db.Roles.ToDictionaryAsync(x => x.Name, cancellationToken);
         var propertyTypes = await db.PropertyTypes.OrderBy(x => x.Id).ToListAsync(cancellationToken);
         var amenities = await db.Amenities.OrderBy(x => x.Id).ToListAsync(cancellationToken);
@@ -34,24 +31,58 @@ public static class DemoDataSeeder
         var now = DateTime.UtcNow;
         var today = DateOnly.FromDateTime(now);
 
-        var admin = CreateUser(0x10000001, 1, "Quản trị NhàỞ", AdminEmail, "0900000001", roles["Admin"].Id, passwordHasher, now);
-        var landlordNames = new[] { "Nguyễn Minh Anh", "Trần Quốc Bảo", "Lê Hoàng Nam", "Phạm Thu Hà", "Võ Thành Đạt" };
+        var admins = Enumerable.Range(1, 10).Select(index =>
+            CreateUser(
+                0x10000001,
+                index,
+                index == 1 ? "Quản trị NhàỞ" : "Quản trị viên " + index.ToString("00"),
+                index == 1 ? AdminEmail : "admin" + index.ToString("00") + "@nhao.test",
+                "09000000" + index.ToString("00"),
+                roles["Admin"].Id,
+                passwordHasher,
+                now.AddDays(-150 + index))).ToList();
+        var admin = admins[0];
+
+        var originalLandlordNames = new[]
+        {
+            "Nguyễn Minh Anh", "Trần Quốc Bảo", "Lê Hoàng Nam", "Phạm Thu Hà", "Võ Thành Đạt"
+        };
+        var landlordSurnames = new[] { "Nguyễn", "Trần", "Lê", "Phạm", "Võ", "Đặng", "Bùi", "Đỗ", "Hồ", "Phan" };
+        var landlordMiddles = new[] { "Minh", "Quốc", "Hoàng", "Thu", "Thành", "Gia", "Ngọc", "Thanh", "Anh", "Khánh" };
+        var landlordGivens = new[] { "Tuấn", "Huy", "Linh", "Mai", "Đạt", "Trang", "Khang", "Vy", "An", "Châu" };
+        var landlordNames = Enumerable.Range(1, 50).Select(index =>
+            index <= originalLandlordNames.Length
+                ? originalLandlordNames[index - 1]
+                : $"{landlordSurnames[(index - 6) % landlordSurnames.Length]} {landlordMiddles[(index - 6) / landlordSurnames.Length % landlordMiddles.Length]} {landlordGivens[(index - 6) % landlordGivens.Length]}"
+        ).ToArray();
         var landlords = landlordNames.Select((name, index) =>
             CreateUser(0x10000002, index + 1, name, "chunha" + (index + 1).ToString("00") + "@nhao.test",
                 "09100000" + (index + 1).ToString("00"), roles["Landlord"].Id, passwordHasher, now.AddDays(-120 + index))).ToList();
 
-        var tenantNames = new[]
+        var originalTenantNames = new[]
         {
             "Nguyễn Hoài An", "Trần Gia Huy", "Lê Khánh Linh", "Phạm Đức Anh", "Vũ Ngọc Mai",
             "Đặng Minh Khang", "Bùi Thanh Trúc", "Đỗ Nhật Nam", "Hồ Bảo Ngọc", "Phan Tuấn Kiệt",
             "Nguyễn Thảo Vy", "Trương Quang Huy", "Lý Minh Châu", "Dương Quốc Khánh", "Mai Phương Thảo",
             "Cao Anh Tú", "Tạ Ngọc Hân", "Đinh Thành Công"
         };
+        var tenantSurnames = new[] { "Nguyễn", "Trần", "Lê", "Phạm", "Vũ", "Đặng", "Bùi", "Đỗ", "Hồ", "Phan", "Trương", "Dương" };
+        var tenantMiddles = new[] { "Hoài", "Gia", "Khánh", "Đức", "Ngọc", "Minh", "Thanh", "Nhật", "Bảo", "Tuấn" };
+        var tenantGivens = new[] { "An", "Huy", "Linh", "Anh", "Mai", "Khang", "Trúc", "Nam", "Ngọc", "Kiệt", "Vy", "Châu", "Thảo", "Tú", "Hân" };
+        var tenantNames = Enumerable.Range(1, 180).Select(index =>
+            index <= originalTenantNames.Length
+                ? originalTenantNames[index - 1]
+                : $"{tenantSurnames[(index - 19) % tenantSurnames.Length]} {tenantMiddles[(index - 19) / tenantSurnames.Length % tenantMiddles.Length]} {tenantGivens[(index - 19) / (tenantSurnames.Length * tenantMiddles.Length) % tenantGivens.Length]}"
+        ).ToArray();
         var tenants = tenantNames.Select((name, index) =>
-            CreateUser(0x10000003, index + 1, name, "nguoithue" + (index + 1).ToString("00") + "@nhao.test",
-                "09200000" + (index + 1).ToString("00"), roles["Tenant"].Id, passwordHasher, now.AddDays(-90 + index))).ToList();
+            CreateUser(0x10000003, index + 1, name,
+                "nguoithue" + (index + 1).ToString(index + 1 <= 99 ? "00" : "000") + "@nhao.test",
+                index + 1 <= 99 ? "09200000" + (index + 1).ToString("00") : "092" + (index + 1).ToString("D7"),
+                roles["Tenant"].Id, passwordHasher, now.AddDays(-90 + index))).ToList();
 
-        db.Users.AddRange(new[] { admin }.Concat(landlords).Concat(tenants));
+        var allSeedUsers = admins.Concat(landlords).Concat(tenants).ToList();
+        var existingUserIds = await db.Users.Select(x => x.Id).ToHashSetAsync(cancellationToken);
+        db.Users.AddRange(allSeedUsers.Where(x => !existingUserIds.Contains(x.Id)));
         await db.SaveChangesAsync(cancellationToken);
 
         var cities = new[]
@@ -84,7 +115,7 @@ public static class DemoDataSeeder
         var prices = new[] { 1800000m, 2200000m, 2800000m, 3200000m, 3800000m, 4500000m, 5200000m, 6500000m, 7800000m, 9500000m };
         var properties = new List<Property>();
 
-        for (var i = 0; i < 45; i++)
+        for (var i = 0; i < 450; i++)
         {
             var city = cities[i % cities.Length];
             var state = i % 10;
@@ -106,7 +137,7 @@ public static class DemoDataSeeder
             properties.Add(new Property
             {
                 Id = DemoId(0x20000001, i + 1),
-                LandlordId = landlords[i % landlords.Count].Id,
+                LandlordId = landlords[i < 45 ? i % 5 : i % landlords.Count].Id,
                 PropertyTypeId = propertyTypes[i % propertyTypes.Count].Id,
                 Title = propertyTitles[i % propertyTitles.Length] + " #" + (i + 1).ToString("00"),
                 Description = descriptions[i % descriptions.Length],
@@ -123,46 +154,49 @@ public static class DemoDataSeeder
             });
         }
 
-        db.Properties.AddRange(properties);
+        var existingPropertyIds = await db.Properties.Select(x => x.Id).ToHashSetAsync(cancellationToken);
+        var newProperties = properties.Where(x => !existingPropertyIds.Contains(x.Id)).ToList();
+        db.Properties.AddRange(newProperties);
         await db.SaveChangesAsync(cancellationToken);
 
-        var propertyAmenities = properties.SelectMany((property, index) =>
-            Enumerable.Range(0, 3).Select(offset => new PropertyAmenity
+        var newPropertyIds = newProperties.Select(x => x.Id).ToHashSet();
+        var propertyAmenities = newProperties.SelectMany(property =>
+        {
+            var index = properties.FindIndex(x => x.Id == property.Id);
+            return Enumerable.Range(0, 3).Select(offset => new PropertyAmenity
             {
                 PropertyId = property.Id,
                 AmenityId = amenities[(index + offset * 2) % amenities.Count].Id
-            })).ToList();
+            });
+        }).ToList();
         db.PropertyAmenities.AddRange(propertyAmenities);
 
         var publishedProperties = properties
             .Where(x => x.ModerationStatus == PropertyModerationStatus.Approved
                 && x.ListingStatus == PropertyListingStatus.Published)
             .ToList();
+        var legacyPublishedCount = properties.Take(45)
+            .Count(x => x.ModerationStatus == PropertyModerationStatus.Approved
+                && x.ListingStatus == PropertyListingStatus.Published);
 
         var bookings = new List<Booking>();
-        for (var i = 0; i < 36; i++)
+        for (var i = 0; i < 360; i++)
         {
-            var status = i < 15
+            var status = i < 150
                 ? BookingStatus.Accepted
-                : i < 24
+                : i < 240
                     ? BookingStatus.Pending
-                    : i < 28
+                    : i < 280
                         ? BookingStatus.Rejected
-                        : i < 32
+                        : i < 320
                             ? BookingStatus.Cancelled
                             : BookingStatus.Expired;
 
-            var tenant = tenants[i % tenants.Count];
-            var property = publishedProperties[i % publishedProperties.Count];
-            var contractStatus = i < 7
-                ? RentalContractStatus.Active
-                : i < 10
-                    ? RentalContractStatus.AwaitingSignature
-                    : i < 12
-                        ? RentalContractStatus.Draft
-                        : i < 14
-                            ? RentalContractStatus.Completed
-                            : RentalContractStatus.Terminated;
+            var tenantIndex = i < 36 ? i % 18 : i % tenants.Count;
+            var propertyIndex = i < 36 ? i % legacyPublishedCount : i % publishedProperties.Count;
+            var tenant = tenants[tenantIndex];
+            var property = publishedProperties[propertyIndex];
+            var contractStatus = ContractStatusForDemoIndex(i);
 
             DateOnly startDate;
             DateOnly endDate;
@@ -207,7 +241,8 @@ public static class DemoDataSeeder
             });
         }
 
-        db.Bookings.AddRange(bookings);
+        var existingBookingIds = await db.Bookings.Select(x => x.Id).ToHashSetAsync(cancellationToken);
+        db.Bookings.AddRange(bookings.Where(x => !existingBookingIds.Contains(x.Id)));
         await db.SaveChangesAsync(cancellationToken);
 
         var acceptedBookings = bookings.Where(x => x.Status == BookingStatus.Accepted).ToList();
@@ -216,15 +251,7 @@ public static class DemoDataSeeder
         {
             var booking = acceptedBookings[i];
             var property = properties.Single(x => x.Id == booking.PropertyId);
-            var contractStatus = i < 7
-                ? RentalContractStatus.Active
-                : i < 10
-                    ? RentalContractStatus.AwaitingSignature
-                    : i < 12
-                        ? RentalContractStatus.Draft
-                        : i < 14
-                            ? RentalContractStatus.Completed
-                            : RentalContractStatus.Terminated;
+            var contractStatus = ContractStatusForDemoIndex(i);
             var landlordSigned = contractStatus is RentalContractStatus.Active
                 or RentalContractStatus.AwaitingSignature
                 or RentalContractStatus.Completed
@@ -255,7 +282,8 @@ public static class DemoDataSeeder
             });
         }
 
-        db.RentalContracts.AddRange(contracts);
+        var existingContractIds = await db.RentalContracts.Select(x => x.Id).ToHashSetAsync(cancellationToken);
+        db.RentalContracts.AddRange(contracts.Where(x => !existingContractIds.Contains(x.Id)));
         await db.SaveChangesAsync(cancellationToken);
 
         var invoices = new List<Invoice>();
@@ -326,7 +354,8 @@ public static class DemoDataSeeder
             }
         }
 
-        db.Invoices.AddRange(invoices);
+        var existingInvoiceIds = await db.Invoices.Select(x => x.Id).ToHashSetAsync(cancellationToken);
+        db.Invoices.AddRange(invoices.Where(x => !existingInvoiceIds.Contains(x.Id)));
         await db.SaveChangesAsync(cancellationToken);
 
         var payments = new List<Payment>();
@@ -365,7 +394,8 @@ public static class DemoDataSeeder
             paymentNumber++;
         }
 
-        db.Payments.AddRange(payments);
+        var existingPaymentIds = await db.Payments.Select(x => x.Id).ToHashSetAsync(cancellationToken);
+        db.Payments.AddRange(payments.Where(x => !existingPaymentIds.Contains(x.Id)));
         await db.SaveChangesAsync(cancellationToken);
 
         var conversations = new List<Conversation>();
@@ -383,7 +413,7 @@ public static class DemoDataSeeder
             "Mình đã nhận được thông tin. Hẹn gặp bạn!"
         };
 
-        foreach (var (booking, index) in bookings.Take(24).Select((value, index) => (value, index)))
+        foreach (var (booking, index) in bookings.Take(240).Select((value, index) => (value, index)))
         {
             var property = properties.Single(x => x.Id == booking.PropertyId);
             var landlordId = property.LandlordId;
@@ -431,10 +461,20 @@ public static class DemoDataSeeder
             }
         }
 
-        db.Conversations.AddRange(conversations);
+        var existingConversationIds = await db.Conversations.Select(x => x.Id).ToHashSetAsync(cancellationToken);
+        db.Conversations.AddRange(conversations.Where(x => !existingConversationIds.Contains(x.Id)));
         await db.SaveChangesAsync(cancellationToken);
-        db.ConversationParticipants.AddRange(participants);
-        db.Messages.AddRange(messages);
+
+        var existingParticipantKeys = (await db.ConversationParticipants
+            .Select(x => new { x.ConversationId, x.UserId })
+            .ToListAsync(cancellationToken))
+            .Select(x => x.ConversationId.ToString() + ":" + x.UserId.ToString())
+            .ToHashSet();
+        db.ConversationParticipants.AddRange(participants.Where(x =>
+            !existingParticipantKeys.Contains(x.ConversationId.ToString() + ":" + x.UserId.ToString())));
+
+        var existingMessageIds = await db.Messages.Select(x => x.Id).ToHashSetAsync(cancellationToken);
+        db.Messages.AddRange(messages.Where(x => !existingMessageIds.Contains(x.Id)));
         await db.SaveChangesAsync(cancellationToken);
 
         var favorites = new List<Favorite>();
@@ -442,7 +482,12 @@ public static class DemoDataSeeder
         {
             for (var favoriteIndex = 0; favoriteIndex < 4; favoriteIndex++)
             {
-                var property = publishedProperties[(tenantIndex * 3 + favoriteIndex * 7) % publishedProperties.Count];
+                var propertyPool = tenantIndex < 18 ? properties.Take(45)
+                    .Where(x => x.ModerationStatus == PropertyModerationStatus.Approved
+                        && x.ListingStatus == PropertyListingStatus.Published).ToList()
+                    : publishedProperties;
+                var propertyIndex = (tenantIndex * 3 + favoriteIndex * 7) % propertyPool.Count;
+                var property = propertyPool[propertyIndex];
                 favorites.Add(new Favorite
                 {
                     UserId = tenants[tenantIndex].Id,
@@ -469,18 +514,17 @@ public static class DemoDataSeeder
             "Bạn có một cuộc trao đổi mới về căn nhà đang quan tâm.",
             "Vui lòng kiểm tra thông tin hợp đồng để tiếp tục các bước cần thiết."
         };
-        var allUsers = new[] { admin }.Concat(landlords).Concat(tenants).ToList();
-        for (var userIndex = 0; userIndex < allUsers.Count; userIndex++)
+        void AddUserNotifications(User user, int notificationOffset, int userIndex)
         {
             for (var itemIndex = 0; itemIndex < 5; itemIndex++)
             {
                 notifications.Add(new Notification
                 {
-                    Id = DemoId(0x90000001, userIndex * 5 + itemIndex + 1),
-                    UserId = allUsers[userIndex].Id,
+                    Id = DemoId(0x90000001, notificationOffset + itemIndex + 1),
+                    UserId = user.Id,
                     Title = notificationTitles[(userIndex + itemIndex) % notificationTitles.Length],
                     Content = notificationContents[(userIndex + itemIndex) % notificationContents.Length],
-                    NotificationType = (NotificationType)(itemIndex % 6),
+                    NotificationType = (NotificationType)((userIndex + itemIndex) % 6),
                     ReferenceId = itemIndex % 2 == 0 ? properties[(userIndex + itemIndex) % properties.Count].Id : null,
                     IsRead = itemIndex > 1 && userIndex % 2 == 0,
                     CreatedAt = now.AddDays(-itemIndex).AddHours(-userIndex)
@@ -488,9 +532,17 @@ public static class DemoDataSeeder
             }
         }
 
+        // Giữ nguyên ID của 120 thông báo cũ; dữ liệu mới được đánh số tiếp theo.
+        for (var i = 0; i < admins.Count; i++)
+            AddUserNotifications(admins[i], i == 0 ? 0 : 120 + (i - 1) * 5, i);
+        for (var i = 0; i < landlords.Count; i++)
+            AddUserNotifications(landlords[i], i < 5 ? 5 + i * 5 : 165 + (i - 5) * 5, admins.Count + i);
+        for (var i = 0; i < tenants.Count; i++)
+            AddUserNotifications(tenants[i], i < 18 ? 30 + i * 5 : 390 + (i - 18) * 5, admins.Count + landlords.Count + i);
+
         var moderationLogs = properties
             .Where(x => x.ModerationStatus is PropertyModerationStatus.Approved or PropertyModerationStatus.Rejected)
-            .Take(12)
+            .Take(120)
             .Select((property, index) => new PropertyModerationLog
             {
                 Id = DemoId(0xA0000001, index + 1),
@@ -507,6 +559,7 @@ public static class DemoDataSeeder
 
         var reviews = contracts
             .Where(x => x.Status == RentalContractStatus.Completed)
+            .Take(20)
             .Select((contract, index) => new Review
             {
                 Id = DemoId(0xB0000001, index + 1),
@@ -518,13 +571,40 @@ public static class DemoDataSeeder
                 CreatedAt = now.AddDays(-20 + index)
             }).ToList();
 
-        db.Favorites.AddRange(favorites);
-        db.Notifications.AddRange(notifications);
-        db.PropertyModerationLogs.AddRange(moderationLogs);
-        db.Reviews.AddRange(reviews);
+        var existingFavoriteKeys = (await db.Favorites
+            .Select(x => new { x.UserId, x.PropertyId })
+            .ToListAsync(cancellationToken))
+            .Select(x => x.UserId.ToString() + ":" + x.PropertyId.ToString())
+            .ToHashSet();
+        db.Favorites.AddRange(favorites.Where(x =>
+            !existingFavoriteKeys.Contains(x.UserId.ToString() + ":" + x.PropertyId.ToString())));
+
+        var existingNotificationIds = await db.Notifications.Select(x => x.Id).ToHashSetAsync(cancellationToken);
+        db.Notifications.AddRange(notifications.Where(x => !existingNotificationIds.Contains(x.Id)));
+
+        var existingModerationLogIds = await db.PropertyModerationLogs.Select(x => x.Id).ToHashSetAsync(cancellationToken);
+        db.PropertyModerationLogs.AddRange(moderationLogs.Where(x => !existingModerationLogIds.Contains(x.Id)));
+
+        var existingReviewIds = await db.Reviews.Select(x => x.Id).ToHashSetAsync(cancellationToken);
+        db.Reviews.AddRange(reviews.Where(x => !existingReviewIds.Contains(x.Id)));
         await db.SaveChangesAsync(cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
+    }
+
+    private static RentalContractStatus ContractStatusForDemoIndex(int index)
+    {
+        // Giữ nguyên trạng thái 15 hợp đồng cũ, sau đó phân bổ đủ trạng thái cho dữ liệu mở rộng.
+        if (index < 7) return RentalContractStatus.Active;
+        if (index < 10) return RentalContractStatus.AwaitingSignature;
+        if (index < 12) return RentalContractStatus.Draft;
+        if (index < 14) return RentalContractStatus.Completed;
+        if (index == 14) return RentalContractStatus.Terminated;
+        if (index < 70) return RentalContractStatus.Active;
+        if (index < 100) return RentalContractStatus.AwaitingSignature;
+        if (index < 120) return RentalContractStatus.Draft;
+        if (index < 140) return RentalContractStatus.Completed;
+        return RentalContractStatus.Terminated;
     }
 
     private static User CreateUser(
