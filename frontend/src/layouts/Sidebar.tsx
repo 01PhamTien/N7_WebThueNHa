@@ -25,7 +25,7 @@ export function Sidebar({
         title={<span className="drawer-brand">NhàỞ <small>Điều hướng</small></span>}
         placement="left"
         size="default"
-        styles={{ wrapper: { width: 'min(300px, 88vw)' } }}
+        styles={{ wrapper: { width: 'min(340px, 90vw)' } }}
         open={open}
         onClose={() => setOpen(false)}
         className="mobile-navigation-drawer"
