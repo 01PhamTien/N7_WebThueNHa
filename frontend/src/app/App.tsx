@@ -50,6 +50,7 @@ import {
   LandlordBookings,
   LandlordContracts,
   LandlordInvoices,
+  LandlordPayments,
   LandlordNotifications,
   LandlordChat,
   AdminDashboard,
@@ -266,6 +267,7 @@ function Shell() {
             <Route path="/landlord/bookings" element={<LandlordBookings />} />
             <Route path="/landlord/contracts" element={<LandlordContracts />} />
             <Route path="/landlord/invoices" element={<LandlordInvoices />} />
+            <Route path="/landlord/payments" element={<LandlordPayments />} />
             <Route path="/landlord/chat" element={<LandlordChat />} />
             <Route path="/landlord/notifications" element={<LandlordNotifications />} />
           </Route>
