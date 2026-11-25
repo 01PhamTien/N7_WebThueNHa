@@ -208,6 +208,32 @@ export interface ChatMessageDto {
   attachments: ChatAttachmentDto[];
 }
 
+export interface AdminDashboardDto {
+  totalUsers: number;
+  activeUsers: number;
+  totalProperties: number;
+  pendingProperties: number;
+  publishedProperties: number;
+  pendingBookings: number;
+  activeContracts: number;
+  overdueInvoices: number;
+}
+
+export interface CreateAdminUserRequest {
+  fullName: string;
+  email: string;
+  password: string;
+  phoneNumber?: string;
+  avatarUrl?: string;
+  roles: string[];
+}
+
+export interface UpdateAdminUserRequest {
+  fullName: string;
+  phoneNumber?: string;
+  avatarUrl?: string;
+}
+
 export interface AdminUserDto {
   userId: string;
   fullName: string;
@@ -256,6 +282,11 @@ export interface ChatPageParams extends PageParams {
 }
 
 export const landlordAdminApi = {
+  adminDashboard: () => api.get<AdminDashboardDto>('/api/admin/dashboard'),
+  createAdminUser: (data: CreateAdminUserRequest) => api.post<AdminUserDto>('/api/admin/users', data),
+  updateAdminUser: (id: string, data: UpdateAdminUserRequest) => api.put<AdminUserDto>('/api/admin/users/' + id, data),
+  deleteAdminUser: (id: string) => api.delete<void>('/api/admin/users/' + id),
+
   myProperties: (params: PageParams & { status?: string; keyword?: string } = {}) =>
     api.get<PagedResult<PropertyDto>>('/api/properties/mine', { params: { page: 1, pageSize: 10, ...params } }),
   property: (id: string) => api.get<PropertyDto>('/api/properties/' + id),
