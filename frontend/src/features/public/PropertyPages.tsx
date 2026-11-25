@@ -720,7 +720,7 @@ export function PropertyDetailPage() {
             <InputNumber min={1} max={100} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="proposedPrice" label="Giá thuê đề xuất mỗi tháng" rules={[{ required: true, type: 'number', min: 1, message: 'Giá đề xuất phải lớn hơn 0.' }]}>
-            <InputNumber min={1} style={{ width: '100%' }} />
+            <InputNumber min={1} max={999999999} precision={2} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="message" label="Lời nhắn">
             <Input.TextArea maxLength={1000} showCount rows={3} />
