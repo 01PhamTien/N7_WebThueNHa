@@ -172,9 +172,12 @@ public sealed class AuthController : ControllerBase
         user.PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber)
             ? null
             : request.PhoneNumber.Trim();
-        user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl)
-            ? null
-            : request.AvatarUrl.Trim();
+        if (request.AvatarUrl is not null)
+        {
+            user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl)
+                ? null
+                : request.AvatarUrl.Trim();
+        }
         user.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken);
