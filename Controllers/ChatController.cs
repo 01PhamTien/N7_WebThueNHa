@@ -129,7 +129,7 @@ public sealed class ChatController : ControllerBase
         var query = _db.ConversationParticipants
             .AsNoTracking()
             .Where(x => x.UserId == currentUserId.Value &&
-                        (includeArchived || !x.IsArchived));
+                        x.IsArchived == includeArchived);
 
         var totalItems = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
