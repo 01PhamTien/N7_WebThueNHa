@@ -19,5 +19,6 @@ public sealed class PropertyQueryRepository(AppDbContext db) : IPropertyQueryRep
         db.Properties.AsNoTracking()
             .Include(x => x.PropertyType)
             .Include(x => x.Images.OrderBy(image => image.DisplayOrder))
+            .Include(x => x.PropertyAmenities).ThenInclude(x => x.Amenity)
             .SingleOrDefaultAsync(x => x.Id == propertyId, cancellationToken);
 }
