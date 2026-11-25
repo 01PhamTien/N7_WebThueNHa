@@ -130,7 +130,9 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
         var contractConflict = await db.RentalContracts.AnyAsync(x =>
             x.Id != contractId &&
             x.PropertyId == contract.PropertyId &&
-            x.Status is not (RentalContractStatus.Completed or RentalContractStatus.Terminated or RentalContractStatus.Cancelled) &&
+            x.Status != RentalContractStatus.Completed &&
+            x.Status != RentalContractStatus.Terminated &&
+            x.Status != RentalContractStatus.Cancelled &&
             x.StartDate < request.EndDate &&
             x.EndDate > request.StartDate,
             cancellationToken);
