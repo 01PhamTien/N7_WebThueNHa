@@ -7,9 +7,11 @@ import {
   Card,
   Descriptions,
   Empty,
+  Input,
   List,
   Modal,
   Pagination,
+  Rate,
   Space,
   Spin,
   Tag,
@@ -360,6 +362,43 @@ export function ContractsPage() {
   const [detail, setDetail] = useState<ContractDetail | null>(null);
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
   const [signingId, setSigningId] = useState<string | null>(null);
+  const [reviewContract, setReviewContract] = useState<ContractItem | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewedContractIds, setReviewedContractIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    tenantApi.myReviews()
+      .then(response => setReviewedContractIds(new Set(response.data.map(review => review.contractId))))
+      .catch(() => setReviewedContractIds(new Set()));
+  }, []);
+
+  const canReview = (item: ContractItem) => {
+    if (item.status === 'Completed') return true;
+    if (item.status !== 'Active') return false;
+    return new Date(item.endDate + 'T00:00:00') <= new Date(new Date().toDateString());
+  };
+
+  const submitReview = async () => {
+    if (!reviewContract) return;
+    setReviewSubmitting(true);
+    try {
+      await tenantApi.createReview(reviewContract.id, {
+        rating: reviewRating,
+        comment: reviewComment.trim() || undefined
+      });
+      setReviewedContractIds(previous => new Set(previous).add(reviewContract.id));
+      message.success('Cảm ơn bạn đã chia sẻ trải nghiệm thuê nhà.');
+      setReviewContract(null);
+      setReviewComment('');
+      setReviewRating(5);
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   const openDetail = async (id: string) => {
     setLoadingDetailId(id);
@@ -415,6 +454,14 @@ export function ContractsPage() {
                       >
                         Ký hợp đồng
                       </Button>
+                    ] : []),
+                    ...(canReview(item) && !reviewedContractIds.has(item.id) ? [
+                      <Button
+                        key="review"
+                        onClick={() => setReviewContract(item)}
+                      >
+                        Đánh giá
+                      </Button>
                     ] : [])
                   ]}
                 >
@@ -458,6 +505,32 @@ export function ContractsPage() {
             <Descriptions.Item label="Trạng thái"><StatusTag value={detail.contract.status} labels={contractLabels} /></Descriptions.Item>
             <Descriptions.Item label="Điều khoản">{detail.contract.terms || 'Chưa có điều khoản bổ sung.'}</Descriptions.Item>
           </Descriptions>
+        )}
+      </Modal>
+
+      <Modal
+        title="Đánh giá căn nhà"
+        open={!!reviewContract}
+        onCancel={() => setReviewContract(null)}
+        onOk={() => void submitReview()}
+        okText="Gửi đánh giá"
+        cancelText="Để sau"
+        confirmLoading={reviewSubmitting}
+        destroyOnHidden
+      >
+        {reviewContract && (
+          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+            <Typography.Text strong>{reviewContract.propertyTitle}</Typography.Text>
+            <Rate value={reviewRating} onChange={setReviewRating} />
+            <Input.TextArea
+              value={reviewComment}
+              onChange={event => setReviewComment(event.target.value)}
+              maxLength={2000}
+              showCount
+              rows={4}
+              placeholder="Chia sẻ ngắn gọn về căn nhà và trải nghiệm thuê (không bắt buộc)."
+            />
+          </Space>
         )}
       </Modal>
     </Page>
