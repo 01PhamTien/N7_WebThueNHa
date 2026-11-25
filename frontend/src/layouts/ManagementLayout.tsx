@@ -8,6 +8,7 @@ import {
   CreditCardOutlined,
   DashboardOutlined,
   FileSearchOutlined,
+  BarChartOutlined,
   FileTextOutlined,
   HomeOutlined,
   LogoutOutlined,
@@ -32,7 +33,8 @@ export function ManagementLayout({ children }: { children: ReactNode }) {
     { key: '/admin', icon: <DashboardOutlined />, label: <Link to="/admin">Tổng quan</Link> },
     { type: 'divider' },
     { key: '/admin/users', icon: <TeamOutlined />, label: <Link to="/admin/users">Quản lý người dùng</Link> },
-    { key: '/admin/moderation', icon: <FileSearchOutlined />, label: <Link to="/admin/moderation">Tin đăng & kiểm duyệt</Link> }
+    { key: '/admin/moderation', icon: <FileSearchOutlined />, label: <Link to="/admin/moderation">Tin đăng & kiểm duyệt</Link> },
+    { key: '/admin/operations', icon: <BarChartOutlined />, label: <Link to="/admin/operations">Vận hành & giao dịch</Link> }
   ] : [
     { key: '/landlord', icon: <DashboardOutlined />, label: <Link to="/landlord">Tổng quan</Link> },
     { type: 'divider' },
@@ -45,7 +47,7 @@ export function ManagementLayout({ children }: { children: ReactNode }) {
   ], [isAdminArea]);
 
   const selectedKey = [...(isAdminArea
-    ? ['/admin/users', '/admin/moderation', '/admin']
+    ? ['/admin/users', '/admin/moderation', '/admin/operations', '/admin']
     : ['/landlord/properties', '/landlord/bookings', '/landlord/contracts', '/landlord/invoices', '/landlord/chat', '/landlord/notifications', '/landlord'])]
     .sort((a, b) => b.length - a.length)
     .find(key => location.pathname === key || (key !== '/admin' && key !== '/landlord' && location.pathname.startsWith(key + '/')))
