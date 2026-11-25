@@ -113,7 +113,10 @@ public sealed class ContractsController(AppDbContext db, IContractService contra
 
         var contract = await db.RentalContracts
             .AsNoTracking()
-            .Include(x => x.Property)
+            .Include(x => x.Property).ThenInclude(x => x.PropertyType)
+            .Include(x => x.Property).ThenInclude(x => x.Images)
+            .Include(x => x.Property).ThenInclude(x => x.PropertyAmenities).ThenInclude(x => x.Amenity)
+            .Include(x => x.Booking)
             .Include(x => x.Landlord)
             .Include(x => x.Tenant)
             .SingleOrDefaultAsync(
@@ -126,8 +129,28 @@ public sealed class ContractsController(AppDbContext db, IContractService contra
         return Ok(new RentalContractDetailResponse(
             ToResponse(contract),
             contract.Property.Title,
+            contract.Property.PropertyType?.Name ?? "Bất động sản",
+            contract.Property.Description,
+            contract.Property.AddressLine,
+            contract.Property.WardName,
+            contract.Property.ProvinceName,
+            contract.Property.Area,
+            contract.Property.Bedrooms,
+            contract.Property.Bathrooms,
+            contract.Property.MaxOccupants,
+            contract.Property.FurnishingDescription,
+            contract.Property.AdditionalFeesDescription,
+            contract.Property.PropertyAmenities.Select(x => x.Amenity.Name).OrderBy(x => x).ToArray(),
+            contract.Property.Images.OrderBy(x => x.DisplayOrder)
+                .Select(x => new PropertyImageResponse(x.Id, x.ImageUrl, x.IsPrimary, x.DisplayOrder)).ToArray(),
+            contract.Booking.NumberOfPeople,
+            contract.Booking.Message,
             contract.Landlord.FullName,
-            contract.Tenant.FullName));
+            contract.Landlord.Email,
+            contract.Landlord.PhoneNumber,
+            contract.Tenant.FullName,
+            contract.Tenant.Email,
+            contract.Tenant.PhoneNumber));
     }
 
     /// <summary>Tạo hợp đồng nháp từ Booking Accepted; Tenant hoặc Landlord tham gia đều có thể khởi tạo.</summary>
