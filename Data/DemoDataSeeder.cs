@@ -143,7 +143,7 @@ public static class DemoDataSeeder
                 Description = descriptions[i % descriptions.Length],
                 PricePerMonth = prices[i % prices.Length],
                 DepositAmount = prices[i % prices.Length],
-                MaxOccupants = i % 5 switch { 0 => 2, 1 => 3, 2 => 4, 3 => 5, _ => 2 },
+                MaxOccupants = (i % 5) switch { 0 => 2, 1 => 3, 2 => 4, 3 => 5, _ => 2 },
                 FurnishingDescription = (i % 5) switch
                 {
                     0 => "Giường 1m6, nệm, tủ quần áo, máy lạnh, bàn làm việc; nhà vệ sinh riêng.",
