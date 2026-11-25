@@ -1270,3 +1270,84 @@ body { background: var(--canvas); color: var(--ink); }
 .chat-inbox-toolbar .ant-segmented {
   width: 100%;
 }
+
+/* Final interface pass: consistent controls, calmer cards and practical mobile layouts. */
+:root { --surface-soft:#f8faf8; --shadow-soft:0 8px 24px rgba(27,58,43,.045); }
+.ant-card { border-color:var(--line); border-radius:16px; box-shadow:var(--shadow-soft); }
+.ant-card .ant-card-head { border-bottom-color:#edf1ee; }
+.ant-card .ant-card-head-title { color:#294538; font-weight:700; }
+.ant-btn { font-weight:600; box-shadow:none; }
+.ant-btn-primary { box-shadow:0 2px 5px rgba(23,107,87,.12); }
+.ant-input,.ant-input-affix-wrapper,.ant-select-selector,.ant-picker,.ant-input-number { border-radius:10px !important; }
+.ant-form-item-label>label { color:#40564a; font-size:12px; font-weight:650; }
+.ant-table-wrapper { max-width:100%; }
+.ant-table { border-radius:12px; }
+.ant-table-thead>tr>th { white-space:nowrap; }
+.ant-table-tbody>tr>td { vertical-align:middle; }
+.ant-drawer .ant-drawer-header { border-bottom-color:#edf1ee; }
+.ant-drawer .ant-drawer-title { color:#233d31; font-weight:750; }
+.ant-modal .ant-modal-content { border-radius:16px; }
+.ant-alert { border-radius:12px; }
+.page-heading-copy { min-width:0; }
+.property-list-page .filter-card { border-color:#e5ede7; box-shadow:0 4px 16px rgba(30,68,49,.035); }
+.property-list-page .filter-card .ant-card-body { padding:20px; }
+.property-detail-layout { align-items:start; }
+.property-detail-heading h1 { line-height:1.25; }
+.property-booking-card { position:sticky; top:94px; }
+.detail-info-card,.property-booking-card>.ant-card { border:1px solid var(--line); }
+.tenant-list-card .ant-card-body { padding-inline:20px; }
+.tenant-list-item { min-width:0; }
+.tenant-item-meta { color:var(--muted); }
+.tenant-code { color:#315344; font-weight:700; }
+.management-toolbar { width:100%; }
+.management-toolbar>.ant-input-search { min-width:min(260px,100%); }
+.management-table-card .ant-table-cell .ant-space { max-width:100%; }
+.management-table-card .ant-pagination { margin-bottom:0; }
+.management-quick-card .ant-card-body { padding:20px; }
+.management-content .ant-descriptions-bordered .ant-descriptions-item-label { color:#627469; background:#f8faf8; font-size:12px; font-weight:650; }
+.management-content .ant-descriptions-item-content { overflow-wrap:anywhere; }
+.chat { min-width:0; }
+.chat aside { padding:10px; }
+.chat aside .ant-list-item { padding:12px 10px; }
+.chat aside .ant-list-item-meta-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chat section>header strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chat .messages { scroll-behavior:smooth; }
+.bubble { box-shadow:0 1px 2px rgba(24,56,40,.035); }
+.composer .ant-btn { min-width:54px; }
+@media (max-width:820px) {
+ .page { padding:30px 18px 48px; }
+ .property-detail-layout { grid-template-columns:minmax(0,1fr); }
+ .property-booking-card { position:static; }
+ .management-sider { width:64px !important; min-width:64px !important; max-width:64px !important; flex:0 0 64px !important; }
+ .management-content .page { padding-inline:18px; }
+}
+@media (max-width:640px) {
+ .page { padding:24px 14px 38px; }
+ .page-heading { gap:12px; margin-bottom:18px; }
+ .page-heading h1,.page>h1 { font-size:25px; }
+ .property-list-page .filter-card .ant-card-body { padding:14px; }
+ .property-grid { row-gap:14px !important; }
+ .property-card .ant-card-body { padding:14px; }
+ .property-card-title { min-height:0; font-size:15px; }
+ .property-detail-page .property-gallery { gap:8px; }
+ .detail-info-card .ant-card-body { padding:16px; }
+ .tenant-list-card .ant-card-body { padding-inline:14px; }
+ .tenant-list-item { align-items:flex-start; flex-direction:column; gap:9px; padding:16px 2px !important; }
+ .tenant-list-item .ant-list-item-action { margin-inline-start:0; }
+ .tenant-list-item .ant-list-item-action li { padding-inline:0; }
+ .management-header { padding-inline:12px; }
+ .management-content .page { padding:20px 12px 30px; }
+ .management-toolbar { align-items:stretch; }
+ .management-toolbar>.ant-input-search,.management-toolbar>.ant-select,.management-toolbar>.ant-input,.management-toolbar>.ant-btn { width:100% !important; min-width:0; }
+ .management-table-card .ant-card-body { padding:8px; }
+ .management-table-card .ant-table-wrapper { overflow-x:auto; }
+ .chat { grid-template-columns:minmax(0,1fr); min-height:0; }
+ .chat aside { max-height:230px; border-right:0; border-bottom:1px solid var(--line); }
+ .chat section { min-height:480px; padding:12px; }
+ .messages { min-height:260px; max-height:390px; }
+ .bubble { max-width:90%; }
+ .composer { flex-wrap:wrap; }
+ .composer .ant-input-affix-wrapper,.composer>.ant-input { min-width:100%; }
+ .auth-layout { gap:22px; }
+ .auth-page { padding-top:22px; }
+}
