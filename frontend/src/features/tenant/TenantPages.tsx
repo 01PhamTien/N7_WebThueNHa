@@ -1,17 +1,714 @@
-import{useEffect,useState}from'react';import{App as AntApp,Alert,Button,Card,Descriptions,Empty,List,Modal,Pagination,Spin,Tag,Space,Form,Input,InputNumber}from'antd';import{Link,useLocation,useNavigate}from'react-router-dom';import{tenantApi}from'../../services/tenant';import{errorText}from'../../services/api';import type{PageResult,FavoriteItem,BookingItem,ContractItem,ContractDetail,InvoiceItem,InvoiceDetail,NotificationItem}from'../../types/api';
-const SIZE=10;
-const bookingLabels:Record<string,string>={Pending:'Chờ xử lý',Accepted:'Đã chấp nhận',Rejected:'Đã từ chối',Cancelled:'Đã hủy',Expired:'Hết hạn'};
-const contractLabels:Record<string,string>={Draft:'Bản nháp',AwaitingSignature:'Chờ ký',Active:'Đang hiệu lực',Completed:'Hoàn thành',Terminated:'Đã chấm dứt',Cancelled:'Đã hủy'};
-const invoiceLabels:Record<string,string>={Draft:'Bản nháp',Issued:'Đã phát hành',PartiallyPaid:'Đã thanh toán một phần',Paid:'Đã thanh toán',Overdue:'Quá hạn',Cancelled:'Đã hủy'};
-const paymentLabels:Record<string,string>={Pending:'Chờ xác nhận',Succeeded:'Thành công',Failed:'Thất bại',Cancelled:'Đã hủy',Refunded:'Đã hoàn tiền'};
-const statusColors:Record<string,string>={Pending:'gold',Accepted:'green',Rejected:'red',Cancelled:'default',Expired:'orange',Draft:'default',AwaitingSignature:'blue',Active:'green',Completed:'green',Terminated:'red',Issued:'blue',PartiallyPaid:'gold',Paid:'green',Overdue:'red',Succeeded:'green',Failed:'red',Refunded:'purple'};
-const dateText=(value:string)=>value?new Date(value).toLocaleDateString('vi-VN'):'—';
-const StatusTag=({value,labels}:{value:string;labels:Record<string,string>})=><Tag color={statusColors[value]||'default'}>{labels[value]||value}</Tag>;
-function usePage<T>(load:(page:number,size:number)=>Promise<{data:PageResult<T>}>,deps:unknown[]=[]){const[page,setPage]=useState(1);const[data,setData]=useState<PageResult<T>|null>(null);const[busy,setBusy]=useState(true);const[err,setErr]=useState('');const reload=()=>{setBusy(true);setErr('');load(page,SIZE).then(r=>setData(r.data)).catch(e=>setErr(errorText(e))).finally(()=>setBusy(false))};useEffect(()=>{reload()},[page,...deps]);return{page,setPage,data,busy,err,reload,setData}}
-function PageFooter<T>({state}:{state:{page:number;setPage:(p:number)=>void;data:PageResult<T>|null}}){const total=state.data?.totalItems??state.data?.totalCount??0;return total>SIZE?<div className="pagination"><Pagination current={state.page} pageSize={SIZE} total={total} showSizeChanger={false} onChange={state.setPage}/></div>:null}
-function State<T>({state,children,empty}:{state:{busy:boolean;err:string;data:PageResult<T>|null};children:React.ReactNode;empty:string}){return <>{state.err&&<Alert type="error" showIcon message={state.err}/ >}{state.busy?<div className="center"><Spin/></div>:state.data?.items.length?children:<Empty description={empty}/>}</>}
-export function FavoritesPage(){const{message}=AntApp.useApp();const s=usePage<FavoriteItem>(tenantApi.favorites);return <main className="page"><h1>Nhà yêu thích</h1><State state={s} empty="Bạn chưa lưu căn nhà nào."><List dataSource={s.data!.items} renderItem={p=><List.Item actions={[<Button danger onClick={()=>tenantApi.removeFavorite(p.propertyId).then(()=>{message.success('Đã bỏ yêu thích');s.reload()}).catch(e=>message.error(errorText(e)))}>Bỏ lưu</Button>]}><List.Item.Meta title={<Link to={'/nha/'+p.propertyId}>{p.title}</Link>} description={p.addressLine+', '+p.provinceName+' · '+p.area+' m²'}/><strong>{p.pricePerMonth.toLocaleString('vi-VN')} đ/tháng</strong></List.Item>}/></State><PageFooter state={s}/></main>}
-export function BookingsPage(){const{message}=AntApp.useApp();const s=usePage<BookingItem>(tenantApi.bookings);return <main className="page"><h1>Yêu cầu thuê của tôi</h1><State state={s} empty="Chưa có yêu cầu thuê."><List dataSource={s.data!.items} renderItem={b=><List.Item actions={b.status==='Pending'?[<Button danger onClick={()=>tenantApi.cancelBooking(b.id).then(()=>{message.success('Đã hủy yêu cầu');s.reload()}).catch(e=>message.error(errorText(e)))}>Hủy yêu cầu</Button>]:[]}><List.Item.Meta title={<Link to={'/nha/'+b.propertyId}>{b.propertyTitle}</Link>} description={dateText(b.startDate)+' – '+dateText(b.endDate)+' · '+b.numberOfPeople+' người · '+b.proposedPrice.toLocaleString('vi-VN')+' đ/tháng'}/><StatusTag value={b.status} labels={bookingLabels}/></List.Item>}/></State><PageFooter state={s}/></main>}
-export function ContractsPage(){const{message}=AntApp.useApp();const s=usePage<ContractItem>(tenantApi.contracts);const[detail,setDetail]=useState<ContractDetail|null>(null);return <main className="page"><h1>Hợp đồng thuê</h1><State state={s} empty="Chưa có hợp đồng."><List dataSource={s.data!.items} renderItem={c=><List.Item actions={[<Button onClick={()=>tenantApi.contract(c.id).then(r=>setDetail(r.data)).catch(e=>message.error(errorText(e)))}>Chi tiết</Button>,...(c.status==='AwaitingSignature'?[<Button type="primary" onClick={()=>tenantApi.signContract(c.id).then(()=>{message.success('Đã xác nhận chữ ký');s.reload()}).catch(e=>message.error(errorText(e)))}>Ký hợp đồng</Button>]:[])]}><List.Item.Meta title={c.contractCode} description={c.propertyTitle+' · '+c.startDate+' – '+c.endDate}/><StatusTag value={c.status} labels={contractLabels}/></List.Item>}/></State><PageFooter state={s}/><Modal title="Chi tiết hợp đồng" open={!!detail} onCancel={()=>setDetail(null)} footer={null} width={720}>{detail&&<Descriptions bordered column={1}><Descriptions.Item label="Mã hợp đồng">{detail.contract.contractCode}</Descriptions.Item><Descriptions.Item label="Căn nhà">{detail.propertyTitle}</Descriptions.Item><Descriptions.Item label="Chủ nhà">{detail.landlordName}</Descriptions.Item><Descriptions.Item label="Người thuê">{detail.tenantName}</Descriptions.Item><Descriptions.Item label="Thời hạn">{dateText(detail.contract.startDate)} – {dateText(detail.contract.endDate)}</Descriptions.Item><Descriptions.Item label="Tiền thuê">{detail.contract.monthlyRent.toLocaleString('vi-VN')} đ/tháng</Descriptions.Item><Descriptions.Item label="Tiền cọc">{detail.contract.depositAmount.toLocaleString('vi-VN')} đ</Descriptions.Item><Descriptions.Item label="Trạng thái"><StatusTag value={detail.contract.status} labels={contractLabels}/></Descriptions.Item><Descriptions.Item label="Điều khoản">{detail.contract.terms||'—'}</Descriptions.Item></Descriptions>}</Modal></main>}
-export function InvoicesPage(){const{message}=AntApp.useApp();const s=usePage<InvoiceItem>(tenantApi.invoices);const[detail,setDetail]=useState<InvoiceDetail|null>(null);const show=(id:string)=>tenantApi.invoice(id).then(r=>setDetail(r.data)).catch(e=>message.error(errorText(e)));const checkout=async(id:string)=>{try{const r=await tenantApi.checkout(id);if(r.data.checkoutUrl)window.location.assign(r.data.checkoutUrl);else message.info('Chưa nhận được đường dẫn thanh toán từ máy chủ')}catch(e){message.error(errorText(e))}};return <main className="page"><h1>Hóa đơn và thanh toán</h1><State state={s} empty="Chưa có hóa đơn."><List dataSource={s.data!.items} renderItem={i=><List.Item actions={[<Button onClick={()=>void show(i.id)}>Chi tiết / Lịch sử</Button>,...(i.status==='Paid'||i.status==='Cancelled'?[]:[<Button type="primary" onClick={()=>void checkout(i.id)}>Thanh toán SePay</Button>])]}><List.Item.Meta title={i.invoiceCode} description={i.propertyTitle+' · Hạn '+i.dueDate}/><Space direction="vertical" align="end"><strong>{i.totalAmount.toLocaleString('vi-VN')} đ</strong><StatusTag value={i.status} labels={invoiceLabels}/></Space></List.Item>}/></State><PageFooter state={s}/><Modal title="Chi tiết hóa đơn và lịch sử" open={!!detail} onCancel={()=>setDetail(null)} footer={null} width={760}>{detail&&<><Descriptions bordered column={2}><Descriptions.Item label="Mã hóa đơn">{detail.invoiceCode}</Descriptions.Item><Descriptions.Item label="Trạng thái"><StatusTag value={detail.status} labels={invoiceLabels}/></Descriptions.Item><Descriptions.Item label="Tổng tiền">{detail.totalAmount.toLocaleString('vi-VN')} đ</Descriptions.Item><Descriptions.Item label="Hạn thanh toán">{detail.dueDate}</Descriptions.Item></Descriptions><h3>Các khoản phí</h3><List dataSource={detail.items} renderItem={i=><List.Item>{i.description} · {i.quantity} × {i.unitPrice.toLocaleString('vi-VN')} đ <strong>{i.amount.toLocaleString('vi-VN')} đ</strong></List.Item>}/><h3>Lịch sử giao dịch</h3><List dataSource={detail.payments} locale={{emptyText:<Empty description="Chưa có giao dịch"/>}} renderItem={p=><List.Item><List.Item.Meta title={p.paymentMethod+' · '+(paymentLabels[p.status]||p.status)} description={p.transactionCode||p.paymentProvider||'Không có mã giao dịch'}/>{p.amount.toLocaleString('vi-VN')} đ</List.Item>}/></>}</Modal></main>}
-export function NotificationsPage(){const{message}=AntApp.useApp();const s=usePage<NotificationItem>(tenantApi.notifications);return <main className="page"><Space align="center"><h1>Thông báo</h1><Button onClick={()=>tenantApi.readAll().then(()=>{message.success('Đã đánh dấu tất cả đã đọc');s.reload()}).catch(e=>message.error(errorText(e)))}>Đánh dấu tất cả đã đọc</Button></Space><State state={s} empty="Bạn chưa có thông báo."><List dataSource={s.data!.items} renderItem={n=><List.Item actions={!n.isRead?[<Button type="link" onClick={()=>tenantApi.readNotification(n.id).then(()=>s.reload()).catch(e=>message.error(errorText(e)))}>Đánh dấu đã đọc</Button>]:[]}><List.Item.Meta title={<>{n.title} {!n.isRead&&<Tag color="blue">Mới</Tag>}</>} description={n.content}/>{new Date(n.createdAt).toLocaleString('vi-VN')}</List.Item>}/></State><PageFooter state={s}/></main>}
+import { useEffect, useState } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import {
+  App as AntApp,
+  Alert,
+  Button,
+  Card,
+  Descriptions,
+  Empty,
+  List,
+  Modal,
+  Pagination,
+  Space,
+  Spin,
+  Tag,
+  Typography
+} from 'antd';
+import {
+  BellOutlined,
+  CalendarOutlined,
+  CheckOutlined,
+  CreditCardOutlined,
+  EnvironmentOutlined,
+  EyeOutlined,
+  FileTextOutlined,
+  HeartFilled
+} from '@ant-design/icons';
+import { Link } from 'react-router-dom';
+import { Page } from '../../components/Shared';
+import { tenantApi } from '../../services/tenant';
+import { errorText } from '../../services/api';
+import type {
+  PageResult,
+  FavoriteItem,
+  BookingItem,
+  ContractItem,
+  ContractDetail,
+  InvoiceItem,
+  InvoiceDetail,
+  NotificationItem
+} from '../../types/api';
+
+const PAGE_SIZE = 10;
+
+const bookingLabels: Record<string, string> = {
+  Pending: 'Chờ xử lý',
+  Accepted: 'Đã chấp nhận',
+  Rejected: 'Đã từ chối',
+  Cancelled: 'Đã hủy',
+  Expired: 'Hết hạn'
+};
+
+const contractLabels: Record<string, string> = {
+  Draft: 'Bản nháp',
+  AwaitingSignature: 'Chờ ký',
+  Active: 'Đang hiệu lực',
+  Completed: 'Hoàn thành',
+  Terminated: 'Đã chấm dứt',
+  Cancelled: 'Đã hủy'
+};
+
+const invoiceLabels: Record<string, string> = {
+  Draft: 'Bản nháp',
+  Issued: 'Đã phát hành',
+  PartiallyPaid: 'Đã thanh toán một phần',
+  Paid: 'Đã thanh toán',
+  Overdue: 'Quá hạn',
+  Cancelled: 'Đã hủy'
+};
+
+const paymentLabels: Record<string, string> = {
+  Pending: 'Chờ xác nhận',
+  Succeeded: 'Thành công',
+  Failed: 'Thất bại',
+  Cancelled: 'Đã hủy',
+  Refunded: 'Đã hoàn tiền'
+};
+
+const statusColors: Record<string, string> = {
+  Pending: 'gold',
+  Accepted: 'green',
+  Rejected: 'red',
+  Cancelled: 'default',
+  Expired: 'orange',
+  Draft: 'default',
+  AwaitingSignature: 'blue',
+  Active: 'green',
+  Completed: 'green',
+  Terminated: 'red',
+  Issued: 'blue',
+  PartiallyPaid: 'gold',
+  Paid: 'green',
+  Overdue: 'red',
+  Succeeded: 'green',
+  Failed: 'red',
+  Refunded: 'purple'
+};
+
+const money = (value?: number | null) => (value ?? 0).toLocaleString('vi-VN') + ' đ';
+
+const dateText = (value?: string | null) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('vi-VN');
+};
+
+const dateTimeText = (value?: string | null) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('vi-VN');
+};
+
+function StatusTag({ value, labels }: { value: string; labels: Record<string, string> }) {
+  return <Tag color={statusColors[value] || 'default'}>{labels[value] || value}</Tag>;
+}
+
+type TenantPageState<T> = {
+  page: number;
+  setPage: Dispatch<SetStateAction<number>>;
+  data: PageResult<T> | null;
+  busy: boolean;
+  err: string;
+  reload: () => void;
+  setData: Dispatch<SetStateAction<PageResult<T> | null>>;
+};
+
+function usePage<T>(load: (page: number, size: number) => Promise<{ data: PageResult<T> }>): TenantPageState<T> {
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState<PageResult<T> | null>(null);
+  const [busy, setBusy] = useState(true);
+  const [err, setErr] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const reload = () => setReloadKey(value => value + 1);
+
+  useEffect(() => {
+    let active = true;
+    setBusy(true);
+    setErr('');
+
+    load(page, PAGE_SIZE)
+      .then(response => {
+        if (!active) return;
+        if (!response?.data || !Array.isArray(response.data.items)) {
+          throw new Error('Dữ liệu trả về từ máy chủ không đúng định dạng. Vui lòng thử lại.');
+        }
+        setData(response.data);
+      })
+      .catch(error => {
+        if (!active) return;
+        setData(null);
+        setErr(errorText(error));
+      })
+      .finally(() => {
+        if (active) setBusy(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [load, page, reloadKey]);
+
+  return { page, setPage, data, busy, err, reload, setData };
+}
+
+function PageFooter<T>({ state }: { state: TenantPageState<T> }) {
+  const total = state.data?.totalItems ?? state.data?.totalCount ?? 0;
+
+  if (total <= PAGE_SIZE) return null;
+
+  return (
+    <div className="tenant-pagination">
+      <Pagination
+        current={state.page}
+        pageSize={PAGE_SIZE}
+        total={total}
+        showSizeChanger={false}
+        showTotal={(count, range) => `${range[0]}–${range[1]} / ${count}`}
+        onChange={state.setPage}
+      />
+    </div>
+  );
+}
+
+function State<T>({
+  state,
+  children,
+  empty
+}: {
+  state: TenantPageState<T>;
+  children: (items: T[]) => ReactNode;
+  empty: string;
+}) {
+  if (state.busy) {
+    return (
+      <Card className="tenant-state-card" bordered={false}>
+        <div className="tenant-loading">
+          <Spin size="large" />
+          <Typography.Text type="secondary">Đang tải dữ liệu...</Typography.Text>
+        </div>
+      </Card>
+    );
+  }
+
+  if (state.err) {
+    return (
+      <Alert
+        className="tenant-load-error"
+        type="error"
+        showIcon
+        message="Không thể tải dữ liệu"
+        description={state.err}
+        action={<Button size="small" onClick={state.reload}>Thử lại</Button>}
+      />
+    );
+  }
+
+  const items = Array.isArray(state.data?.items) ? state.data.items : [];
+
+  if (items.length === 0) {
+    return (
+      <Card className="tenant-state-card tenant-empty-card" bordered={false}>
+        <Empty description={empty} />
+      </Card>
+    );
+  }
+
+  return <>{children(items)}</>;
+}
+
+export function FavoritesPage() {
+  const { message } = AntApp.useApp();
+  const state = usePage<FavoriteItem>(tenantApi.favorites);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const removeFavorite = async (propertyId: string) => {
+    setRemovingId(propertyId);
+    try {
+      await tenantApi.removeFavorite(propertyId);
+      message.success('Đã bỏ căn nhà khỏi danh sách yêu thích.');
+      state.reload();
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  return (
+    <Page title="Nhà yêu thích" description="Những căn nhà bạn đã lưu để xem lại và cân nhắc thuê.">
+      <State state={state} empty="Bạn chưa lưu căn nhà nào." >
+        {items => (
+          <Card className="tenant-list-card" bordered={false}>
+            <List
+              dataSource={items}
+              renderItem={item => (
+                <List.Item
+                  className="tenant-list-item"
+                  actions={[
+                    <Button
+                      key="remove"
+                      danger
+                      type="text"
+                      icon={<HeartFilled />}
+                      loading={removingId === item.propertyId}
+                      onClick={() => void removeFavorite(item.propertyId)}
+                    >
+                      Bỏ yêu thích
+                    </Button>
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={<Link to={'/nha/' + item.propertyId}>{item.title}</Link>}
+                    description={
+                      <Space className="tenant-item-meta" wrap size={[12, 6]}>
+                        <span><EnvironmentOutlined /> {[item.addressLine, item.wardName, item.provinceName].filter(Boolean).join(', ')}</span>
+                        <span>{item.area} m²</span>
+                        <span>{item.bedrooms} phòng ngủ</span>
+                      </Space>
+                    }
+                  />
+                  <Typography.Text className="tenant-item-price" strong>{money(item.pricePerMonth)}<small> / tháng</small></Typography.Text>
+                </List.Item>
+              )}
+            />
+          </Card>
+        )}
+      </State>
+      <PageFooter state={state} />
+    </Page>
+  );
+}
+
+export function BookingsPage() {
+  const { message } = AntApp.useApp();
+  const state = usePage<BookingItem>(tenantApi.bookings);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const cancelBooking = async (id: string) => {
+    setCancellingId(id);
+    try {
+      await tenantApi.cancelBooking(id);
+      message.success('Đã hủy yêu cầu thuê.');
+      state.reload();
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  return (
+    <Page title="Yêu cầu thuê của tôi" description="Theo dõi tiến độ xử lý các yêu cầu thuê nhà bạn đã gửi.">
+      <State state={state} empty="Bạn chưa gửi yêu cầu thuê nào.">
+        {items => (
+          <Card className="tenant-list-card" bordered={false}>
+            <List
+              dataSource={items}
+              renderItem={item => (
+                <List.Item
+                  className="tenant-list-item"
+                  actions={item.status === 'Pending' ? [
+                    <Button
+                      key="cancel"
+                      danger
+                      type="default"
+                      loading={cancellingId === item.id}
+                      onClick={() => void cancelBooking(item.id)}
+                    >
+                      Hủy yêu cầu
+                    </Button>
+                  ] : []}
+                >
+                  <List.Item.Meta
+                    title={<Link to={'/nha/' + item.propertyId}>{item.propertyTitle}</Link>}
+                    description={
+                      <Space className="tenant-item-meta" wrap size={[12, 6]}>
+                        <span><CalendarOutlined /> {dateText(item.startDate)} – {dateText(item.endDate)}</span>
+                        <span>{item.numberOfPeople} người</span>
+                        <span>Đề xuất {money(item.proposedPrice)}/tháng</span>
+                      </Space>
+                    }
+                  />
+                  <StatusTag value={item.status} labels={bookingLabels} />
+                </List.Item>
+              )}
+            />
+          </Card>
+        )}
+      </State>
+      <PageFooter state={state} />
+    </Page>
+  );
+}
+
+export function ContractsPage() {
+  const { message } = AntApp.useApp();
+  const state = usePage<ContractItem>(tenantApi.contracts);
+  const [detail, setDetail] = useState<ContractDetail | null>(null);
+  const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
+  const [signingId, setSigningId] = useState<string | null>(null);
+
+  const openDetail = async (id: string) => {
+    setLoadingDetailId(id);
+    try {
+      const response = await tenantApi.contract(id);
+      setDetail(response.data);
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setLoadingDetailId(null);
+    }
+  };
+
+  const signContract = async (id: string) => {
+    setSigningId(id);
+    try {
+      await tenantApi.signContract(id);
+      message.success('Đã xác nhận chữ ký hợp đồng.');
+      state.reload();
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setSigningId(null);
+    }
+  };
+
+  return (
+    <Page title="Hợp đồng thuê" description="Xem thời hạn, điều khoản và trạng thái các hợp đồng thuê của bạn.">
+      <State state={state} empty="Chưa có hợp đồng thuê.">
+        {items => (
+          <Card className="tenant-list-card" bordered={false}>
+            <List
+              dataSource={items}
+              renderItem={item => (
+                <List.Item
+                  className="tenant-list-item"
+                  actions={[
+                    <Button
+                      key="detail"
+                      type="default"
+                      icon={<EyeOutlined />}
+                      loading={loadingDetailId === item.id}
+                      onClick={() => void openDetail(item.id)}
+                    >
+                      Chi tiết
+                    </Button>,
+                    ...(item.status === 'AwaitingSignature' ? [
+                      <Button
+                        key="sign"
+                        type="primary"
+                        loading={signingId === item.id}
+                        onClick={() => void signContract(item.id)}
+                      >
+                        Ký hợp đồng
+                      </Button>
+                    ] : [])
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={<span className="tenant-code">{item.contractCode}</span>}
+                    description={
+                      <Space className="tenant-item-meta" wrap size={[12, 6]}>
+                        <span><HomeOutlinedFallback /> {item.propertyTitle}</span>
+                        <span><CalendarOutlined /> {dateText(item.startDate)} – {dateText(item.endDate)}</span>
+                        <span>{money(item.monthlyRent)}/tháng</span>
+                      </Space>
+                    }
+                  />
+                  <StatusTag value={item.status} labels={contractLabels} />
+                </List.Item>
+              )}
+            />
+          </Card>
+        )}
+      </State>
+      <PageFooter state={state} />
+
+      <Modal
+        title="Chi tiết hợp đồng"
+        open={!!detail}
+        onCancel={() => setDetail(null)}
+        footer={null}
+        width="min(760px, calc(100vw - 32px))"
+        destroyOnHidden
+      >
+        {detail && (
+          <Descriptions bordered column={1} size="small">
+            <Descriptions.Item label="Mã hợp đồng">{detail.contract.contractCode}</Descriptions.Item>
+            <Descriptions.Item label="Căn nhà">{detail.propertyTitle}</Descriptions.Item>
+            <Descriptions.Item label="Chủ nhà">{detail.landlordName}</Descriptions.Item>
+            <Descriptions.Item label="Người thuê">{detail.tenantName}</Descriptions.Item>
+            <Descriptions.Item label="Thời hạn">{dateText(detail.contract.startDate)} – {dateText(detail.contract.endDate)}</Descriptions.Item>
+            <Descriptions.Item label="Tiền thuê">{money(detail.contract.monthlyRent)}/tháng</Descriptions.Item>
+            <Descriptions.Item label="Tiền cọc">{money(detail.contract.depositAmount)}</Descriptions.Item>
+            <Descriptions.Item label="Ngày đến hạn hàng tháng">Ngày {detail.contract.paymentDueDay}</Descriptions.Item>
+            <Descriptions.Item label="Trạng thái"><StatusTag value={detail.contract.status} labels={contractLabels} /></Descriptions.Item>
+            <Descriptions.Item label="Điều khoản">{detail.contract.terms || 'Chưa có điều khoản bổ sung.'}</Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
+    </Page>
+  );
+}
+
+function HomeOutlinedFallback() {
+  return <FileTextOutlined />;
+}
+
+export function InvoicesPage() {
+  const { message } = AntApp.useApp();
+  const state = usePage<InvoiceItem>(tenantApi.invoices);
+  const [detail, setDetail] = useState<InvoiceDetail | null>(null);
+  const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
+  const [checkoutId, setCheckoutId] = useState<string | null>(null);
+
+  const openDetail = async (id: string) => {
+    setLoadingDetailId(id);
+    try {
+      const response = await tenantApi.invoice(id);
+      setDetail(response.data);
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setLoadingDetailId(null);
+    }
+  };
+
+  const checkout = async (id: string) => {
+    setCheckoutId(id);
+    try {
+      const response = await tenantApi.checkout(id);
+      if (response.data.checkoutUrl) {
+        window.location.assign(response.data.checkoutUrl);
+      } else {
+        message.info('Chưa nhận được đường dẫn thanh toán từ máy chủ.');
+      }
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setCheckoutId(null);
+    }
+  };
+
+  return (
+    <Page title="Hóa đơn và thanh toán" description="Tra cứu các khoản cần thanh toán và lịch sử giao dịch của bạn.">
+      <State state={state} empty="Bạn chưa có hóa đơn nào.">
+        {items => (
+          <Card className="tenant-list-card" bordered={false}>
+            <List
+              dataSource={items}
+              renderItem={item => (
+                <List.Item
+                  className="tenant-list-item"
+                  actions={[
+                    <Button
+                      key="detail"
+                      icon={<EyeOutlined />}
+                      loading={loadingDetailId === item.id}
+                      onClick={() => void openDetail(item.id)}
+                    >
+                      Chi tiết
+                    </Button>,
+                    ...(item.status !== 'Paid' && item.status !== 'Cancelled' ? [
+                      <Button
+                        key="pay"
+                        type="primary"
+                        icon={<CreditCardOutlined />}
+                        loading={checkoutId === item.id}
+                        onClick={() => void checkout(item.id)}
+                      >
+                        Thanh toán
+                      </Button>
+                    ] : [])
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={<span className="tenant-code">{item.invoiceCode}</span>}
+                    description={
+                      <Space className="tenant-item-meta" wrap size={[12, 6]}>
+                        <span><FileTextOutlined /> {item.propertyTitle}</span>
+                        <span>Hạn thanh toán: {dateText(item.dueDate)}</span>
+                      </Space>
+                    }
+                  />
+                  <div className="tenant-amount-block">
+                    <Typography.Text className="tenant-item-price" strong>{money(item.totalAmount)}</Typography.Text>
+                    <StatusTag value={item.status} labels={invoiceLabels} />
+                  </div>
+                </List.Item>
+              )}
+            />
+          </Card>
+        )}
+      </State>
+      <PageFooter state={state} />
+
+      <Modal
+        title="Chi tiết hóa đơn và lịch sử thanh toán"
+        open={!!detail}
+        onCancel={() => setDetail(null)}
+        footer={null}
+        width="min(800px, calc(100vw - 32px))"
+        destroyOnHidden
+      >
+        {detail && (
+          <div className="tenant-invoice-detail">
+            <Descriptions bordered column={2} size="small">
+              <Descriptions.Item label="Mã hóa đơn">{detail.invoiceCode}</Descriptions.Item>
+              <Descriptions.Item label="Trạng thái"><StatusTag value={detail.status} labels={invoiceLabels} /></Descriptions.Item>
+              <Descriptions.Item label="Tổng tiền">{money(detail.totalAmount)}</Descriptions.Item>
+              <Descriptions.Item label="Hạn thanh toán">{dateText(detail.dueDate)}</Descriptions.Item>
+              <Descriptions.Item label="Căn nhà" span={2}>{detail.propertyTitle}</Descriptions.Item>
+              <Descriptions.Item label="Kỳ thanh toán" span={2}>
+                {detail.periodStart ? dateText(detail.periodStart) + ' – ' + dateText(detail.periodEnd) : '—'}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Typography.Title level={5}>Các khoản phí</Typography.Title>
+            <List
+              dataSource={detail.items ?? []}
+              renderItem={item => (
+                <List.Item>
+                  <List.Item.Meta title={item.description} description={item.quantity + ' × ' + money(item.unitPrice)} />
+                  <Typography.Text strong>{money(item.amount)}</Typography.Text>
+                </List.Item>
+              )}
+            />
+
+            <Typography.Title level={5}>Lịch sử giao dịch</Typography.Title>
+            <List
+              dataSource={detail.payments ?? []}
+              locale={{ emptyText: <Empty description="Chưa có giao dịch." /> }}
+              renderItem={payment => (
+                <List.Item>
+                  <List.Item.Meta
+                    title={payment.paymentMethod + ' · ' + (paymentLabels[payment.status] || payment.status)}
+                    description={payment.transactionCode || payment.paymentProvider || 'Không có mã giao dịch'}
+                  />
+                  <Space direction="vertical" align="end" size={2}>
+                    <Typography.Text strong>{money(payment.amount)}</Typography.Text>
+                    <Typography.Text type="secondary">{dateTimeText(payment.paidAt || payment.createdAt)}</Typography.Text>
+                  </Space>
+                </List.Item>
+              )}
+            />
+          </div>
+        )}
+      </Modal>
+    </Page>
+  );
+}
+
+export function NotificationsPage() {
+  const { message } = AntApp.useApp();
+  const state = usePage<NotificationItem>(tenantApi.notifications);
+  const [markingAll, setMarkingAll] = useState(false);
+  const [markingId, setMarkingId] = useState<string | null>(null);
+  const items = state.data?.items ?? [];
+  const unreadCount = items.filter(item => !item.isRead).length;
+
+  const markAllRead = async () => {
+    setMarkingAll(true);
+    try {
+      await tenantApi.readAll();
+      state.setData(previous => previous
+        ? { ...previous, items: previous.items.map(item => ({ ...item, isRead: true })) }
+        : previous);
+      message.success('Đã đánh dấu tất cả thông báo là đã đọc.');
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
+  const markRead = async (id: string) => {
+    setMarkingId(id);
+    try {
+      await tenantApi.readNotification(id);
+      state.setData(previous => previous
+        ? { ...previous, items: previous.items.map(item => item.id === id ? { ...item, isRead: true } : item) }
+        : previous);
+      message.success('Đã đánh dấu thông báo là đã đọc.');
+    } catch (error) {
+      message.error(errorText(error));
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
+  return (
+    <Page title="Thông báo" description="Cập nhật mới nhất về yêu cầu thuê, hợp đồng và thanh toán của bạn.">
+      <div className="tenant-page-toolbar">
+        <div className="tenant-unread-summary">
+          <span className="tenant-unread-icon"><BellOutlined /></span>
+          <div>
+            <Typography.Text strong>{unreadCount} thông báo chưa đọc</Typography.Text>
+            <Typography.Text type="secondary">Trong danh sách hiện tại</Typography.Text>
+          </div>
+        </div>
+        <Button
+          icon={<CheckOutlined />}
+          disabled={unreadCount === 0 || state.busy || !!state.err}
+          loading={markingAll}
+          onClick={() => void markAllRead()}
+        >
+          Đánh dấu tất cả đã đọc
+        </Button>
+      </div>
+
+      <State state={state} empty="Bạn chưa có thông báo nào.">
+        {notifications => (
+          <Card className="tenant-list-card tenant-notification-card" bordered={false}>
+            <List
+              dataSource={notifications}
+              renderItem={notification => (
+                <List.Item className={'tenant-list-item tenant-notification-item' + (!notification.isRead ? ' is-unread' : '')}>
+                  <List.Item.Meta
+                    title={
+                      <Space wrap size={8}>
+                        <span className="tenant-notification-title">{notification.title}</span>
+                        {!notification.isRead && <Tag color="blue">Mới</Tag>}
+                      </Space>
+                    }
+                    description={
+                      <div className="tenant-notification-content">
+                        <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'Xem thêm' }}>
+                          {notification.content}
+                        </Typography.Paragraph>
+                        <Typography.Text type="secondary">{dateTimeText(notification.createdAt)}</Typography.Text>
+                      </div>
+                    }
+                  />
+                  {!notification.isRead && (
+                    <Button
+                      type="text"
+                      icon={<CheckOutlined />}
+                      loading={markingId === notification.id}
+                      onClick={() => void markRead(notification.id)}
+                    >
+                      Đã đọc
+                    </Button>
+                  )}
+                </List.Item>
+              )}
+            />
+          </Card>
+        )}
+      </State>
+      <PageFooter state={state} />
+    </Page>
+  );
+}
