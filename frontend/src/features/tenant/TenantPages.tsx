@@ -338,7 +338,7 @@ export function BookingsPage() {
                     title={<Link to={'/nha/' + item.propertyId}>{item.propertyTitle}</Link>}
                     description={
                       <Space className="tenant-item-meta" wrap size={[12, 6]}>
-                        <span><CalendarOutlined /> {dateText(item.startDate)} – {dateText(item.endDate)}</span>
+                        <span><CalendarOutlined /> Từ {dateText(item.startDate)} đến trước {dateText(item.endDate)}</span>
                         <span>{item.numberOfPeople} người</span>
                         <span>Giá đề xuất {money(item.proposedPrice)}/tháng</span>
                         {item.estimatedRent !== undefined && <span>Ước tính kỳ thuê {money(item.estimatedRent)}</span>}
