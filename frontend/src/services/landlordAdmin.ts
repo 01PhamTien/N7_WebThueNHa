@@ -145,6 +145,15 @@ export interface UpdateContractRequest {
   terms?: string;
 }
 
+export interface LandlordFinancialSummaryDto {
+  months: number; receivedAllTime: number; receivedThisMonth: number;
+  rentReceived: number; depositReceived: number; otherReceived: number;
+  outstandingAmount: number; overdueAmount: number; overdueCount: number;
+  pendingPayments: number; pendingRequests: number; propertyCount: number;
+  activeContracts: number; endingSoon: number;
+  trend: Array<{year:number;month:number;label:string;received:number;rent:number;other:number}>;
+}
+
 export interface InvoiceItemDto {
   id: string;
   description: string;
@@ -390,6 +399,8 @@ export const landlordAdminApi = {
   createAdminUser: (data: CreateAdminUserRequest) => api.post<AdminUserDto>('/api/admin/users', data),
   updateAdminUser: (id: string, data: UpdateAdminUserRequest) => api.put<AdminUserDto>('/api/admin/users/' + id, data),
   deleteAdminUser: (id: string) => api.delete<void>('/api/admin/users/' + id),
+
+  landlordFinancialSummary: (months = 12) => api.get<LandlordFinancialSummaryDto>('/api/landlord/dashboard/financial-summary', { params: { months } }),
 
   myProperties: (params: PageParams & { status?: string; keyword?: string } = {}) =>
     api.get<PagedResult<PropertyDto>>('/api/properties/mine', { params: { page: 1, pageSize: 10, ...params } }),
