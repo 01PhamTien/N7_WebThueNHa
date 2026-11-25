@@ -57,7 +57,7 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
         else if (request.InvoiceType == InvoiceType.MonthlyRent)
         {
             if (!request.PeriodStart.HasValue || !request.PeriodEnd.HasValue ||
-                request.PeriodEnd < request.PeriodStart ||
+                request.PeriodEnd <= request.PeriodStart ||
                 request.PeriodStart < contract.StartDate ||
                 request.PeriodEnd > contract.EndDate)
                 return ServiceResult<InvoiceDetailResponse>.BadRequest(
