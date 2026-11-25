@@ -521,6 +521,30 @@ export function PropertyDetailPage() {
               <h3>Mô tả</h3>
               <p className="detail-description">{property.description || 'Chủ nhà chưa bổ sung mô tả cho căn nhà này.'}</p>
             </Card>
+            <Card className="detail-info-card">
+              <div className="property-reviews-heading">
+                <h2>Đánh giá từ người thuê</h2>
+                {reviewSummary && reviewSummary.totalReviews > 0 && (
+                  <span><strong>{reviewSummary.averageRating.toFixed(1)}</strong> / 5 · {reviewSummary.totalReviews} đánh giá</span>
+                )}
+              </div>
+              {reviewsBusy ? <Spin /> : reviewSummary?.items.length ? (
+                <List
+                  dataSource={reviewSummary.items}
+                  renderItem={item => (
+                    <List.Item className="property-review-item">
+                      <div>
+                        <Rate disabled value={item.rating} />
+                        <p>{item.comment || 'Người thuê không để lại nhận xét.'}</p>
+                        <small>Người thuê đã xác minh · {new Date(item.createdAt).toLocaleDateString('vi-VN')}</small>
+                      </div>
+                    </List.Item>
+                  )}
+                />
+              ) : (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có đánh giá từ người thuê đã hoàn tất kỳ thuê." />
+              )}
+            </Card>
           </section>
 
           <aside className="property-booking-card">
@@ -570,31 +594,45 @@ export function PropertyDetailPage() {
         destroyOnHidden
       >
         <Form form={bookingForm} layout="vertical" onFinish={submitBooking}>
+          <Alert
+            type="info"
+            showIcon
+            message="Tin đăng này cho thuê theo tháng"
+            description="Thời gian thuê tối thiểu là một tháng lịch. Gửi yêu cầu chưa phát sinh thanh toán; tiền thuê và tiền cọc cuối cùng sẽ được ghi rõ trong hợp đồng."
+            style={{ marginBottom: 16 }}
+          />
           <Form.Item name="startDate" label="Ngày bắt đầu" rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu.' }]}>
-            <Input type="date" />
+            <Input type="date" min={localDateValue()} />
           </Form.Item>
           <Form.Item
-            name="endDate"
-            label="Ngày kết thúc"
-            dependencies={['startDate']}
-            rules={[
-              { required: true, message: 'Vui lòng chọn ngày kết thúc.' },
-              {
-                validator: (_, value) => {
-                  const start = bookingForm.getFieldValue('startDate');
-                  return !start || !value || value > start
-                    ? Promise.resolve()
-                    : Promise.reject(new Error('Ngày kết thúc phải sau ngày bắt đầu.'));
-                }
-              }
-            ]}
+            noStyle
+            shouldUpdate={(previous, current) => previous.startDate !== current.startDate}
           >
-            <Input type="date" />
+            {({ getFieldValue }) => {
+              const startDate = getFieldValue('startDate') || localDateValue();
+              const minimumEndDate = addCalendarMonth(startDate);
+              return (
+                <Form.Item
+                  name="endDate"
+                  label="Ngày kết thúc"
+                  rules={[
+                    { required: true, message: 'Vui lòng chọn ngày kết thúc.' },
+                    {
+                      validator: (_, value) => !value || value >= minimumEndDate
+                        ? Promise.resolve()
+                        : Promise.reject(new Error('Thời gian thuê tối thiểu là một tháng lịch.'))
+                    }
+                  ]}
+                >
+                  <Input type="date" min={minimumEndDate} />
+                </Form.Item>
+              );
+            }}
           </Form.Item>
           <Form.Item name="numberOfPeople" label="Số người ở" rules={[{ required: true, message: 'Vui lòng nhập số người.' }]}>
             <InputNumber min={1} max={100} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="proposedPrice" label="Giá đề xuất/tháng" rules={[{ required: true, type: 'number', min: 1, message: 'Giá đề xuất phải lớn hơn 0.' }]}>
+          <Form.Item name="proposedPrice" label="Giá thuê đề xuất mỗi tháng" rules={[{ required: true, type: 'number', min: 1, message: 'Giá đề xuất phải lớn hơn 0.' }]}>
             <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="message" label="Lời nhắn">
