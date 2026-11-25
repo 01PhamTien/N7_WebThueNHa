@@ -31,10 +31,9 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
             return ServiceResult<RentalContractResponse>.Conflict(
                 "Chỉ yêu cầu đặt thuê đã được chấp nhận mới tạo được hợp đồng.");
 
-        if (booking.StartDate > DateOnly.MaxValue.AddMonths(-1) ||
-            booking.EndDate < booking.StartDate.AddMonths(1) || booking.ProposedPrice <= 0)
+        if (booking.EndDate <= booking.StartDate || booking.ProposedPrice <= 0)
             return ServiceResult<RentalContractResponse>.Conflict(
-                "Thời gian thuê tối thiểu là một tháng lịch và giá thuê phải lớn hơn 0.");
+                "Ngày thuê không hợp lệ hoặc giá thuê phải lớn hơn 0.");
 
         var existing = await db.RentalContracts
             .SingleOrDefaultAsync(x => x.BookingId == bookingId, cancellationToken);
@@ -100,10 +99,9 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
     public async Task<ServiceResult<RentalContractResponse>> UpdateAsync(
         Guid contractId, Guid userId, UpdateRentalContractRequest request, CancellationToken cancellationToken)
     {
-        if (request.StartDate > DateOnly.MaxValue.AddMonths(-1) ||
-            request.EndDate < request.StartDate.AddMonths(1))
+        if (request.EndDate <= request.StartDate)
             return ServiceResult<RentalContractResponse>.BadRequest(
-                "Thời gian thuê tối thiểu là một tháng lịch.");
+                "Ngày kết thúc phải sau ngày bắt đầu.");
 
         await using var transaction = await db.Database.BeginTransactionAsync(
             IsolationLevel.Serializable, cancellationToken);
