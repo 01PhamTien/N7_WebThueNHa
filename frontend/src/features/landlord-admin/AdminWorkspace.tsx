@@ -188,6 +188,7 @@ export function AdminOperations() {
     { title: 'Chủ nhà / Người thuê', render: (_, row) => <Space orientation="vertical" size={0}>{row.landlordName}<Typography.Text type="secondary">{row.tenantName}</Typography.Text></Space> },
     { title: 'Thời hạn', render: (_, row) => `${dateText(row.startDate)} – ${dateText(row.endDate)}` },
     { title: 'Tiền thuê', dataIndex: 'monthlyRent', render: money },
+    { title: 'Ước tính cả kỳ', dataIndex: 'estimatedRent', render: money },
     { title: 'Trạng thái', dataIndex: 'status', render: value => <Status value={value} label={contractStatusLabels[value] || value} /> }
   ];
   const invoiceColumns: ColumnsType<import('../../services/landlordAdmin').InvoiceListDto> = [
