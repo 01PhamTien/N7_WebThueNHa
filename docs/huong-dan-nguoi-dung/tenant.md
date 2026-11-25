@@ -116,7 +116,7 @@ Nếu danh sách trống, giao diện hiển thị thông báo bạn chưa lưu 
    - **Lời nhắn**: không bắt buộc, tối đa 1.000 ký tự.
 5. Chọn **Gửi yêu cầu**.
 
-Ngày bắt đầu không được ở trong quá khứ và ngày kết thúc phải sau ngày bắt đầu. Bạn không thể gửi yêu cầu thuê căn nhà của chính mình. Căn nhà phải được duyệt và đang công khai; khoảng thời gian thuê cũng không được trùng với một yêu cầu đã được chấp nhận.
+Ngày bắt đầu không được ở trong quá khứ và ngày kết thúc phải cách ngày bắt đầu ít nhất một tháng lịch. Ví dụ, từ 25/11 đến 25/12 là một tháng; yêu cầu chỉ 2 ngày sẽ bị từ chối vì tin đăng hiện chỉ hỗ trợ thuê theo tháng. Giá đề xuất là đơn giá mỗi tháng, không phải tổng tiền phải trả ngay khi gửi yêu cầu. Tiền thuê, tiền cọc và lịch thanh toán cuối cùng được xác nhận trong hợp đồng. Bạn không thể gửi yêu cầu thuê căn nhà của chính mình. Căn nhà phải được duyệt và đang công khai; khoảng thời gian thuê cũng không được trùng với một yêu cầu đã được chấp nhận.
 
 ### Theo dõi và hủy yêu cầu
 
@@ -145,9 +145,18 @@ Lưu ý: giao diện hiện hiển thị giá trị trạng thái dạng chữ n
 
 Theo Backend, hợp đồng chỉ được ký khi đang ở trạng thái `AwaitingSignature`. Người thuê chỉ có thể xác nhận cho chính mình; hợp đồng chuyển sang `Active` sau khi cả chủ nhà và người thuê đều đã xác nhận.
 
-**Lưu ý cần xác nhận với nhóm:** Backend trả trạng thái `AwaitingSignature`, nhưng điều kiện hiển thị nút ký trong giao diện Tenant hiện đang kiểm tra chuỗi `PendingSignature`. Vì vậy, nút **Ký hợp đồng** có thể không xuất hiện dù hợp đồng đang chờ xác nhận. Nếu gặp trường hợp này, hãy báo quản trị viên/nhóm phát triển; không có thao tác thay thế được hướng dẫn trong giao diện hiện tại.
+Nút **Ký hợp đồng** được hiển thị khi hợp đồng ở trạng thái `AwaitingSignature`. Hợp đồng chỉ có hiệu lực sau khi cả chủ nhà và người thuê xác nhận.
 
-## 8. Xem hóa đơn và thanh toán
+## 8. Đánh giá sau khi thuê
+
+1. Mở mục **Hợp đồng thuê**.
+2. Khi hợp đồng đã hoàn thành hoặc thời hạn thuê đã kết thúc, chọn **Đánh giá**.
+3. Chọn số sao từ 1 đến 5 và nhập nhận xét nếu muốn.
+4. Mỗi hợp đồng chỉ được đánh giá một lần.
+
+Đánh giá được hiển thị trên trang chi tiết căn nhà và trong phần **Đánh giá của tôi** ở hồ sơ cá nhân. Chỉ người thuê có hợp đồng thực tế với căn nhà mới được gửi đánh giá.
+
+## 9. Xem hóa đơn và thanh toán
 
 ### Xem hóa đơn và lịch sử giao dịch
 
@@ -170,7 +179,7 @@ Trạng thái thanh toán thành công được Backend cập nhật qua IPN/Ban
 
 **Giới hạn hiện tại:** Backend có API ghi nhận thanh toán thủ công bằng tiền mặt/chuyển khoản, nhưng trang Hóa đơn dành cho Tenant hiện chỉ hiển thị nút **Thanh toán SePay**. Không có nút gửi yêu cầu thanh toán thủ công trên giao diện Tenant hiện tại.
 
-## 9. Nhắn tin với chủ nhà
+## 10. Nhắn tin với chủ nhà
 
 ### Mở hội thoại
 
@@ -184,10 +193,9 @@ Bạn cũng có thể chọn **Tin nhắn** trên thanh điều hướng hoặc 
 
 1. Chọn một hội thoại trong danh sách.
 2. Nhập nội dung vào ô **Nhập tin nhắn...** rồi chọn **Gửi** hoặc nhấn Enter.
-3. Tin nhắn của bạn có thể được **Sửa** hoặc **Xóa** bằng các nút cạnh tin nhắn của chính bạn.
-4. Khi chọn **Xóa**, xác nhận trong hộp thoại để hoàn tất.
+3. Tin nhắn đã gửi được giữ trong lịch sử trao đổi; giao diện hiện không cung cấp thao tác sửa hoặc xóa tin nhắn.
 
-Nội dung tin nhắn tối đa 4.000 ký tự theo giới hạn nhập của giao diện. Chỉ người gửi mới được sửa hoặc xóa tin nhắn của mình.
+Nội dung tin nhắn tối đa 4.000 ký tự theo giới hạn nhập của giao diện.
 
 ### Gửi tệp
 
@@ -199,14 +207,14 @@ Backend chấp nhận ảnh JPG/JPEG, PNG, WEBP, PDF, DOC và DOCX; dung lượn
 
 ### Hội thoại đã lưu trữ
 
-- Chọn **Đang hoạt động** để xem hội thoại chưa lưu trữ.
-- Chọn **Đã lưu trữ** để xem hội thoại đã lưu trữ.
-- Mở hội thoại rồi chọn **Lưu trữ** để ẩn hội thoại khỏi danh sách đang hoạt động.
-- Trong danh sách **Đã lưu trữ**, mở hội thoại và chọn **Khôi phục** để đưa hội thoại trở lại danh sách đang hoạt động.
+- Dùng bộ lọc **Hộp thư đến** để xem các cuộc trò chuyện đang sử dụng.
+- Chọn **Đã lưu trữ** để xem lại các cuộc trò chuyện cũ.
+- Mở hội thoại rồi chọn **Lưu trữ** để chuyển hội thoại khỏi hộp thư đến.
+- Trong danh sách đã lưu trữ, chọn **Đưa về hộp thư đến** để tiếp tục trao đổi. Hội thoại đã lưu trữ cần được khôi phục trước khi gửi tin nhắn mới.
 
 Khi mở hội thoại, hệ thống tải tin nhắn gần đây và đánh dấu hội thoại đã đọc. Nếu có nút **Tải tin nhắn cũ hơn**, chọn nút đó để xem các tin nhắn trước. Trạng thái kết nối SignalR được hiển thị trong phần đầu hội thoại; nếu mất kết nối, thử chờ hệ thống kết nối lại hoặc tải lại trang.
 
-## 10. Xem thông báo
+## 11. Xem thông báo
 
 1. Đăng nhập. Chọn **Thông báo** trên thanh điều hướng hoặc truy cập `/thong-bao`.
 2. Xem tiêu đề, nội dung và thời gian của từng thông báo.
@@ -216,7 +224,7 @@ Khi mở hội thoại, hệ thống tải tin nhắn gần đây và đánh d�
 
 Số thông báo chưa đọc cũng được hiển thị trên biểu tượng chuông ở thanh đầu trang. Nếu chưa có thông báo, giao diện hiển thị trạng thái danh sách trống.
 
-## 11. Một số tình huống thường gặp
+## 12. Một số tình huống thường gặp
 
 | Tình huống | Nguyên nhân/ cách xử lý |
 |---|---|
@@ -230,9 +238,8 @@ Số thông báo chưa đọc cũng được hiển thị trên biểu tượng 
 | Không mở/tải được tệp | Bạn cần là thành viên của hội thoại; tệp cũng phải còn tồn tại trên máy chủ. |
 | Không thấy hội thoại | Mở liên hệ từ trang chi tiết căn nhà bằng tài khoản Tenant; kiểm tra cả danh sách **Đã lưu trữ**. |
 
-## 12. Ghi chú về giới hạn hiện tại
+## 13. Ghi chú về giới hạn hiện tại
 
 - Bộ lọc trên trang **Tìm nhà** hiện có từ khóa, tỉnh/thành phố và khoảng giá. Không hướng dẫn các bộ lọc diện tích, số phòng ngủ hoặc loại nhà vì chưa có trường tương ứng trên giao diện Tenant hiện tại.
 - Trang **Hóa đơn** hiện cung cấp checkout SePay; không có nút gửi yêu cầu thanh toán thủ công cho Tenant.
-- Có sự không thống nhất giữa trạng thái hợp đồng Backend `AwaitingSignature` và điều kiện hiển thị nút ký `PendingSignature` ở giao diện Tenant. Cần nhóm phát triển xác nhận/sửa riêng; tài liệu này không thay đổi API hoặc mã nguồn.
 - Tài liệu chỉ mô tả các thao tác nhìn thấy trên giao diện Tenant tại thời điểm viết. Những nghiệp vụ chỉ có API nhưng chưa có thao tác trên giao diện không được xem là chức năng người dùng có thể thực hiện từ màn hình hiện tại.
