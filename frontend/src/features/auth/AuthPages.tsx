@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { App as AntApp, Avatar, Button, Card, Col, Divider, Empty, Form, Input, List, Rate, Row, Space, Spin, Tag, Typography } from 'antd';
+import { App as AntApp, Avatar, Button, Card, Col, Empty, Form, Input, List, Rate, Row, Space, Spin, Typography } from 'antd';
 import {
   HeartOutlined,
   HomeOutlined,
