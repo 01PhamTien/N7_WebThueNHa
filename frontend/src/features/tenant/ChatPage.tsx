@@ -154,12 +154,15 @@ export function ChatPage() {
 
   const loadOlderMessages = async () => {
     if (!active || !hasOlder) return;
+    const conversationId = active.conversationId;
+    const requestId = messageRequestId.current;
     const nextPage = messagePage + 1;
     const previousHeight = scroll.current?.scrollHeight || 0;
     shouldAutoScroll.current = false;
     setLoadingMessages(true);
     try {
-      const response = await tenantApi.messages(active.conversationId, nextPage, SIZE);
+      const response = await tenantApi.messages(conversationId, nextPage, SIZE);
+      if (requestId !== messageRequestId.current) return;
       setMessages(previous => [
         ...response.data.items,
         ...previous.filter(item => !response.data.items.some(next => next.messageId === item.messageId))
@@ -167,14 +170,14 @@ export function ChatPage() {
       setMessagePage(nextPage);
       setHasOlder(response.data.hasNext);
       requestAnimationFrame(() => {
-        if (scroll.current) {
+        if (scroll.current && requestId === messageRequestId.current) {
           scroll.current.scrollTop += scroll.current.scrollHeight - previousHeight;
         }
       });
     } catch (error) {
-      message.error(errorText(error));
+      if (requestId === messageRequestId.current) message.error(errorText(error));
     } finally {
-      setLoadingMessages(false);
+      if (requestId === messageRequestId.current) setLoadingMessages(false);
     }
   };
 
