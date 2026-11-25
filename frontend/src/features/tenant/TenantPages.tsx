@@ -473,6 +473,7 @@ export function ContractsPage() {
                         <span><HomeOutlined /> {item.propertyTitle}</span>
                         <span><CalendarOutlined /> {dateText(item.startDate)} – {dateText(item.endDate)}</span>
                         <span>{money(item.monthlyRent)}/tháng</span>
+                        {item.estimatedRent !== undefined && <span>Ước tính cả kỳ: {money(item.estimatedRent)}</span>}
                       </Space>
                     }
                   />
@@ -501,6 +502,7 @@ export function ContractsPage() {
             <Descriptions.Item label="Người thuê">{detail.tenantName}</Descriptions.Item>
             <Descriptions.Item label="Thời hạn">{dateText(detail.contract.startDate)} – {dateText(detail.contract.endDate)}</Descriptions.Item>
             <Descriptions.Item label="Tiền thuê">{money(detail.contract.monthlyRent)}/tháng</Descriptions.Item>
+            <Descriptions.Item label="Tổng tiền thuê ước tính">{money(detail.contract.estimatedRent)}</Descriptions.Item>
             <Descriptions.Item label="Tiền cọc">{money(detail.contract.depositAmount)}</Descriptions.Item>
             <Descriptions.Item label="Ngày đến hạn hàng tháng">Ngày {detail.contract.paymentDueDay}</Descriptions.Item>
             <Descriptions.Item label="Trạng thái"><StatusTag value={detail.contract.status} labels={contractLabels} /></Descriptions.Item>
