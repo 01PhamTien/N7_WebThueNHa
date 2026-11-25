@@ -299,7 +299,12 @@ export function ProfilePage() {
                 <Form.Item
                   name="phoneNumber"
                   label="Số điện thoại"
-                  rules={[{ pattern: /^[0-9+().\-\s]{8,20}$/, message: 'Số điện thoại chưa đúng định dạng.' }]}
+                  rules={[{
+                    validator: (_, value) =>
+                      !value || /^[0-9+().\\-\\s]{8,20}$/.test(value)
+                        ? Promise.resolve()
+                        : Promise.reject(new Error('Số điện thoại chưa đúng định dạng.'))
+                  }]}$/, message: 'Số điện thoại chưa đúng định dạng.' }]}
                 >
                   <Input autoComplete="tel" placeholder="Nhập số điện thoại" />
                 </Form.Item>
