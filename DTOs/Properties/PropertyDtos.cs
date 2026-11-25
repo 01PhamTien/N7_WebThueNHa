@@ -67,6 +67,18 @@ public sealed class PropertyUpdateRequest
     [Range(typeof(decimal), "0.01", "1000000000000")]
     public decimal PricePerMonth { get; set; }
 
+    [Range(typeof(decimal), "0", "1000000000000")]
+    public decimal DepositAmount { get; set; }
+
+    [Range(1, 100)]
+    public int MaxOccupants { get; set; } = 2;
+
+    [StringLength(1000)]
+    public string? FurnishingDescription { get; set; }
+
+    [StringLength(1000)]
+    public string? AdditionalFeesDescription { get; set; }
+
     [Range(typeof(decimal), "0.01", "100000")]
     public decimal Area { get; set; }
 
