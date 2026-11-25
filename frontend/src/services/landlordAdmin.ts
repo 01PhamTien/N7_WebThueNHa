@@ -42,6 +42,7 @@ export interface PropertyDto {
   provinceName: string;
   moderationStatus: string;
   listingStatus: string;
+  rentalStatus?: 'Available' | 'PendingRequest' | 'Reserved' | 'Rented';
   images: PropertyImageDto[];
 }
 
