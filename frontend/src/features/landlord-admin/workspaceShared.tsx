@@ -8,7 +8,7 @@ export const dateText = (v?: string) => v ? new Date(v).toLocaleDateString('vi-V
 export const bookingStatusLabels: Record<number, string> = { 0: 'Chờ xử lý', 1: 'Đã chấp nhận', 2: 'Đã từ chối', 3: 'Đã hủy', 4: 'Hết hạn' };
 export const moderationStatusLabels: Record<number, string> = { 0: 'Bản nháp', 1: 'Chờ duyệt', 2: 'Đã duyệt', 3: 'Đã từ chối' };
 export const listingStatusLabels: Record<string, string> = { Draft: 'Bản nháp', Published: 'Đang đăng', Hidden: 'Đã ẩn', Closed: 'Đã đóng', '0': 'Bản nháp', '1': 'Đang đăng', '2': 'Đã ẩn', '3': 'Đã đóng' };
-export const contractStatusLabels: Record<string, string> = { Draft: 'Bản nháp', AwaitingSignature: 'Chờ ký', Active: 'Đang hiệu lực', Completed: 'Hoàn thành', Terminated: 'Đã chấm dứt', Cancelled: 'Đã hủy' };
+export const contractStatusLabels: Record<string, string> = { Draft: 'Đang chuẩn bị', AwaitingSignature: 'Chờ ký', Active: 'Đang hiệu lực', Completed: 'Hoàn thành', Terminated: 'Đã chấm dứt', Cancelled: 'Đã hủy' };
 export const invoiceStatusLabels: Record<string, string> = { Draft: 'Bản nháp', Issued: 'Đã phát hành', PartiallyPaid: 'Đã thanh toán một phần', Paid: 'Đã thanh toán', Overdue: 'Quá hạn', Cancelled: 'Đã hủy' };
 export const invoiceTypeLabels: Record<string, string> = { Deposit: 'Tiền cọc', MonthlyRent: 'Tiền thuê hàng tháng', Other: 'Khác' };
 export const paymentStatusLabels: Record<string, string> = { Pending: 'Chờ xác nhận', Succeeded: 'Thành công', Failed: 'Thất bại', Cancelled: 'Đã hủy', Refunded: 'Đã hoàn tiền' };
