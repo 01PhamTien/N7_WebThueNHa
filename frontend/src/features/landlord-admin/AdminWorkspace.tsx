@@ -140,8 +140,11 @@ export function AdminUsers() {
           avatarUrl: values.avatarUrl?.trim() || undefined
         };
         await api.updateAdminUser(selected.userId, profile);
-        await api.updateUserRoles(selected.userId, values.roles);
-        message.success('Đã cập nhật thông tin và phân quyền tài khoản.');
+        const currentRoles = [...(selected.roles || [])].sort().join('|');
+        const nextRoles = [...values.roles].sort().join('|');
+        if (currentRoles !== nextRoles)
+          await api.updateUserRoles(selected.userId, values.roles);
+        message.success('Đã cập nhật thông tin tài khoản.');
       } else {
         const request: CreateAdminUserRequest = {
           fullName: values.fullName.trim(),
