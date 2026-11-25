@@ -142,6 +142,23 @@ public static class DemoDataSeeder
                 Title = propertyTitles[i % propertyTitles.Length] + " #" + (i + 1).ToString("00"),
                 Description = descriptions[i % descriptions.Length],
                 PricePerMonth = prices[i % prices.Length],
+                DepositAmount = prices[i % prices.Length],
+                MaxOccupants = i % 5 switch { 0 => 2, 1 => 3, 2 => 4, 3 => 5, _ => 2 },
+                FurnishingDescription = (i % 5) switch
+                {
+                    0 => "Giường 1m6, nệm, tủ quần áo, máy lạnh, bàn làm việc; nhà vệ sinh riêng.",
+                    1 => "Giường đôi, tủ quần áo, sofa nhỏ, máy lạnh, tủ lạnh và bếp điện.",
+                    2 => "Bếp riêng, tủ lạnh, máy giặt, máy nước nóng, tủ bếp và bàn ăn.",
+                    3 => "Nhà cơ bản có tủ bếp, máy nước nóng, rèm cửa; có thể trao đổi bổ sung nội thất.",
+                    _ => "Không gian trống, có hệ thống điện nước và đèn chiếu sáng; phù hợp tự bố trí nội thất."
+                },
+                AdditionalFeesDescription = (i % 4) switch
+                {
+                    0 => "Điện 3.500 đ/kWh theo công tơ riêng; nước 80.000 đ/người/tháng; Wi-Fi miễn phí; xe máy 100.000 đ/xe/tháng.",
+                    1 => "Điện 3.800 đ/kWh theo công tơ; nước tính theo đồng hồ; phí vệ sinh 30.000 đ/người/tháng.",
+                    2 => "Điện nước tính theo hóa đơn thực tế; phí quản lý đã bao gồm trong giá thuê; gửi xe thỏa thuận riêng.",
+                    _ => "Không bao gồm điện, nước và gửi xe; đơn giá, cách tính sẽ được ghi rõ trong hợp đồng trước khi ký."
+                },
                 Area = 18 + (i % 9) * 4,
                 Bedrooms = i % 4,
                 Bathrooms = i % 2 + 1,
@@ -272,7 +289,7 @@ public static class DemoDataSeeder
                 StartDate = booking.StartDate,
                 EndDate = booking.EndDate,
                 MonthlyRent = property.PricePerMonth,
-                DepositAmount = property.PricePerMonth,
+                DepositAmount = property.DepositAmount,
                 PaymentDueDay = 5 + i % 20,
                 Terms = "Dữ liệu hợp đồng mẫu để kiểm thử luồng xem, ký và quản lý hợp đồng. Không phải hợp đồng giao dịch thật.",
                 Status = contractStatus,
