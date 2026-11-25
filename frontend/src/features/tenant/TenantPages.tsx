@@ -50,7 +50,8 @@ const bookingLabels: Record<string, string> = {
   Accepted: 'Đã chấp nhận',
   Rejected: 'Đã từ chối',
   Cancelled: 'Đã hủy',
-  Expired: 'Hết hạn'
+  Expired: 'Hết hạn',
+  Unknown: 'Chưa xác định'
 };
 
 const contractLabels: Record<string, string> = {
@@ -341,7 +342,8 @@ export function BookingsPage() {
     if (status === 'Accepted') return 'Chủ nhà đã đồng ý cho thuê. Bước tiếp theo là chủ nhà lập hợp đồng, bổ sung tiền cọc và điều khoản rồi gửi cho bạn xác nhận. Hãy theo dõi mục Hợp đồng thuê.';
     if (status === 'Rejected') return 'Yêu cầu không được chấp nhận. Bạn có thể xem lý do bên dưới hoặc tìm căn nhà khác.';
     if (status === 'Cancelled') return 'Yêu cầu này đã được hủy. Nếu vẫn muốn thuê căn nhà, bạn có thể liên hệ chủ nhà hoặc gửi yêu cầu mới khi tin đăng còn mở.';
-    return 'Yêu cầu đã hết hạn. Vui lòng liên hệ chủ nhà nếu bạn vẫn quan tâm căn nhà.';
+    if (status === 'Expired') return 'Yêu cầu đã hết hạn. Vui lòng liên hệ chủ nhà nếu bạn vẫn quan tâm căn nhà.';
+    return 'Chưa xác định được trạng thái yêu cầu. Vui lòng tải lại hoặc liên hệ hỗ trợ.';
   };
 
   return (
