@@ -32,6 +32,7 @@ jobs:
       - name: Kiem tra Swagger JSON
         env:
           ASPNETCORE_ENVIRONMENT: Development
+          SeedDemoData: false
           ASPNETCORE_URLS: http://127.0.0.1:5080
           ConnectionStrings__DefaultConnection: Server=127.0.0.1;Database=SwaggerSmoke;User Id=sa;Password=SwaggerSmoke_Only_123!;TrustServerCertificate=True;Connect Timeout=1
           Jwt__Key: SwaggerSmokeOnlyKey_12345678901234567890
