@@ -391,9 +391,7 @@ export const landlordAdminApi = {
   messages: (id: string, params: PageParams = {}) =>
     api.get<PagedResult<ChatMessageDto>>('/api/chat/conversations/' + id + '/messages', { params: { page: 1, pageSize: 50, ...params } }),
   sendMessage: (id: string, content: string) => api.post<ChatMessageDto>('/api/chat/conversations/' + id + '/messages', { content }),
-  editMessage: (conversationId: string, messageId: string, content: string) =>
     api.put<ChatMessageDto>('/api/chat/conversations/' + conversationId + '/messages/' + messageId, { content }),
-  deleteMessage: (conversationId: string, messageId: string) =>
     api.delete<void>('/api/chat/conversations/' + conversationId + '/messages/' + messageId),
   uploadAttachment: (id: string, file: File) => {
     const data = new FormData();
