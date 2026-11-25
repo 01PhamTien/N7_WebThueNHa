@@ -98,3 +98,15 @@ Không đưa JWT, mật khẩu, connection string hoặc dữ liệu cá nhân t
 | Trang vượt giới hạn dữ liệu | page lớn hơn totalPages | 200; items rỗng, totalCount/totalPages giữ chính xác | Chưa chạy |
 | Phân quyền | Tenant gọi `/incoming`; Landlord gọi `/mine` | 403 | Chưa chạy |
 | Phân quyền | Hai Tenant hoặc hai Landlord gọi danh sách | Mỗi người chỉ thấy dữ liệu thuộc phạm vi JWT của mình | Chưa chạy |
+
+
+## Kiểm thử giá niêm yết và sức chứa
+| Mã | Tình huống | Kết quả mong đợi |
+|---|---|---|
+| BOOK-PRICE-01 | Tenant tạo booking không gửi giá | Backend tự chụp PricePerMonth của tin đăng; không cần ProposedPrice |
+| BOOK-PRICE-02 | Tenant tự gửi thêm proposedPrice | Backend bỏ qua trường lạ; giá snapshot vẫn là giá niêm yết |
+| BOOK-CAP-01 | Số người thuê nhỏ hơn hoặc bằng MaxOccupants | Cho phép tạo yêu cầu |
+| BOOK-CAP-02 | Số người thuê vượt MaxOccupants | API trả 400; không tạo Booking |
+| BOOK-CAP-03 | Chủ nhà giảm sức chứa trước khi chấp nhận yêu cầu | API Accept từ chối nếu booking vượt sức chứa mới |
+| BOOK-DEPOSIT-01 | Chấp nhận yêu cầu | Hợp đồng nhận DepositAmount đã công bố trên tin đăng |
+| BOOK-FEE-01 | Tin đăng có điện/nước/phí dịch vụ | Hiển thị công khai; không tự cộng vào tiền thuê nếu chưa có khoản phí và cách tính được chốt |
