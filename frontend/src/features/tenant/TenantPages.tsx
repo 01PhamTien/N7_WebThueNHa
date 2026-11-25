@@ -378,7 +378,7 @@ export function ContractsPage() {
   const canReview = (item: ContractItem) => {
     if (item.status === 'Completed') return true;
     if (item.status !== 'Active') return false;
-    return new Date(item.endDate + 'T00:00:00') <= new Date(new Date().toDateString());
+    return item.endDate <= new Date().toISOString().slice(0, 10);
   };
 
   const submitReview = async () => {
