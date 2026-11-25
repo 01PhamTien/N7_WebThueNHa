@@ -254,10 +254,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
         modelBuilder.Entity<Review>(e =>
         {
-            e.ToTable("Reviews");
+            e.ToTable("Reviews", table =>
+                table.HasCheckConstraint("CK_Reviews_Rating", "[Rating] >= 1 AND [Rating] <= 5"));
             e.HasKey(x => x.Id);
             e.Property(x => x.Comment).HasMaxLength(2000);
-            e.HasCheckConstraint("CK_Reviews_Rating", "[Rating] >= 1 AND [Rating] <= 5");
             e.HasOne(x => x.Contract).WithOne(x => x.Review).HasForeignKey<Review>(x => x.ContractId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => x.ContractId).IsUnique();
         });
