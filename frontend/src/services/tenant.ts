@@ -20,6 +20,7 @@ export const tenantApi = {
   cancelBooking: (id: string) => api.patch('/api/bookings/' + id + '/cancel'),
   startConversation: (id: string) => api.post('/api/chat/properties/' + id + '/conversation'),
   signContract: (id: string) => api.post('/api/contracts/' + id + '/sign'),
+  contract: (id: string) => api.get('/api/contracts/' + id),
   invoice: (id: string) => api.get('/api/invoices/' + id),
   checkout: (id: string) => api.post('/api/invoices/' + id + '/sepay-checkout'),
   manualPayment: (id: string, data: unknown) => api.post('/api/invoices/' + id + '/payments', data),
