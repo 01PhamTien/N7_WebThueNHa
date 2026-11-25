@@ -79,7 +79,6 @@ public sealed class CreateInvoiceRequest
     public DateOnly DueDate { get; set; }
 
     [Required]
-    [MinLength(1)]
     public List<CreateInvoiceItemRequest> Items { get; set; } = [];
 }
 
