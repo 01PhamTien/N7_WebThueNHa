@@ -353,11 +353,12 @@ public sealed class BookingsController : ControllerBase
         // Trang vượt tổng số trang trả danh sách rỗng, không tính OFFSET có thể tràn số.
         var items = page > totalPages
             ? new List<BookingResponse>()
-            : await ToBookingResponseQuery(query)
-                .OrderByDescending(x => x.CreatedAt)
-                .ThenByDescending(x => x.Id)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+            : await ToBookingResponseQuery(
+                    query
+                        .OrderByDescending(x => x.CreatedAt)
+                        .ThenByDescending(x => x.Id)
+                        .Skip((page - 1) * pageSize)
+                        .Take(pageSize))
                 .ToListAsync(cancellationToken);
 
         return Ok(new PagedResponse<BookingResponse>(
