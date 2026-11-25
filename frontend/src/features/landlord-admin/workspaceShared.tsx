@@ -13,7 +13,7 @@ export const invoiceStatusLabels: Record<string, string> = { Draft: 'Bản nháp
 export const invoiceTypeLabels: Record<string, string> = { Deposit: 'Tiền cọc', MonthlyRent: 'Tiền thuê hàng tháng', Other: 'Khác' };
 export const paymentStatusLabels: Record<string, string> = { Pending: 'Chờ xác nhận', Succeeded: 'Thành công', Failed: 'Thất bại', Cancelled: 'Đã hủy', Refunded: 'Đã hoàn tiền' };
 export const moderationActionLabels: Record<number, string> = { 0: 'Đã duyệt', 1: 'Từ chối', 2: 'Đã ẩn', 3: 'Đã khôi phục' };
-const statusColor = (label: string) => ({ 'Chờ xử lý': 'gold', 'Chờ duyệt': 'gold', 'Chờ xác nhận': 'gold', 'Đã duyệt': 'green', 'Đang đăng': 'green', 'Đã chấp nhận': 'green', 'Đang hiệu lực': 'green', 'Đã thanh toán': 'green', 'Thành công': 'green', 'Đã từ chối': 'red', 'Từ chối': 'red', 'Thất bại': 'red', 'Đã hủy': 'red', 'Quá hạn': 'red', 'Đã ẩn': 'orange', 'Chờ ký': 'blue' } as Record<string, string>)[label] || 'default';
+const statusColor = (label: string) => ({ 'Chờ xử lý': 'gold', 'Chờ duyệt': 'gold', 'Chờ xác nhận': 'gold', 'Đã duyệt': 'green', 'Đang đăng': 'green', 'Đã chấp nhận': 'green', 'Đang hiệu lực': 'green', 'Đã thanh toán': 'green', 'Thành công': 'green', 'Đã từ chối': 'red', 'Từ chối': 'red', 'Thất bại': 'red', 'Đã hủy': 'red', 'Quá hạn': 'red', 'Đã ẩn': 'orange', 'Hết hạn': 'orange', 'Chờ ký': 'blue' } as Record<string, string>)[label] || 'default';
 export function Status({ value, label }: { value: string | number; label?: string }) {
   const display = label ?? listingStatusLabels[String(value)] ?? contractStatusLabels[String(value)] ?? invoiceStatusLabels[String(value)] ?? paymentStatusLabels[String(value)] ?? String(value);
   return <Tag color={statusColor(display)}>{display}</Tag>;
