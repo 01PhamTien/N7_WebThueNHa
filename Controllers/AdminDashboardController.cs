@@ -25,8 +25,20 @@ public sealed class AdminDashboardController(AppDbContext db) : ControllerBase
             x => x.Status == BookingStatus.Pending, cancellationToken);
         var activeContracts = await db.RentalContracts.CountAsync(
             x => x.Status == RentalContractStatus.Active, cancellationToken);
+        var totalBookings = await db.Bookings.CountAsync(cancellationToken);
+        var totalContracts = await db.RentalContracts.CountAsync(cancellationToken);
+        var totalInvoices = await db.Invoices.CountAsync(cancellationToken);
         var overdueInvoices = await db.Invoices.CountAsync(
             x => x.Status == InvoiceStatus.Overdue, cancellationToken);
+        var pendingPayments = await db.Payments.CountAsync(
+            x => x.Status == PaymentStatus.Pending, cancellationToken);
+        var successfulPayments = await db.Payments.CountAsync(
+            x => x.Status == PaymentStatus.Succeeded, cancellationToken);
+        var successfulPaymentAmount = await db.Payments
+            .Where(x => x.Status == PaymentStatus.Succeeded)
+            .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0m;
+        var totalReviews = await db.Reviews.CountAsync(cancellationToken);
+        var totalModerationActions = await db.PropertyModerationLogs.CountAsync(cancellationToken);
 
         return Ok(new
         {
@@ -35,9 +47,17 @@ public sealed class AdminDashboardController(AppDbContext db) : ControllerBase
             totalProperties,
             pendingProperties,
             publishedProperties,
+            totalBookings,
             pendingBookings,
+            totalContracts,
             activeContracts,
-            overdueInvoices
+            totalInvoices,
+            overdueInvoices,
+            pendingPayments,
+            successfulPayments,
+            successfulPaymentAmount,
+            totalReviews,
+            totalModerationActions
         });
     }
 }
