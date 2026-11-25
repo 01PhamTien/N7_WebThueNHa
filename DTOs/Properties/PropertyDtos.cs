@@ -143,6 +143,7 @@ public sealed record PropertyResponse(
     decimal? Longitude,
     string ModerationStatus,
     string ListingStatus,
+    string RentalStatus,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     IReadOnlyCollection<PropertyImageResponse> Images,
