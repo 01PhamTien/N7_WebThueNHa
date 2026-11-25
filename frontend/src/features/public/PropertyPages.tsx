@@ -581,6 +581,8 @@ export function PropertyDetailPage() {
                 <div><b>{property.bathrooms}</b><span>Phòng tắm</span></div>
                 <div><b>{property.maxOccupants} người</b><span>Sức chứa tối đa</span></div>
               </div>
+              <h3>Tiện nghi có sẵn</h3>
+              {(property.amenities || []).length > 0 ? <Space wrap>{property.amenities!.map(item => <Tag color="blue" key={item}>{item}</Tag>)}</Space> : <p className="muted">Chủ nhà chưa cập nhật tiện nghi riêng.</p>}
               <h3>Tiền cọc và chi phí</h3>
               <p>Tiền cọc: <strong>{(property?.depositAmount ?? 0).toLocaleString('vi-VN') + ' đ'}</strong></p>
               <p>{property.additionalFeesDescription || 'Điện, nước và các khoản sử dụng riêng được thỏa thuận, ghi rõ trong hợp đồng.'}</p>
@@ -664,6 +666,21 @@ export function PropertyDetailPage() {
         destroyOnHidden
       >
         <Form form={bookingForm} layout="vertical" onFinish={submitBooking}>
+          <Card size="small" style={{marginBottom:16}}>
+            <Typography.Title level={5} style={{marginTop:0}}>{property?.title}</Typography.Title>
+            <Typography.Text type="secondary">{[property?.addressLine,property?.wardName,property?.provinceName].filter(Boolean).join(', ')}</Typography.Text>
+            <Descriptions size="small" column={2} style={{marginTop:12}} items={[
+              {key:'rent',label:'Giá thuê/tháng',children:(property?.pricePerMonth ?? 0).toLocaleString('vi-VN')+' đ'},
+              {key:'deposit',label:'Tiền cọc',children:(property?.depositAmount ?? 0).toLocaleString('vi-VN')+' đ'},
+              {key:'capacity',label:'Sức chứa tối đa',children:(property?.maxOccupants ?? 1)+' người'},
+              {key:'area',label:'Diện tích',children:(property?.area ?? 0)+' m²'},
+              {key:'beds',label:'Phòng ngủ',children:property?.bedrooms ?? 0},
+              {key:'baths',label:'Phòng tắm',children:property?.bathrooms ?? 0}
+            ]}/>
+            <Typography.Text strong>Nội thất:</Typography.Text><div>{property?.furnishingDescription || 'Chưa cập nhật'}</div>
+            <Typography.Text strong>Điện, nước và phí khác:</Typography.Text><div>{property?.additionalFeesDescription || 'Theo thỏa thuận và ghi rõ trong hợp đồng'}</div>
+            {!!property?.amenities?.length && <><Typography.Text strong>Tiện nghi:</Typography.Text><div><Space wrap>{property.amenities.map(x=><Tag key={x}>{x}</Tag>)}</Space></div></>}
+          </Card>
           <Alert
             type="info"
             showIcon
