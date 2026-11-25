@@ -96,7 +96,7 @@ public sealed class ContractService(AppDbContext db, INotificationService notifi
         return ServiceResult<RentalContractResponse>.Created(ToResponse(contract));
     }
 
-    public async Task<ServiceResult<RentalContractResponse>>     public async Task<ServiceResult<RentalContractResponse>> UpdateAsync(
+    public async Task<ServiceResult<RentalContractResponse>> UpdateAsync(
         Guid contractId, Guid userId, UpdateRentalContractRequest request, CancellationToken cancellationToken)
     {
         if (request.EndDate <= request.StartDate)
