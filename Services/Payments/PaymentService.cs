@@ -243,6 +243,10 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
         if (!isAdmin && payment.Invoice.Contract.LandlordId != userId)
             return ServiceResult<PaymentResponse>.Forbidden();
 
+        if (!string.Equals(payment.PaymentProvider, "Manual", StringComparison.Ordinal))
+            return ServiceResult<PaymentResponse>.Conflict(
+                "Chỉ khoản thanh toán thủ công mới được xác nhận tại endpoint này.");
+
         if (payment.Status != PaymentStatus.Pending ||
             payment.Invoice.Status == InvoiceStatus.Cancelled)
             return ServiceResult<PaymentResponse>.Conflict(
@@ -296,6 +300,10 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
 
         if (!isAdmin && payment.Invoice.Contract.LandlordId != userId)
             return ServiceResult<PaymentResponse>.Forbidden();
+
+        if (!string.Equals(payment.PaymentProvider, "Manual", StringComparison.Ordinal))
+            return ServiceResult<PaymentResponse>.Conflict(
+                "Chỉ khoản thanh toán thủ công mới được từ chối tại endpoint này.");
 
         if (payment.Status != PaymentStatus.Pending ||
             payment.Invoice.Status == InvoiceStatus.Cancelled)
