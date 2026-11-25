@@ -595,7 +595,7 @@ export function InvoicesPage() {
                     title={payment.paymentMethod + ' · ' + (paymentLabels[payment.status] || payment.status)}
                     description={payment.transactionCode || payment.paymentProvider || 'Không có mã giao dịch'}
                   />
-                  <Space direction="vertical" align="end" size={2}>
+                  <Space orientation="vertical" align="end" size={2}>
                     <Typography.Text strong>{money(payment.amount)}</Typography.Text>
                     <Typography.Text type="secondary">{dateTimeText(payment.paidAt || payment.createdAt)}</Typography.Text>
                   </Space>
