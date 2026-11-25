@@ -387,7 +387,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
         await using (var output = System.IO.File.Create(Path.Combine(folder, storedName)))
             await file.CopyToAsync(output, cancellationToken);
 
-        var imageUrl = $"/uploads/properties/{id:N}/{storedName}";
+        var imageUrl = $"{Request.Scheme}://{Request.Host}/uploads/properties/{id:N}/{storedName}";
         var image = new PropertyImage
         {
             PropertyId = id,
