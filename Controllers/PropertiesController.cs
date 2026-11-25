@@ -189,6 +189,10 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
             Title = request.Title.Trim(),
             Description = Clean(request.Description),
             PricePerMonth = request.PricePerMonth,
+            DepositAmount = request.DepositAmount,
+            MaxOccupants = request.MaxOccupants,
+            FurnishingDescription = Clean(request.FurnishingDescription),
+            AdditionalFeesDescription = Clean(request.AdditionalFeesDescription),
             Area = request.Area,
             Bedrooms = request.Bedrooms,
             Bathrooms = request.Bathrooms,
@@ -229,6 +233,10 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
         property.Title = request.Title.Trim();
         property.Description = Clean(request.Description);
         property.PricePerMonth = request.PricePerMonth;
+        property.DepositAmount = request.DepositAmount;
+        property.MaxOccupants = request.MaxOccupants;
+        property.FurnishingDescription = Clean(request.FurnishingDescription);
+        property.AdditionalFeesDescription = Clean(request.AdditionalFeesDescription);
         property.Area = request.Area;
         property.Bedrooms = request.Bedrooms;
         property.Bathrooms = request.Bathrooms;
@@ -394,6 +402,10 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
             property.Title,
             property.Description,
             property.PricePerMonth,
+            property.DepositAmount,
+            property.MaxOccupants,
+            property.FurnishingDescription,
+            property.AdditionalFeesDescription,
             property.Area,
             property.Bedrooms,
             property.Bathrooms,
