@@ -29,6 +29,7 @@ export function ChatPage() {
   const [archiving, setArchiving] = useState(false);
   const messageRequestId = useRef(0);
   const lastAutoOpenedConversation = useRef<string | null>(null);
+  const shouldAutoScroll = useRef(true);
   const scroll = useRef<HTMLDivElement>(null);
 
   const loadConversations = useCallback(() => {
@@ -64,6 +65,7 @@ export function ChatPage() {
   }, [loadConversations]);
 
   const openConversation = (conversation: ConversationItem) => {
+    shouldAutoScroll.current = true;
     setActive(conversation);
     setConnection('Đang kết nối');
     void loadMessages(conversation);
@@ -123,7 +125,9 @@ export function ChatPage() {
   }, [active?.conversationId, user?.userId]);
 
   useEffect(() => {
-    if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
+    if (scroll.current && shouldAutoScroll.current) {
+      scroll.current.scrollTop = scroll.current.scrollHeight;
+    }
   }, [messages.length, active?.conversationId]);
 
   const send = async () => {
@@ -151,6 +155,8 @@ export function ChatPage() {
   const loadOlderMessages = async () => {
     if (!active || !hasOlder) return;
     const nextPage = messagePage + 1;
+    const previousHeight = scroll.current?.scrollHeight || 0;
+    shouldAutoScroll.current = false;
     setLoadingMessages(true);
     try {
       const response = await tenantApi.messages(active.conversationId, nextPage, SIZE);
@@ -160,6 +166,11 @@ export function ChatPage() {
       ]);
       setMessagePage(nextPage);
       setHasOlder(response.data.hasNext);
+      requestAnimationFrame(() => {
+        if (scroll.current) {
+          scroll.current.scrollTop += scroll.current.scrollHeight - previousHeight;
+        }
+      });
     } catch (error) {
       message.error(errorText(error));
     } finally {
@@ -263,7 +274,17 @@ export function ChatPage() {
                   </Button>
                 </Space>
               </header>
-              <div className="messages" ref={scroll}>
+              <div
+                className="messages"
+                ref={scroll}
+                onScroll={() => {
+                  const node = scroll.current;
+                  if (node) {
+                    shouldAutoScroll.current =
+                      node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+                  }
+                }}
+              >
                 {hasOlder && <Button type="link" loading={loadingMessages} onClick={() => void loadOlderMessages()}>Tải tin nhắn cũ hơn</Button>}
                 {loadingMessages && <Spin />}
                 {messages.map(item => (
