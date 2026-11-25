@@ -120,7 +120,7 @@ public sealed class ReviewsController(AppDbContext db) : ControllerBase
 
         return CreatedAtAction(
             nameof(GetMyReviews),
-            new { id = review.Id },
+            null,
             new
             {
                 review.Id,
