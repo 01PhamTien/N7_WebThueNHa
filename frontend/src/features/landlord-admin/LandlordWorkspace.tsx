@@ -58,7 +58,7 @@ export function LandlordDashboard() {
   ];
   return <Page title="Tổng quan chủ nhà" description="Bảng điều hành hoạt động cho thuê: tài sản, yêu cầu thuê, hợp đồng, công nợ và chăm sóc người thuê.">
     <ErrorLine error={error}/>
-    <Row gutter={[16,16]}>{stats.map(item=><Col xs={12} md={6} xl={6} key={item.label}><Card className="management-stat-card" hoverable onClick={()=>window.location.assign(item.href)}><Statistic title={item.label} value={item.value} loading={busy}/><Typography.Text type="secondary">{item.hint}</Typography.Text></Card></Col>)}</Row>
+    <Row gutter={[16,16]}>{stats.map(item=><Col xs={12} md={6} xl={6} key={item.label}><Card className="management-stat-card" hoverable><a href={item.href} style={{display:'block',color:'inherit'}}><Statistic title={item.label} value={item.value} loading={busy}/><Typography.Text type="secondary">{item.hint}</Typography.Text></a></Card></Col>)}</Row>
     <Row gutter={[16,16]} style={{marginTop:20}}>
       <Col xs={24} xl={14}><Card title="Việc cần xử lý" extra={<Typography.Link href="/landlord/bookings">Mở trung tâm quản lý</Typography.Link>}>
         <List dataSource={recentActions} renderItem={item=><List.Item actions={[<Button key="open" size="small" href={item.href}>Xử lý</Button>]}><List.Item.Meta title={<Space>{item.title}<Tag color={item.color}>{item.count}</Tag></Space>} description={item.description}/></List.Item>}/>
