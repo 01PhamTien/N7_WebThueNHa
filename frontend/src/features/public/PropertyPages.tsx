@@ -9,7 +9,9 @@ import {
   Form,
   Input,
   InputNumber,
+  List,
   Modal,
+  Rate,
   Row,
   Space,
   Spin,
@@ -29,9 +31,21 @@ import { useAuth } from '../../app/AuthContext';
 import { PaginationBar } from '../../components/PaginationBar';
 import { errorText } from '../../services/api';
 import { tenantApi } from '../../services/tenant';
-import type { PageResult, PropertyItem } from '../../types/api';
+import type { PageResult, PropertyItem, PropertyReviewSummary } from '../../types/api';
 
 const PAGE_SIZE = 12;
+
+function addCalendarMonth(value: string): string {
+  const [year, month, day] = value.split('-').map(Number);
+  const target = new Date(year, month, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  const result = new Date(target.getFullYear(), target.getMonth(), Math.min(day, lastDay));
+  return [result.getFullYear(), String(result.getMonth() + 1).padStart(2, '0'), String(result.getDate()).padStart(2, '0')].join('-');
+}
+
+function localDateValue(date = new Date()): string {
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+}
 
 function PropertyCard({ item, to }: { item: PropertyItem; to: string }) {
   const imageUrl = item.images?.find(image => image.isPrimary)?.imageUrl || item.images?.[0]?.imageUrl;
@@ -410,6 +424,8 @@ export function PropertyDetailPage() {
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [bookingForm] = Form.useForm();
+  const [reviewSummary, setReviewSummary] = useState<PropertyReviewSummary | null>(null);
+  const [reviewsBusy, setReviewsBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -422,6 +438,16 @@ export function PropertyDetailPage() {
       .catch(error => { if (active) setError(errorText(error)); })
       .finally(() => { if (active) setBusy(false); });
 
+    return () => { active = false; };
+  }, [id]);
+
+  useEffect(() => {
+    let active = true;
+    setReviewsBusy(true);
+    tenantApi.propertyReviews(id)
+      .then(response => { if (active) setReviewSummary(response.data); })
+      .catch(() => { if (active) setReviewSummary(null); })
+      .finally(() => { if (active) setReviewsBusy(false); });
     return () => { active = false; };
   }, [id]);
 
@@ -559,7 +585,10 @@ export function PropertyDetailPage() {
                 {user?.roles.includes('Tenant') && (
                   <>
                     <Button block type="primary" onClick={() => {
+                      const startDate = localDateValue();
                       bookingForm.setFieldsValue({
+                        startDate,
+                        endDate: addCalendarMonth(startDate),
                         numberOfPeople: 1,
                         proposedPrice: property.pricePerMonth
                       });
