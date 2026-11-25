@@ -48,7 +48,7 @@ export function ManagementLayout({ children }: { children: ReactNode }) {
 
   const selectedKey = [...(isAdminArea
     ? ['/admin/users', '/admin/moderation', '/admin/operations', '/admin']
-    : ['/landlord/properties', '/landlord/bookings', '/landlord/contracts', '/landlord/invoices', '/landlord/chat', '/landlord/notifications', '/landlord'])]
+    : ['/landlord/properties', '/landlord/bookings', '/landlord/contracts', '/landlord/invoices', '/landlord/payments', '/landlord/chat', '/landlord/notifications', '/landlord'])]
     .sort((a, b) => b.length - a.length)
     .find(key => location.pathname === key || (key !== '/admin' && key !== '/landlord' && location.pathname.startsWith(key + '/')))
     || (isAdminArea ? '/admin' : '/landlord');
