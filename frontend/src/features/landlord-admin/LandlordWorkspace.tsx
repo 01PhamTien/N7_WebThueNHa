@@ -77,7 +77,7 @@ export function LandlordContracts() {
     {title:'Mã hợp đồng',dataIndex:'contractCode'},
     {title:'Căn nhà',dataIndex:'propertyTitle'},
     {title:'Người thuê',dataIndex:'tenantName'},
-    {title:'Thời hạn',render:(_,r)=>r.startDate+' – '+r.endDate},
+    {title:'Thời hạn',render:(_,r)=>'Từ '+r.startDate+' đến trước '+r.endDate},
     {title:'Tiền thuê',dataIndex:'monthlyRent',render:money},
     {title:'Ước tính cả kỳ',dataIndex:'estimatedRent',render:money},
     {title:'Trạng thái',dataIndex:'status',render:(v:string)=><Status value={v} label={contractStatusLabels[v] || v}/>},
