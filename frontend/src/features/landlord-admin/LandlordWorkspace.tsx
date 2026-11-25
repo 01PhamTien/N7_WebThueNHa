@@ -104,14 +104,14 @@ export function LandlordPayments() {
     {title:'Số tiền',dataIndex:'amount',render:money},
     {title:'Trạng thái',dataIndex:'status',render:(v:string)=><Status value={v} label={paymentStatusLabels[v]||v}/>},
     {title:'Thời điểm',dataIndex:'createdAt',render:dateText},
-    {title:'Thao tác',render:(_,r)=><Space>{r.status==='Pending'&&r.paymentProvider==='Manual'&&<>
+    {title:'Thao tác',render:(_,r)=><Space>{r.status==='Pending'&&r.paymentProvider==='Manual'&&r.paymentMethod==='Cash'&&<>
       <Popconfirm title="Xác nhận đã nhận khoản tiền này?" description="Chỉ xác nhận sau khi đã kiểm tra tiền thực nhận." okText="Đã nhận tiền" onConfirm={async()=>{setBusyId(r.id);try{await api.confirmPayment(r.id);message.success('Đã xác nhận thanh toán');refresh();}catch(e){message.error(errorText(e));}finally{setBusyId(null);}}}>
         <Button size="small" type="primary" loading={busyId===r.id}>Xác nhận</Button>
       </Popconfirm>
       <Button size="small" danger onClick={()=>modal.confirm({title:'Từ chối giao dịch',content:<Input.TextArea id={'reject-payment-'+r.id} rows={3} maxLength={1000} placeholder="Nhập lý do từ chối"/>,onOk:async()=>{const reason=(document.getElementById('reject-payment-'+r.id) as HTMLTextAreaElement)?.value||'';if(!reason.trim()){message.error('Vui lòng nhập lý do.');throw new Error('Thiếu lý do');}setBusyId(r.id);try{await api.rejectPayment(r.id,reason);message.success('Đã từ chối giao dịch');refresh();}catch(e){message.error(errorText(e));throw e;}finally{setBusyId(null);}}})}>Từ chối</Button>
     </>}</Space>}
   ];
-  return <Page title="Quản lý thanh toán" description="Theo dõi giao dịch của khách thuê và xác nhận tiền thực nhận.">
+  return <Page title="Quản lý thanh toán" description="Theo dõi giao dịch SePay tự động và xác nhận các khoản tiền mặt khách báo đã thanh toán.">
     <ErrorLine error={q.error}/>
     <Space wrap style={{marginBottom:16}}>
       <Input.Search value={keyword} onChange={e=>{setPage(1);setKeyword(e.target.value);}} placeholder="Tìm khách, hóa đơn, căn nhà hoặc mã giao dịch" style={{width:320}}/>
@@ -121,7 +121,7 @@ export function LandlordPayments() {
       {q.busy?<Loading/>:<Table rowKey="id" columns={columns} dataSource={q.data?.items||[]} pagination={false} scroll={{x:1250}} locale={{emptyText:<EmptyState/>}}/>}
       <Paging page={page} total={q.data?.totalItems||0} onChange={setPage}/>
     </Card>
-    <Alert style={{marginTop:16}} type="info" showIcon message="Nguyên tắc xác nhận" description="Chỉ xác nhận giao dịch chuyển khoản thủ công sau khi kiểm tra tài khoản ngân hàng đã nhận đúng số tiền. Thanh toán SePay được hệ thống xác nhận tự động qua IPN/Webhook hợp lệ."/>
+    <Alert style={{marginTop:16}} type="info" showIcon message="Nguyên tắc xác nhận" description="Chỉ xác nhận khoản tiền mặt sau khi đã trực tiếp nhận đủ tiền. Thanh toán SePay được hệ thống xác nhận tự động qua IPN/Webhook hợp lệ; không cần chủ nhà xác nhận thủ công."/>
   </Page>;
 }
 
