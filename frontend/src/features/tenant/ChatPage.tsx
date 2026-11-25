@@ -27,7 +27,8 @@ export function ChatPage() {
   const [error, setError] = useState('');
   const [connection, setConnection] = useState('Đang kết nối');
   const [archiving, setArchiving] = useState(false);
-  const conn = useRef<HubConnection | null>(null);
+  const messageRequestId = useRef(0);
+  const lastAutoOpenedConversation = useRef<string | null>(null);
   const scroll = useRef<HTMLDivElement>(null);
 
   const loadConversations = useCallback(() => {
@@ -44,31 +45,38 @@ export function ChatPage() {
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
   const loadMessages = useCallback(async (conversation: ConversationItem) => {
+    const requestId = ++messageRequestId.current;
     setLoadingMessages(true);
     setError('');
     try {
       const response = await tenantApi.messages(conversation.conversationId, 1, SIZE);
+      if (requestId !== messageRequestId.current) return;
       setMessages(response.data.items || []);
       setMessagePage(1);
       setHasOlder(response.data.hasNext);
       await tenantApi.markChatRead(conversation.conversationId);
+      if (requestId === messageRequestId.current) loadConversations();
     } catch (error) {
-      setError(errorText(error));
+      if (requestId === messageRequestId.current) setError(errorText(error));
     } finally {
-      setLoadingMessages(false);
+      if (requestId === messageRequestId.current) setLoadingMessages(false);
     }
-  }, []);
+  }, [loadConversations]);
 
   const openConversation = (conversation: ConversationItem) => {
     setActive(conversation);
+    setConnection('Đang kết nối');
     void loadMessages(conversation);
   };
 
   useEffect(() => {
     const id = (location.state as { conversationId?: string } | null)?.conversationId;
-    if (!id) return;
+    if (!id || lastAutoOpenedConversation.current === id) return;
     const found = conversations.find(item => item.conversationId === id);
-    if (found) openConversation(found);
+    if (found) {
+      lastAutoOpenedConversation.current = id;
+      openConversation(found);
+    }
   }, [conversations, location.state]);
 
   useEffect(() => {
@@ -81,7 +89,6 @@ export function ChatPage() {
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Warning)
       .build();
-    conn.current = connectionInstance;
 
     connectionInstance.on('NhanTinNhan', (incoming: {
       messageId: string;
@@ -112,7 +119,6 @@ export function ChatPage() {
       mounted = false;
       void connectionInstance.invoke('LeaveConversation', active.conversationId).catch(() => undefined);
       void connectionInstance.stop();
-      conn.current = null;
     };
   }, [active?.conversationId, user?.userId]);
 
@@ -203,6 +209,8 @@ export function ChatPage() {
                 setPage(1);
                 setActive(null);
                 setMessages([]);
+                setText('');
+                messageRequestId.current += 1;
               }}
               options={[
                 { value: 'inbox', label: 'Hộp thư đến' },
@@ -292,10 +300,27 @@ export function ChatPage() {
                     showUploadList={false}
                     accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
                     beforeUpload={file => {
+                      const extension = file.name.split('.').pop()?.toLowerCase() || '';
+                      const allowed = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx'];
+                      if (file.size > 10 * 1024 * 1024) {
+                        message.error('Tệp đính kèm không được vượt quá 10 MB.');
+                        return Upload.LIST_IGNORE;
+                      }
+                      if (!allowed.includes(extension)) {
+                        message.error('Chỉ hỗ trợ JPG, JPEG, PNG, WEBP, PDF và DOC/DOCX.');
+                        return Upload.LIST_IGNORE;
+                      }
                       tenantApi.uploadAttachment(active.conversationId, file)
                         .then(() => tenantApi.messages(active.conversationId, 1, SIZE))
-                        .then(response => setMessages(response.data.items))
-                        .then(() => message.success('Đã gửi tệp'))
+                        .then(response => {
+                          setMessages(response.data.items || []);
+                          setMessagePage(1);
+                          setHasOlder(response.data.hasNext);
+                        })
+                        .then(() => {
+                          loadConversations();
+                          message.success('Đã gửi tệp');
+                        })
                         .catch(error => message.error(errorText(error)));
                       return false;
                     }}
