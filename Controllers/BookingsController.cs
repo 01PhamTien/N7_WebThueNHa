@@ -88,8 +88,10 @@ public sealed class BookingsController : ControllerBase
             cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        var response = await GetBookingResponseQuery()
-            .SingleAsync(x => x.Id == booking.Id, cancellationToken);
+        // Lọc trên entity trước khi project sang record DTO để EF Core dịch WHERE thành SQL.
+        var response = await ToBookingResponseQuery(
+                _db.Bookings.AsNoTracking().Where(x => x.Id == booking.Id))
+            .SingleAsync(cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = booking.Id }, response);
     }
@@ -172,8 +174,11 @@ public sealed class BookingsController : ControllerBase
         if (!TryGetCurrentUserId(out var userId))
             return Unauthorized();
 
-        var booking = await GetBookingResponseQuery()
-            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        // Không lọc trên BookingResponse sau projection; EF Core không dịch được
+        // biểu thức khởi tạo record trong WHERE ở một số phiên bản/provider.
+        var booking = await ToBookingResponseQuery(
+                _db.Bookings.AsNoTracking().Where(x => x.Id == id))
+            .SingleOrDefaultAsync(cancellationToken);
 
         if (booking is null)
             return NotFound(new { message = "Không tìm thấy yêu cầu đặt thuê." });
@@ -370,9 +375,6 @@ public sealed class BookingsController : ControllerBase
             page > 1 && page <= totalPages,
             page < totalPages));
     }
-
-    private IQueryable<BookingResponse> GetBookingResponseQuery() =>
-        ToBookingResponseQuery(_db.Bookings.AsNoTracking());
 
     private static IQueryable<BookingResponse> ToBookingResponseQuery(IQueryable<Booking> query) =>
         query.Select(x => new BookingResponse(
