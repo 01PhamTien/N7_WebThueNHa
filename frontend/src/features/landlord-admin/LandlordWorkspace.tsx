@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, App as AntApp, Avatar, Badge, Button, Card, Col, DatePicker, Descriptions, Drawer, Empty, Form, Input, InputNumber, List, Modal, Popconfirm, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography, Upload } from 'antd';
+import { Alert, App as AntApp, Avatar, Badge, Button, Card, Col, DatePicker, Descriptions, Drawer, Empty, Form, Input, InputNumber, List, Modal, Popconfirm, Progress, Row, Segmented, Select, Space, Statistic, Table, Tag, Typography, Upload } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { BellOutlined } from '@ant-design/icons';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { TOKEN_KEY, errorText } from '../../services/api';
 import { landlordAdminApi as api } from '../../services/landlordAdmin';
-import type { AdminPaymentListDto, BookingDto, ChatAttachmentDto, ChatMessageDto, ContractDto, ContractDetailDto, ConversationDto, InvoiceDetailDto, InvoiceListDto, PaymentDto, PropertyDto, PropertyImageDto, PropertyRequest, CreateInvoiceRequest, NotificationDto } from '../../services/landlordAdmin';
+import type { LandlordFinancialSummaryDto, AdminPaymentListDto, BookingDto, ChatAttachmentDto, ChatMessageDto, ContractDto, ContractDetailDto, ConversationDto, InvoiceDetailDto, InvoiceListDto, PaymentDto, PropertyDto, PropertyImageDto, PropertyRequest, CreateInvoiceRequest, NotificationDto } from '../../services/landlordAdmin';
 import { Page, Loading, EmptyState } from '../../components/Shared';
 import { bookingStatusLabels, contractStatusLabels, invoiceStatusLabels, invoiceTypeLabels, listingStatusLabels, moderationStatusLabels, paymentStatusLabels, money, dateText, Status, ErrorLine, Paging, useRequest } from './workspaceShared';
 
@@ -37,8 +37,9 @@ export function LandlordDashboard() {
   const pendingPayments=useRequest(()=>api.incomingPayments({page:1,pageSize:5,status:'Pending'}),[]);
   const notifications=useRequest(()=>api.unreadCount(),[]);
   const conversations=useRequest(()=>api.conversations({page:1,pageSize:30}),[]);
-  const busy=properties.busy||bookings.busy||activeContracts.busy||signingContracts.busy||overdueInvoices.busy||pendingPayments.busy||notifications.busy||conversations.busy;
-  const error=[properties,bookings,activeContracts,signingContracts,overdueInvoices,pendingPayments,notifications,conversations].map(x=>x.error).filter(Boolean).join(' · ');
+  const financial=useRequest(()=>api.landlordFinancialSummary(12),[]);
+  const busy=properties.busy||bookings.busy||activeContracts.busy||signingContracts.busy||overdueInvoices.busy||pendingPayments.busy||notifications.busy||conversations.busy||financial.busy;
+  const error=[properties,bookings,activeContracts,signingContracts,overdueInvoices,pendingPayments,notifications,conversations,financial].map(x=>x.error).filter(Boolean).join(' · ');
   const unreadChats=(conversations.data?.items||[]).reduce((sum,item)=>sum+item.unreadCount,0);
   const stats=[
     {label:'Tổng tin đăng',value:properties.data?.totalCount??0,href:'/landlord/properties',hint:'Toàn bộ bất động sản'},
@@ -59,6 +60,45 @@ export function LandlordDashboard() {
   return <Page title="Tổng quan chủ nhà" description="Bảng điều hành hoạt động cho thuê: tài sản, yêu cầu thuê, hợp đồng, công nợ và chăm sóc người thuê.">
     <ErrorLine error={error}/>
     <Row gutter={[16,16]}>{stats.map(item=><Col xs={12} md={6} xl={6} key={item.label}><Card className="management-stat-card" hoverable><a href={item.href} style={{display:'block',color:'inherit'}}><Statistic title={item.label} value={item.value} loading={busy}/><Typography.Text type="secondary">{item.hint}</Typography.Text></a></Card></Col>)}</Row>
+    <Row gutter={[16,16]} style={{marginTop:20}}>
+      <Col xs={24} xl={14}>
+        <Card title="Doanh thu và dòng tiền" extra={<Typography.Text type="secondary">12 tháng gần nhất · giao dịch thành công</Typography.Text>}>
+          <Row gutter={[16,16]}>
+            <Col xs={12} md={6}><Statistic title="Đã thu tháng này" value={financial.data?.receivedThisMonth??0} formatter={v=>money(Number(v))}/></Col>
+            <Col xs={12} md={6}><Statistic title="Tổng đã thu" value={financial.data?.receivedAllTime??0} formatter={v=>money(Number(v))}/></Col>
+            <Col xs={12} md={6}><Statistic title="Tiền thuê đã thu" value={financial.data?.rentReceived??0} formatter={v=>money(Number(v))}/></Col>
+            <Col xs={12} md={6}><Statistic title="Tiền cọc đã nhận" value={financial.data?.depositReceived??0} formatter={v=>money(Number(v))}/></Col>
+          </Row>
+          <Row gutter={[16,16]} style={{marginTop:20}}>
+            <Col xs={24} md={12}><Statistic title="Công nợ còn phải thu" value={financial.data?.outstandingAmount??0} formatter={v=>money(Number(v))}/></Col>
+            <Col xs={24} md={12}><Statistic title="Nợ quá hạn" value={financial.data?.overdueAmount??0} valueStyle={{color:'#cf1322'}} formatter={v=>money(Number(v))}/></Col>
+          </Row>
+          <Typography.Title level={5} style={{marginTop:24}}>Doanh thu theo tháng</Typography.Title>
+          {(financial.data?.trend||[]).map(item=>{
+            const max=Math.max(1,...(financial.data?.trend||[]).map(x=>x.received));
+            return <div key={item.label} style={{marginBottom:10}}>
+              <Space style={{width:'100%',justifyContent:'space-between'}}><Typography.Text>{item.label}</Typography.Text><Typography.Text strong>{money(item.received)}</Typography.Text></Space>
+              <Progress percent={Math.round(item.received/max*100)} showInfo={false} strokeColor="#1677ff"/>
+              <Typography.Text type="secondary" style={{fontSize:12}}>Tiền thuê {money(item.rent)} · Khoản khác {money(item.other)}</Typography.Text>
+            </div>;
+          })}
+          <Typography.Text type="secondary">Tiền cọc được thống kê riêng, không cộng vào doanh thu cho thuê. Chỉ tính khoản thanh toán đã xác nhận thành công.</Typography.Text>
+        </Card>
+      </Col>
+      <Col xs={24} xl={10}>
+        <Card title="Sức khỏe hoạt động">
+          <Row gutter={[12,20]}>
+            <Col span={12}><Statistic title="Bất động sản" value={financial.data?.propertyCount??0}/></Col>
+            <Col span={12}><Statistic title="Đang có hợp đồng" value={financial.data?.activeContracts??0}/></Col>
+            <Col span={12}><Statistic title="Sắp hết hạn (30 ngày)" value={financial.data?.endingSoon??0}/></Col>
+            <Col span={12}><Statistic title="Yêu cầu thuê mới" value={financial.data?.pendingRequests??0}/></Col>
+            <Col span={12}><Statistic title="Giao dịch chờ duyệt" value={financial.data?.pendingPayments??0}/></Col>
+            <Col span={12}><Statistic title="Hóa đơn quá hạn" value={financial.data?.overdueCount??0}/></Col>
+          </Row>
+          <Alert style={{marginTop:20}} type="info" showIcon message="Cách đọc số liệu" description="Doanh thu là khoản đã thu thành công từ tiền thuê và khoản phát sinh. Tiền cọc là khoản giữ đảm bảo nên được theo dõi riêng; công nợ tính theo phần hóa đơn chưa thanh toán."/>
+        </Card>
+      </Col>
+    </Row>
     <Row gutter={[16,16]} style={{marginTop:20}}>
       <Col xs={24} xl={14}><Card title="Việc cần xử lý" extra={<Typography.Link href="/landlord/bookings">Mở trung tâm quản lý</Typography.Link>}>
         <List dataSource={recentActions} renderItem={item=><List.Item actions={[<Button key="open" size="small" href={item.href}>Xử lý</Button>]}><List.Item.Meta title={<Space>{item.title}<Tag color={item.color}>{item.count}</Tag></Space>} description={item.description}/></List.Item>}/>
