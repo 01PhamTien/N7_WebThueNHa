@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { App as AntApp, Button, Card, Form, Input } from 'antd';
+import { App as AntApp, Avatar, Button, Card, Col, Divider, Form, Input, Row, Space, Tag, Typography } from 'antd';
 import {
   HeartOutlined,
   HomeOutlined,
   SafetyCertificateOutlined,
-  SearchOutlined
+  SearchOutlined,
+  UserOutlined
 } from '@ant-design/icons';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../app/AuthContext';
@@ -188,14 +189,27 @@ export function ProfilePage() {
   const { message } = AntApp.useApp();
   const { user, refresh } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [form] = Form.useForm<{ fullName: string; phoneNumber?: string; avatarUrl?: string }>();
+
+  useEffect(() => {
+    form.setFieldsValue({
+      fullName: user?.fullName || '',
+      phoneNumber: user?.phoneNumber || '',
+      avatarUrl: user?.avatarUrl || ''
+    });
+  }, [form, user?.userId, user?.fullName, user?.phoneNumber, user?.avatarUrl]);
 
   const submit = async (values: { fullName: string; phoneNumber?: string; avatarUrl?: string }) => {
     setSubmitting(true);
     try {
       const { authService } = await import('../../services/auth');
-      await authService.updateProfile(values);
+      await authService.updateProfile({
+        fullName: values.fullName.trim(),
+        phoneNumber: values.phoneNumber?.trim() || undefined,
+        avatarUrl: values.avatarUrl?.trim() || undefined
+      });
       await refresh();
-      message.success('Đã cập nhật hồ sơ.');
+      message.success('Thông tin cá nhân đã được cập nhật.');
     } catch (error) {
       message.error(errorText(error));
     } finally {
@@ -203,43 +217,125 @@ export function ProfilePage() {
     }
   };
 
+  const roleLabels: Record<string, string> = {
+    Admin: 'Quản trị viên',
+    Landlord: 'Chủ nhà',
+    Tenant: 'Người thuê'
+  };
+
+  const roleColors: Record<string, string> = {
+    Admin: 'purple',
+    Landlord: 'green',
+    Tenant: 'blue'
+  };
+
   return (
-    <Page title="Hồ sơ cá nhân" description="Cập nhật thông tin để việc liên hệ và quản lý thuê nhà thuận tiện hơn.">
-      <Card className="profile-card">
-        <div className="profile-card-heading">
-          <span className="profile-avatar"><HomeOutlined /></span>
-          <div>
-            <strong>Thông tin tài khoản</strong>
-            <p>Thông tin của bạn được sử dụng trong các giao dịch thuê nhà.</p>
+    <Page
+      title="Hồ sơ cá nhân"
+      description="Quản lý thông tin liên hệ và thông tin hiển thị trên tài khoản NhàỞ."
+    >
+      <div className="profile-layout">
+        <Card className="profile-overview" bordered={false}>
+          <div className="profile-cover" />
+          <div className="profile-overview-body">
+            <Avatar
+              className="profile-overview-avatar"
+              size={88}
+              src={user?.avatarUrl || undefined}
+              icon={<UserOutlined />}
+            />
+            <div className="profile-overview-info">
+              <Typography.Title level={4}>{user?.fullName || 'Người dùng NhàỞ'}</Typography.Title>
+              <Typography.Text type="secondary">{user?.email}</Typography.Text>
+              <Space wrap className="profile-role-list">
+                {(user?.roles || []).map(role => (
+                  <Tag key={role} color={roleColors[role] || 'default'}>
+                    {roleLabels[role] || role}
+                  </Tag>
+                ))}
+              </Space>
+            </div>
           </div>
-        </div>
-        <Form
-          layout="vertical"
-          requiredMark={false}
-          initialValues={{
-            fullName: user?.fullName,
-            phoneNumber: user?.phoneNumber,
-            avatarUrl: user?.avatarUrl
-          }}
-          onFinish={submit}
+          <Divider />
+          <div className="profile-overview-foot">
+            <span className="profile-security-icon"><SafetyCertificateOutlined /></span>
+            <div>
+              <strong>Thông tin tài khoản được bảo vệ</strong>
+              <p>Chỉ bạn mới có thể cập nhật hồ sơ cá nhân của mình.</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="profile-form-card"
+          title={<div className="profile-section-title"><strong>Thông tin cá nhân</strong><span>Các thông tin có thể chỉnh sửa</span></div>}
         >
-          <Form.Item name="fullName" label="Họ và tên" rules={[{ required: true, min: 2, message: 'Vui lòng nhập họ tên.' }]}>
-            <Input size="large" />
-          </Form.Item>
-          <Form.Item label="Email">
-            <Input size="large" value={user?.email} disabled />
-          </Form.Item>
-          <Form.Item name="phoneNumber" label="Số điện thoại">
-            <Input size="large" autoComplete="tel" />
-          </Form.Item>
-          <Form.Item name="avatarUrl" label="Đường dẫn ảnh đại diện">
-            <Input size="large" placeholder="https://..." />
-          </Form.Item>
-          <div className="profile-form-actions">
-            <Button type="primary" htmlType="submit" loading={submitting}>Lưu thay đổi</Button>
-          </div>
-        </Form>
-      </Card>
+          <Form
+            form={form}
+            layout="vertical"
+            requiredMark={false}
+            onFinish={submit}
+            size="large"
+          >
+            <Row gutter={[20, 0]}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="fullName"
+                  label="Họ và tên"
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập họ tên.' },
+                    { min: 2, max: 150, message: 'Họ tên cần từ 2 đến 150 ký tự.' }
+                  ]}
+                >
+                  <Input autoComplete="name" placeholder="Nhập họ và tên" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item label="Địa chỉ email">
+                  <Input value={user?.email || ''} disabled />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="phoneNumber"
+                  label="Số điện thoại"
+                  rules={[{ pattern: /^[0-9+().\-\s]{8,20}$/, message: 'Số điện thoại chưa đúng định dạng.' }]}
+                >
+                  <Input autoComplete="tel" placeholder="Nhập số điện thoại" />
+                </Form.Item>
+              </Col>
+              <Col xs={24}>
+                <Form.Item
+                  name="avatarUrl"
+                  label="Ảnh đại diện (URL)"
+                  rules={[{ type: 'url', message: 'Vui lòng nhập đường dẫn ảnh hợp lệ.' }]}
+                  extra="Bạn có thể bổ sung đường dẫn ảnh đại diện sau."
+                >
+                  <Input placeholder="https://example.com/avatar.jpg" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <div className="profile-form-footer">
+              <Typography.Text type="secondary">
+                Email là định danh đăng nhập và hiện chưa thể thay đổi tại đây.
+              </Typography.Text>
+              <Space wrap>
+                <Button onClick={() => form.setFieldsValue({
+                  fullName: user?.fullName || '',
+                  phoneNumber: user?.phoneNumber || '',
+                  avatarUrl: user?.avatarUrl || ''
+                })}>
+                  Khôi phục
+                </Button>
+                <Button type="primary" htmlType="submit" loading={submitting}>
+                  Lưu thay đổi
+                </Button>
+              </Space>
+            </div>
+          </Form>
+        </Card>
+      </div>
     </Page>
   );
 }
