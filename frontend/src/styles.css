@@ -1263,18 +1263,6 @@ body { background: var(--canvas); color: var(--ink); }
 .booking-price-summary h4.ant-typography { color: var(--brand-dark); }
 
 
-/* Chat message actions: secondary controls, shown only on the sender's own text. */
-.chat-message-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 2px;
-  margin: -5px 0 2px;
-}
-.chat-message-actions .ant-btn {
-  height: 24px;
-  padding-inline: 5px;
-  font-size: 12px;
-}
 .chat-inbox-toolbar {
   padding: 12px 14px;
   border-bottom: 1px solid var(--line);
