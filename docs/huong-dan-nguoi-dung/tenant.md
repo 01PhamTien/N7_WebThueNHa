@@ -233,7 +233,7 @@ Số thông báo chưa đọc cũng được hiển thị trên biểu tượng 
 | Không đăng nhập được | Kiểm tra email và mật khẩu. Tài khoản không hoạt động cũng không thể đăng nhập. |
 | Không gửi được yêu cầu thuê | Kiểm tra ngày bắt đầu/kết thúc, số người, giá đề xuất và trạng thái công khai của căn nhà. Khoảng thời gian đã có booking được chấp nhận cũng không thể đặt trùng. |
 | Không hủy được yêu cầu thuê | Chỉ yêu cầu đang `Pending` mới được hủy. |
-| Không thấy nút ký hợp đồng | Xem ghi chú trạng thái ở mục 7; giao diện hiện có khả năng không hiển thị nút cho trạng thái Backend `AwaitingSignature`. |
+| Không thấy nút ký hợp đồng | Chỉ hợp đồng ở trạng thái `AwaitingSignature` mới hiển thị nút ký. Nếu trạng thái không đúng hoặc không tải được hợp đồng, liên hệ chủ nhà/quản trị viên. |
 | Không thanh toán được | Kiểm tra hóa đơn còn được phép thanh toán, kết nối mạng và thông báo lỗi từ hệ thống/SePay. Trạng thái hóa đơn được Backend cập nhật qua IPN/Bank Webhook. |
 | Không gửi được tệp | Kiểm tra định dạng được hỗ trợ, dung lượng không quá 10 MB và nội dung tệp đúng với định dạng. |
 | Không mở/tải được tệp | Bạn cần là thành viên của hội thoại; tệp cũng phải còn tồn tại trên máy chủ. |
