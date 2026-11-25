@@ -500,7 +500,7 @@ export function ContractsPage() {
             <Descriptions.Item label="Căn nhà">{detail.propertyTitle}</Descriptions.Item>
             <Descriptions.Item label="Chủ nhà">{detail.landlordName}</Descriptions.Item>
             <Descriptions.Item label="Người thuê">{detail.tenantName}</Descriptions.Item>
-            <Descriptions.Item label="Thời hạn">{dateText(detail.contract.startDate)} – {dateText(detail.contract.endDate)}</Descriptions.Item>
+            <Descriptions.Item label="Thời hạn">Từ {dateText(detail.contract.startDate)} đến trước {dateText(detail.contract.endDate)}</Descriptions.Item>
             <Descriptions.Item label="Tiền thuê">{money(detail.contract.monthlyRent)}/tháng</Descriptions.Item>
             <Descriptions.Item label="Tổng tiền thuê ước tính">{money(detail.contract.estimatedRent)}</Descriptions.Item>
             <Descriptions.Item label="Tiền cọc">{money(detail.contract.depositAmount)}</Descriptions.Item>
