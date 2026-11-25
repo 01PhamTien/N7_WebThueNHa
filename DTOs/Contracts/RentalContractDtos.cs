@@ -62,8 +62,27 @@ public sealed record RentalContractResponse(
 public sealed record RentalContractDetailResponse(
     RentalContractResponse Contract,
     string PropertyTitle,
+    string PropertyTypeName,
+    string? PropertyDescription,
+    string AddressLine,
+    string? WardName,
+    string ProvinceName,
+    decimal Area,
+    int Bedrooms,
+    int Bathrooms,
+    int MaxOccupants,
+    string? FurnishingDescription,
+    string? AdditionalFeesDescription,
+    IReadOnlyCollection<string> Amenities,
+    IReadOnlyCollection<PropertyImageResponse> Images,
+    int NumberOfPeople,
+    string? BookingMessage,
     string LandlordName,
-    string TenantName);
+    string? LandlordEmail,
+    string? LandlordPhone,
+    string TenantName,
+    string? TenantEmail,
+    string? TenantPhone);
 
 public sealed class UpdateRentalContractRequest
 {
