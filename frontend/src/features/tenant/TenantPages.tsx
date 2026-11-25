@@ -117,6 +117,20 @@ const dateTimeText = (value?: string | null) => {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('vi-VN');
 };
 
+function InvoiceDueHint({ dueDate, status }: { dueDate: string; status: string }) {
+  if (status === 'Paid' || status === 'Cancelled') return null;
+  const [year, month, day] = dueDate.slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  const due = new Date(year, month - 1, day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((due.getTime() - today.getTime()) / 86400000);
+  if (days < 0) return <Tag color="red">Quá hạn {Math.abs(days)} ngày</Tag>;
+  if (days === 0) return <Tag color="orange">Đến hạn hôm nay</Tag>;
+  if (days <= 7) return <Tag color="orange">Còn {days} ngày</Tag>;
+  return <Tag color="blue">Còn {days} ngày</Tag>;
+}
+
 function StatusTag({ value, labels }: { value: string; labels: Record<string, string> }) {
   return <Tag color={statusColors[value] || 'default'}>{labels[value] || value}</Tag>;
 }
@@ -770,7 +784,7 @@ export function InvoicesPage() {
                     description={
                       <Space className="tenant-item-meta" wrap size={[12, 6]}>
                         <span><FileTextOutlined /> {item.propertyTitle}</span>
-                        <span>Hạn thanh toán: {dateText(item.dueDate)}</span>
+                        <span>Hạn thanh toán: {dateText(item.dueDate)}</span><InvoiceDueHint dueDate={item.dueDate} status={item.status} />
                       </Space>
                     }
                   />
@@ -807,7 +821,7 @@ export function InvoicesPage() {
               <Descriptions.Item label="Mã hóa đơn">{detail.invoiceCode}</Descriptions.Item>
               <Descriptions.Item label="Trạng thái"><StatusTag value={detail.status} labels={invoiceLabels} /></Descriptions.Item>
               <Descriptions.Item label="Tổng tiền">{money(detail.totalAmount)}</Descriptions.Item>
-              <Descriptions.Item label="Hạn thanh toán">{dateText(detail.dueDate)}</Descriptions.Item>
+              <Descriptions.Item label="Hạn thanh toán">{dateText(detail.dueDate)} <InvoiceDueHint dueDate={detail.dueDate} status={detail.status} /></Descriptions.Item>
               <Descriptions.Item label="Căn nhà" span={2}>{detail.propertyTitle}</Descriptions.Item>
               <Descriptions.Item label="Kỳ thanh toán" span={2}>
                 {detail.periodStart ? dateText(detail.periodStart) + ' – ' + dateText(detail.periodEnd) : '—'}
