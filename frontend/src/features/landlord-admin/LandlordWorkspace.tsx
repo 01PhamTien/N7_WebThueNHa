@@ -62,7 +62,7 @@ export function LandlordBookings() {
   const columns:ColumnsType<BookingDto>=[
     {title:'Căn nhà',dataIndex:'propertyTitle'},
     {title:'Người thuê',dataIndex:'tenantName',render:(v,r)=><Space orientation="vertical" size={0}>{v}<Typography.Text type="secondary">{r.tenantEmail}</Typography.Text></Space>},
-    {title:'Thời gian',render:(_,r)=>r.startDate+' – '+r.endDate},
+    {title:'Thời gian',render:(_,r)=>'Từ '+r.startDate+' đến trước '+r.endDate},
     {title:'Giá đề xuất/tháng',dataIndex:'proposedPrice',render:money},
     {title:'Ước tính kỳ thuê',dataIndex:'estimatedRent',render:money},
     {title:'Trạng thái',dataIndex:'status',render:(v:number)=><Status value={v} label={bookingStatusLabels[v] || String(v)}/>},
