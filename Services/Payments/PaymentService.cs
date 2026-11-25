@@ -69,6 +69,29 @@ public sealed class PaymentService(AppDbContext db, INotificationService notific
             return ServiceResult<InvoiceDetailResponse>.BadRequest("Khoảng thời gian hóa đơn không hợp lệ.");
         }
 
+        if (request.InvoiceType == InvoiceType.MonthlyRent)
+        {
+            if (request.Items.Count != 1)
+                return ServiceResult<InvoiceDetailResponse>.BadRequest(
+                    "Hóa đơn tiền thuê chỉ gồm một dòng tiền thuê; phí phát sinh lập hóa đơn loại Khác.");
+
+            var rent = RentalPricing.Calculate(
+                contract.MonthlyRent,
+                request.PeriodStart!.Value,
+                request.PeriodEnd!.Value);
+
+            if (rent.TotalAmount <= 0)
+                return ServiceResult<InvoiceDetailResponse>.BadRequest(
+                    "Kỳ thuê không hợp lệ để tính tiền.");
+
+            // Giá tiền thuê được tính tại Backend, không tin đơn giá do trình duyệt gửi lên.
+            request.Items[0].Quantity = 1;
+            request.Items[0].UnitPrice = rent.TotalAmount;
+            request.Items[0].Description = string.IsNullOrWhiteSpace(request.Items[0].Description)
+                ? "Tiền thuê nhà"
+                : request.Items[0].Description.Trim();
+        }
+
         var totalAmount = request.Items.Sum(x =>
             decimal.Round(x.Quantity * x.UnitPrice, 2, MidpointRounding.AwayFromZero));
 
