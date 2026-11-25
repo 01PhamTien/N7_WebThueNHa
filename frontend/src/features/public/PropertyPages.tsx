@@ -645,7 +645,7 @@ export function PropertyDetailPage() {
             type="info"
             showIcon
             message="Giá niêm yết là giá thuê mỗi tháng"
-            description="Tháng tròn tính theo giá tháng; phần ngày lẻ tính bằng giá tháng chia 30 nhân số ngày. Gửi yêu cầu chưa phát sinh thanh toán; tiền cọc và lịch thanh toán được xác nhận trong hợp đồng."
+            description="Tháng tròn tính theo giá tháng; phần ngày lẻ tính bằng giá tháng chia 30 nhân số ngày. Ngày kết thúc không tính vào số ngày thuê. Gửi yêu cầu chưa phát sinh thanh toán; tiền cọc và lịch thanh toán được xác nhận trong hợp đồng."
             style={{ marginBottom: 16 }}
           />
           <Form.Item name="startDate" label="Ngày bắt đầu" rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu.' }]}>
@@ -660,7 +660,7 @@ export function PropertyDetailPage() {
               return (
                 <Form.Item
                   name="endDate"
-                  label="Ngày kết thúc"
+                  label="Ngày kết thúc (không tính ngày này)"
                   rules={[
                     { required: true, message: 'Vui lòng chọn ngày kết thúc.' },
                     {
