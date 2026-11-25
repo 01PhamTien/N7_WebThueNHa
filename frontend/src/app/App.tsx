@@ -135,7 +135,7 @@ function Shell() {
     return () => { active = false; };
   }, [user?.userId, rolesKey, isLandlord, isTenant]);
 
-  const landlordLinks: MenuProps['items'] = isLandlord ? [{
+  const landlordLinks: NonNullable<MenuProps['items']> = isLandlord ? [{
     key: 'landlord-group',
     icon: <HomeOutlined />,
     label: 'Khu vực chủ nhà',
@@ -150,7 +150,7 @@ function Shell() {
     ]
   }] : [];
 
-  const adminLinks: MenuProps['items'] = isAdmin ? [{
+  const adminLinks: NonNullable<MenuProps['items']> = isAdmin ? [{
     key: 'admin-group',
     icon: <SettingOutlined />,
     label: 'Quản trị',
@@ -161,7 +161,7 @@ function Shell() {
     ]
   }] : [];
 
-  const tenantLinks: MenuProps['items'] = isTenant ? [{
+  const tenantLinks: NonNullable<MenuProps['items']> = isTenant ? [{
     key: 'tenant-group',
     icon: <UserOutlined />,
     label: 'Tài khoản của tôi',
@@ -175,7 +175,7 @@ function Shell() {
     ]
   }] : [];
 
-  const items: MenuProps['items'] = [
+  const items: NonNullable<MenuProps['items']> = [
     { key: '/', icon: <HomeOutlined />, label: <Link to="/">Trang chủ</Link> },
     { key: '/nha', icon: <SearchOutlined />, label: <Link to="/nha">Tìm nhà</Link> },
     ...landlordLinks,
@@ -200,7 +200,7 @@ function Shell() {
     return <div className="center app-loading"><Spin size="large" /></div>;
   }
 
-  const accountMenu: MenuProps['items'] = [
+  const accountMenu: NonNullable<MenuProps['items']> = [
     { key: 'profile', icon: <UserOutlined />, label: 'Hồ sơ cá nhân' },
     ...(isLandlord ? [{ key: 'dashboard', icon: <HomeOutlined />, label: 'Dashboard chủ nhà' }] : []),
     ...(isAdmin ? [{ key: 'admin', icon: <SettingOutlined />, label: 'Dashboard Admin' }] : []),
