@@ -386,7 +386,7 @@ export function BookingsPage() {
                       <Space className="tenant-item-meta" wrap size={[12, 6]}>
                         <span><CalendarOutlined /> {dateText(item.startDate)} – {dateText(item.endDate)}</span>
                         <span>{item.numberOfPeople} người</span>
-                        <span>{money(item.proposedPrice)}/tháng</span>
+                        <span>{money(item.monthlyRent)}/tháng</span>
                         {item.estimatedRent !== undefined && <span>Ước tính {money(item.estimatedRent)}</span>}
                         <Link to={'/nha/' + item.propertyId}>Xem tin nhà</Link>
                       </Space>
@@ -438,7 +438,7 @@ export function BookingsPage() {
               </Descriptions.Item>
               <Descriptions.Item label="Thời gian thuê">Từ {dateText(detail.startDate)} đến trước {dateText(detail.endDate)}</Descriptions.Item>
               <Descriptions.Item label="Số người thuê">{detail.numberOfPeople} người</Descriptions.Item>
-              <Descriptions.Item label="Giá đề xuất">{money(detail.proposedPrice)}/tháng</Descriptions.Item>
+              <Descriptions.Item label="Giá niêm yết">{money(detail.monthlyRent)}/tháng</Descriptions.Item>
               <Descriptions.Item label="Ước tính tiền thuê cả kỳ">{money(detail.estimatedRent)}</Descriptions.Item>
               <Descriptions.Item label="Lời nhắn">{detail.message || 'Không có lời nhắn'}</Descriptions.Item>
               <Descriptions.Item label="Thời điểm chủ nhà phản hồi">{dateTimeText(detail.respondedAt)}</Descriptions.Item>
