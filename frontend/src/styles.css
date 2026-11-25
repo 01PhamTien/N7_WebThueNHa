@@ -410,3 +410,161 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .auth .ant-card-body { padding: 22px 18px; }
   .footer-inner { justify-content: center; text-align: center; }
 }
+
+ 
+/* Tenant workspace: clearer hierarchy, calmer surfaces and responsive actions */
+.tenant-list-card,
+.tenant-state-card {
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 8px 26px rgba(30, 68, 49, .045);
+}
+.tenant-list-card .ant-card-body { padding: 4px 22px; }
+.tenant-list-item {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 8px !important;
+}
+.tenant-list-item .ant-list-item-meta {
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+}
+.tenant-list-item .ant-list-item-meta-title {
+  margin-bottom: 8px !important;
+  color: #263f33;
+  font-size: 15px;
+  font-weight: 750;
+}
+.tenant-list-item .ant-list-item-meta-title a { color: inherit; }
+.tenant-list-item .ant-list-item-meta-title a:hover { color: var(--brand); }
+.tenant-item-meta {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.tenant-item-meta .anticon {
+  margin-right: 5px;
+  color: var(--brand);
+}
+.tenant-item-price {
+  color: var(--brand) !important;
+  font-size: 16px;
+  white-space: nowrap;
+}
+.tenant-item-price small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.tenant-code {
+  color: #263f33;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.tenant-amount-block {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.tenant-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+  padding: 8px 0;
+}
+.tenant-loading {
+  display: flex;
+  min-height: 190px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.tenant-empty-card { padding: 18px; }
+.tenant-load-error {
+  margin-bottom: 18px;
+  border-radius: 14px;
+}
+.tenant-page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(30, 68, 49, .035);
+}
+.tenant-unread-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.tenant-unread-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tenant-unread-summary .ant-typography:first-child { color: #263f33; }
+.tenant-unread-summary .ant-typography-secondary { font-size: 12px; }
+.tenant-unread-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-radius: 13px;
+  font-size: 18px;
+}
+.tenant-notification-card .ant-card-body { padding-block: 4px; }
+.tenant-notification-item .ant-list-item-meta { align-items: flex-start; }
+.tenant-notification-item.is-unread {
+  padding-inline-start: 14px !important;
+  border-inline-start: 3px solid #3c8b70;
+  background: #fbfefd;
+}
+.tenant-notification-title { color: #263f33; font-weight: 750; }
+.tenant-notification-content { display: flex; flex-direction: column; gap: 4px; }
+.tenant-notification-content .ant-typography { margin-bottom: 0; line-height: 1.7; }
+.tenant-invoice-detail > .ant-typography { margin: 22px 0 10px; }
+.tenant-invoice-detail .ant-list { padding-inline: 8px; }
+.mobile-navigation-drawer .ant-drawer-content-wrapper { max-width: calc(100vw - 24px); }
+.ant-drawer .ant-drawer-body { min-width: 0; }
+.ant-modal .ant-modal-body { max-height: min(70vh, 720px); overflow: auto; }
+
+@media (max-width: 640px) {
+  .tenant-list-card .ant-card-body { padding: 2px 14px; }
+  .tenant-list-item {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 17px 4px !important;
+  }
+  .tenant-list-item .ant-list-item-meta { flex-basis: calc(100% - 4px); }
+  .tenant-list-item .ant-list-item-action {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+    margin-inline-start: 0;
+  }
+  .tenant-list-item .ant-list-item-action > li { padding-inline: 0 10px; }
+  .tenant-item-price,
+  .tenant-amount-block { margin-inline-start: 0; }
+  .tenant-amount-block { align-items: flex-start; }
+  .tenant-page-toolbar { align-items: flex-start; flex-direction: column; }
+  .tenant-page-toolbar > .ant-btn { width: 100%; }
+  .tenant-pagination { justify-content: center; overflow-x: auto; }
+  .tenant-pagination .ant-pagination { white-space: nowrap; }
+  .tenant-notification-item .ant-list-item-meta { flex-basis: 100%; }
+}
