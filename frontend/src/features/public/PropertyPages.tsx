@@ -582,7 +582,7 @@ export function PropertyDetailPage() {
                 <div><b>{property.maxOccupants} người</b><span>Sức chứa tối đa</span></div>
               </div>
               <h3>Tiền cọc và chi phí</h3>
-              <p>Tiền cọc: <strong>{property.depositAmount.toLocaleString('vi-VN') + ' đ'}</strong></p>
+              <p>Tiền cọc: <strong>{(property?.depositAmount ?? 0).toLocaleString('vi-VN') + ' đ'}</strong></p>
               <p>{property.additionalFeesDescription || 'Điện, nước và các khoản sử dụng riêng được thỏa thuận, ghi rõ trong hợp đồng.'}</p>
               <h3>Nội thất và trang bị</h3>
               <p className="detail-description">{property.furnishingDescription || 'Chủ nhà chưa cập nhật danh sách nội thất.'}</p>
@@ -668,7 +668,7 @@ export function PropertyDetailPage() {
             type="info"
             showIcon
             message="Giá niêm yết là giá thuê mỗi tháng"
-            description={`Giá thuê niêm yết ${property.pricePerMonth.toLocaleString('vi-VN') + ' đ'}/tháng; tiền cọc ${property.depositAmount.toLocaleString('vi-VN') + ' đ'}. Sức chứa tối đa ${property.maxOccupants} người. Thời hạn dưới một tháng tính tối thiểu một tháng; ngày lẻ sau tháng tròn tính theo giá tháng / 30. Điện, nước và phí khác theo thỏa thuận công khai.`}
+            description={`Giá thuê niêm yết ${(property?.pricePerMonth ?? 0).toLocaleString('vi-VN') + ' đ'}/tháng; tiền cọc ${property.depositAmount.toLocaleString('vi-VN') + ' đ'}. Sức chứa tối đa ${property?.maxOccupants ?? 1} người. Thời hạn dưới một tháng tính tối thiểu một tháng; ngày lẻ sau tháng tròn tính theo giá tháng / 30. Điện, nước và phí khác theo thỏa thuận công khai.`}
             style={{ marginBottom: 16 }}
           />
           <Form.Item name="startDate" label="Ngày bắt đầu" rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu.' }]}>
@@ -715,7 +715,7 @@ export function PropertyDetailPage() {
                 <div className="booking-price-summary">
                   <div className="booking-price-row"><span>Tiền thuê ước tính</span><strong>{estimate.total.toLocaleString('vi-VN')} đ</strong></div>
                   <div className="booking-price-row"><span>Tiền cọc theo tin đăng</span><strong>{property.depositAmount.toLocaleString('vi-VN')} đ</strong></div>
-                  <div className="booking-price-row booking-price-total"><span>Dự kiến cần thanh toán ban đầu</span><strong>{(estimate.total + property.depositAmount).toLocaleString('vi-VN')} đ</strong></div>
+                  <div className="booking-price-row booking-price-total"><span>Dự kiến cần thanh toán ban đầu</span><strong>{(estimate.total + (property?.depositAmount ?? 0)).toLocaleString('vi-VN')} đ</strong></div>
                   <Typography.Text type="secondary">
                     {estimate.fullMonths === 1 && estimate.extraDays === 0 && endDate > startDate && addCalendarMonth(startDate) > endDate ? 'Áp dụng mức thuê tối thiểu 1 tháng.' : `${estimate.fullMonths} tháng tròn + ${estimate.extraDays} ngày lẻ · Đơn giá ngày lẻ khoảng ${estimate.dailyRate.toLocaleString('vi-VN')} đ/ngày.`}
                     {' '}Chưa gồm điện, nước, gửi xe và phí sử dụng riêng. Đây là ước tính; số tiền chính thức được chốt trong hợp đồng.
@@ -724,8 +724,8 @@ export function PropertyDetailPage() {
               );
             }}
           </Form.Item>
-          <Form.Item name="numberOfPeople" label={`Số người ở (tối đa ${property.maxOccupants})`} rules={[{ required: true, message: 'Vui lòng nhập số người.' },{ type:'number', max:property.maxOccupants, message:`Căn nhà chỉ nhận tối đa ${property.maxOccupants} người.` }]}>
-            <InputNumber min={1} max={property.maxOccupants} style={{ width: '100%' }} />
+          <Form.Item name="numberOfPeople" label={`Số người ở (tối đa ${property?.maxOccupants ?? 1})`} rules={[{ required: true, message: 'Vui lòng nhập số người.' },{ type:'number', max:property?.maxOccupants ?? 1, message:`Căn nhà chỉ nhận tối đa ${property?.maxOccupants ?? 1} người.` }]}>
+            <InputNumber min={1} max={property?.maxOccupants ?? 1} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="message" label="Lời nhắn">
             <Input.TextArea maxLength={1000} showCount rows={3} />
