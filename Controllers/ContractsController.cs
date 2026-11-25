@@ -87,7 +87,9 @@ public sealed class ContractsController(AppDbContext db, IContractService contra
                     x.MonthlyRent,
                     x.DepositAmount,
                     x.Status.ToString(),
-                    x.CreatedAt))
+                    x.CreatedAt,
+                    x.LandlordSignedAt,
+                    x.TenantSignedAt))
                 .ToListAsync(cancellationToken);
 
         return Ok(new PagedContractsResponse(
