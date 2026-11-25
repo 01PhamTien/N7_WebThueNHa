@@ -10,6 +10,10 @@ public class Property
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public decimal PricePerMonth { get; set; }
+    public decimal DepositAmount { get; set; }
+    public int MaxOccupants { get; set; } = 2;
+    public string? FurnishingDescription { get; set; }
+    public string? AdditionalFeesDescription { get; set; }
     public decimal Area { get; set; }
     public int Bedrooms { get; set; }
     public int Bathrooms { get; set; }
