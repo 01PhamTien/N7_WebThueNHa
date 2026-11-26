@@ -15,7 +15,8 @@ public sealed class MoveOutController(AppDbContext db):ControllerBase
  public async Task<IActionResult> List(CancellationToken ct)
  {
   if(!UserId(out var uid))return Unauthorized();
-  var q=db.MoveOutRequests.AsNoTracking().Where(x=>User.IsInRole("Landlord")?x.LandlordId==uid:x.TenantId==uid);
+  var isLandlord=User.IsInRole("Landlord");
+  var q=db.MoveOutRequests.AsNoTracking().Where(x=>isLandlord?x.LandlordId==uid:x.TenantId==uid);
   var rows=await q.OrderByDescending(x=>x.CreatedAt).ThenByDescending(x=>x.Id).Select(x=>new {x.Id,x.ContractId,x.Contract.ContractCode,PropertyTitle=x.Contract.Property.Title,x.RequestedMoveOutDate,x.Reason,x.TenantNotes,x.LandlordNotes,Status=x.Status.ToString(),x.CreatedAt,x.CompletedAt,TenantName=x.Tenant.FullName,LandlordName=x.Landlord.FullName}).ToListAsync(ct);
   return Ok(rows);
  }
