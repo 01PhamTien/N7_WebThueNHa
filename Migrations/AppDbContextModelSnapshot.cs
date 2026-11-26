@@ -219,6 +219,27 @@ namespace Web2_ThueNha.Migrations
                     b.ToTable("MessageAttachments", (string)null);
                 });
 
+            modelBuilder.Entity("Web2_ThueNha.Models.Contracts.MoveOutRequest", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uniqueidentifier");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("datetime2");
+                    b.Property<Guid>("ContractId").HasColumnType("uniqueidentifier");
+                    b.Property<DateTime?>("CompletedAt").HasColumnType("datetime2");
+                    b.Property<Guid>("LandlordId").HasColumnType("uniqueidentifier");
+                    b.Property<string>("LandlordNotes").HasMaxLength(2000).HasColumnType("nvarchar(2000)");
+                    b.Property<string>("Reason").IsRequired().HasMaxLength(1000).HasColumnType("nvarchar(1000)");
+                    b.Property<DateOnly>("RequestedMoveOutDate").HasColumnType("date");
+                    b.Property<int>("Status").HasColumnType("int");
+                    b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
+                    b.Property<string>("TenantNotes").HasMaxLength(2000).HasColumnType("nvarchar(2000)");
+                    b.Property<DateTime?>("UpdatedAt").HasColumnType("datetime2");
+                    b.HasKey("Id");
+                    b.HasIndex("ContractId");
+                    b.HasIndex("LandlordId", "CreatedAt");
+                    b.HasIndex("TenantId", "CreatedAt");
+                    b.ToTable("MoveOutRequests");
+                });
+
             modelBuilder.Entity("Web2_ThueNha.Models.Contracts.RentalContract", b =>
                 {
                     b.Property<Guid>("Id")
