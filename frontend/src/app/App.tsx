@@ -44,6 +44,7 @@ import {
   NotificationsPage
 } from '../features/tenant/TenantPages';
 import { ChatPage } from '../features/tenant/ChatPage';
+import { MoveOutPage } from '../features/tenant/MoveOutPage';
 import {
   LandlordDashboard,
   LandlordProperties,
@@ -204,9 +205,9 @@ function Shell() {
 
   const routeKeys = [
     '/', '/nha', '/landlord', '/landlord/properties', '/landlord/bookings',
-    '/landlord/contracts', '/landlord/invoices', '/landlord/chat',
+    '/landlord/contracts', '/landlord/move-outs', '/landlord/invoices', '/landlord/chat',
     '/landlord/notifications', '/admin', '/admin/users', '/admin/moderation', '/admin/operations',
-    '/yeu-thich', '/dat-thue', '/hop-dong', '/hoa-don', '/tin-nhan',
+    '/yeu-thich', '/dat-thue', '/hop-dong', '/tra-nha', '/hoa-don', '/tin-nhan',
     '/thong-bao', '/ho-so'
   ];
   const selectedKey = routeKeys
@@ -239,6 +240,7 @@ function Shell() {
         { key: '/yeu-thich', icon: <HeartOutlined />, label: 'Yêu thích' },
         { key: '/dat-thue', icon: <CalendarOutlined />, label: 'Yêu cầu thuê' },
         { key: '/hop-dong', icon: <FileTextOutlined />, label: 'Hợp đồng' },
+        { key: '/tra-nha', icon: <HomeOutlined />, label: 'Trả nhà' },
         { key: '/hoa-don', icon: <CreditCardOutlined />, label: 'Hóa đơn' },
         { key: '/tin-nhan', icon: <MessageOutlined />, label: 'Tin nhắn' },
         { key: '/thong-bao', icon: <BellOutlined />, label: 'Thông báo' }
@@ -266,6 +268,7 @@ function Shell() {
             <Route path="/landlord/properties" element={<LandlordProperties />} />
             <Route path="/landlord/bookings" element={<LandlordBookings />} />
             <Route path="/landlord/contracts" element={<LandlordContracts />} />
+            <Route path="/landlord/move-outs" element={<MoveOutPage landlord />} />
             <Route path="/landlord/invoices" element={<LandlordInvoices />} />
             <Route path="/landlord/payments" element={<LandlordPayments />} />
             <Route path="/landlord/chat" element={<LandlordChat />} />
@@ -281,6 +284,7 @@ function Shell() {
             <Route path="/yeu-thich" element={<FavoritesPage />} />
             <Route path="/dat-thue" element={<BookingsPage />} />
             <Route path="/hop-dong" element={<ContractsPage />} />
+            <Route path="/tra-nha" element={<MoveOutPage />} />
             <Route path="/hoa-don" element={<InvoicesPage />} />
             <Route path="/thong-bao" element={<NotificationsPage />} />
             <Route path="/tin-nhan" element={<ChatPage />} />
@@ -338,6 +342,7 @@ function Shell() {
                       if (key === '/yeu-thich') navigate('/yeu-thich');
                       if (key === '/dat-thue') navigate('/dat-thue');
                       if (key === '/hop-dong') navigate('/hop-dong');
+                      if (key === '/tra-nha') navigate('/tra-nha');
                       if (key === '/hoa-don') navigate('/hoa-don');
                       if (key === '/tin-nhan') navigate('/tin-nhan');
                       if (key === '/thong-bao') navigate(notificationPath);
