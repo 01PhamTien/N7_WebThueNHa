@@ -5,6 +5,7 @@ namespace Web2_ThueNha.Models.Payments;
 public class Invoice
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public long SequenceNumber { get; set; }
     public Guid ContractId { get; set; }
     public string InvoiceCode { get; set; } = string.Empty;
     public InvoiceType InvoiceType { get; set; }
