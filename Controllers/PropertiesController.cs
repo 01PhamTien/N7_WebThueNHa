@@ -1,3 +1,4 @@
+using Web2_ThueNha.Models.Contracts;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Authorization;
@@ -496,12 +497,13 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var active = await db.RentalContracts.AnyAsync(x =>
             x.PropertyId == property.Id && x.Status == RentalContractStatus.Active &&
-            x.StartDate <= today && x.EndDate > today, cancellationToken);
+            x.StartDate <= today && (x.EndDate > today || db.MoveOutRequests.Any(m=>m.ContractId==x.Id&&m.Status!=MoveOutStatus.Completed&&m.Status!=MoveOutStatus.Cancelled&&m.Status!=MoveOutStatus.Rejected)), cancellationToken);
         var pending = await db.Bookings.AnyAsync(x =>
             x.PropertyId == property.Id && x.Status == BookingStatus.Pending &&
             x.EndDate > today, cancellationToken);
         var acceptedFuture = await db.Bookings.AnyAsync(x =>
             x.PropertyId == property.Id && x.Status == BookingStatus.Accepted &&
+            (x.RentalContract == null || (x.RentalContract.Status != RentalContractStatus.Completed && x.RentalContract.Status != RentalContractStatus.Terminated && x.RentalContract.Status != RentalContractStatus.Cancelled)) &&
             x.StartDate > today && x.EndDate > today, cancellationToken);
         var rentalStatus = active ? "Rented" : acceptedFuture ? "Reserved" : pending ? "PendingRequest" : "Available";
         return ToResponse(property, rentalStatus);
