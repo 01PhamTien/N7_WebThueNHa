@@ -225,6 +225,18 @@ namespace Web2_ThueNha.Migrations
                     b.Property<DateTime>("CreatedAt").HasColumnType("datetime2");
                     b.Property<Guid>("ContractId").HasColumnType("uniqueidentifier");
                     b.Property<DateTime?>("CompletedAt").HasColumnType("datetime2");
+                    b.Property<DateTime?>("HandoverAt").HasColumnType("datetime2");
+                    b.Property<string>("InspectionNotes").HasColumnType("nvarchar(max)");
+                    b.Property<string>("PhotoLinks").HasColumnType("nvarchar(max)");
+                    b.Property<decimal?>("ElectricReading").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
+                    b.Property<decimal?>("WaterReading").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
+                    b.Property<decimal?>("DepositPaid").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
+                    b.Property<decimal?>("Outstanding").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
+                    b.Property<decimal?>("ExtraCharges").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
+                    b.Property<string>("SettlementNotes").HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("TenantConfirmedAt").HasColumnType("datetime2");
+                    b.Property<DateTime?>("LandlordConfirmedAt").HasColumnType("datetime2");
+                    b.Property<string>("TransferReference").HasColumnType("nvarchar(max)");
                     b.Property<Guid>("LandlordId").HasColumnType("uniqueidentifier");
                     b.Property<string>("LandlordNotes").HasMaxLength(2000).HasColumnType("nvarchar(2000)");
                     b.Property<string>("Reason").IsRequired().HasMaxLength(1000).HasColumnType("nvarchar(1000)");

@@ -263,6 +263,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.Reason).HasMaxLength(1000).IsRequired();
             e.Property(x => x.TenantNotes).HasMaxLength(2000);
             e.Property(x => x.LandlordNotes).HasMaxLength(2000);
+            e.Property(x => x.ElectricReading).HasPrecision(18, 2);
+            e.Property(x => x.WaterReading).HasPrecision(18, 2);
+            e.Property(x => x.DepositPaid).HasPrecision(18, 2);
+            e.Property(x => x.Outstanding).HasPrecision(18, 2);
+            e.Property(x => x.ExtraCharges).HasPrecision(18, 2);
             e.HasOne(x => x.Contract).WithMany().HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Landlord).WithMany().HasForeignKey(x => x.LandlordId).OnDelete(DeleteBehavior.Restrict);

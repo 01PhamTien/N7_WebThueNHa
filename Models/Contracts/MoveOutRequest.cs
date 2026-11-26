@@ -16,6 +16,18 @@ public sealed class MoveOutRequest
  public DateTime? UpdatedAt {get;set;}
  public DateTime? CompletedAt {get;set;}
  public MoveOutStatus Status {get;set;}=MoveOutStatus.Pending;
+ public DateTime? HandoverAt {get;set;}
+ public string? InspectionNotes {get;set;}
+ public string? PhotoLinks {get;set;}
+ public decimal? ElectricReading {get;set;}
+ public decimal? WaterReading {get;set;}
+ public decimal? DepositPaid {get;set;}
+ public decimal? Outstanding {get;set;}
+ public decimal? ExtraCharges {get;set;}
+ public string? SettlementNotes {get;set;}
+ public DateTime? TenantConfirmedAt {get;set;}
+ public DateTime? LandlordConfirmedAt {get;set;}
+ public string? TransferReference {get;set;}
  public RentalContract Contract {get;set;}=null!;
  public User Tenant {get;set;}=null!;
  public User Landlord {get;set;}=null!;
