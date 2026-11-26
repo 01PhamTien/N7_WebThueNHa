@@ -240,6 +240,31 @@ namespace Web2_ThueNha.Migrations
                     b.ToTable("MoveOutRequests");
                 });
 
+            modelBuilder.Entity("Web2_ThueNha.Models.Contracts.MoveOutRequest", b =>
+                {
+                    b.HasOne("Web2_ThueNha.Models.Contracts.RentalContract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Web2_ThueNha.Models.Identity.User", "Landlord")
+                        .WithMany()
+                        .HasForeignKey("LandlordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Web2_ThueNha.Models.Identity.User", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+                    b.Navigation("Landlord");
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("Web2_ThueNha.Models.Contracts.RentalContract", b =>
                 {
                     b.Property<Guid>("Id")
