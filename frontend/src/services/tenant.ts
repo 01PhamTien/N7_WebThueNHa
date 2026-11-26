@@ -22,7 +22,7 @@ export const tenantApi={
  booking:(id:string)=>api.get<BookingItem>('/api/bookings/'+id).then(response=>({...response,data:normalizeBooking(response.data)})),
  createBooking:(data:{propertyId:string;startDate:string;endDate:string;numberOfPeople:number;message?:string})=>api.post('/api/bookings',data),
  cancelBooking:(id:string)=>api.patch<BookingItem>('/api/bookings/'+id+'/cancel').then(response=>({...response,data:normalizeBooking(response.data)})),
- moveOutRequests:()=>api.get<MoveOutRequestItem[]>('/api/move-outs'),
+ moveOutRequests:()=>api.get<any[]>('/api/move-outs'),
  createMoveOut:(data:{contractId:string;requestedMoveOutDate:string;reason:string;tenantNotes?:string})=>api.post('/api/move-outs',data),
  cancelMoveOut:(id:string)=>api.post('/api/move-outs/'+id+'/cancel'),
  contracts:(page:number,pageSize:number)=>api.get<PageResult<ContractItem>>('/api/contracts',{params:{page,pageSize}}),
