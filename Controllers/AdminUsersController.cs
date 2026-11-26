@@ -80,6 +80,7 @@ public sealed class AdminUsersController : ControllerBase
     public async Task<IActionResult> GetUsers(
         [FromQuery] string? keyword,
         [FromQuery] bool? isActive,
+        [FromQuery] string? role,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -102,6 +103,11 @@ public sealed class AdminUsersController : ControllerBase
         if (isActive.HasValue)
             query = query.Where(x => x.IsActive == isActive.Value);
 
+        if(!string.IsNullOrWhiteSpace(role))
+        {
+            if(role is not ("Admin" or "Landlord" or "Tenant"))return BadRequest(new{message="Vai trò không hợp lệ."});
+            query=query.Where(x=>x.UserRoles.Any(r=>r.Role.Name==role));
+        }
         var totalItems = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
         var users = page > totalPages

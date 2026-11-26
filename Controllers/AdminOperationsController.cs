@@ -119,8 +119,11 @@ public sealed class AdminOperationsController(AppDbContext db) : ControllerBase
             return BadRequest(new { message = "Bộ lọc hoặc phân trang hóa đơn không hợp lệ." });
 
         IQueryable<Invoice> query = db.Invoices.AsNoTracking();
-        if (status.HasValue)
-            query = query.Where(x => x.Status == status.Value);
+        var today=DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        if(status==InvoiceStatus.Overdue)
+            query=query.Where(x=>x.DueDate<today&&x.Status!=InvoiceStatus.Paid&&x.Status!=InvoiceStatus.Cancelled&&x.Status!=InvoiceStatus.Draft);
+        else if(status.HasValue)
+            query=query.Where(x=>x.Status==status.Value);
         if (type.HasValue)
             query = query.Where(x => x.InvoiceType == type.Value);
         if (!string.IsNullOrWhiteSpace(keyword))
@@ -141,7 +144,7 @@ public sealed class AdminOperationsController(AppDbContext db) : ControllerBase
                     x.Contract.PropertyId, x.Contract.Property.Title,
                     x.Contract.LandlordId, x.Contract.TenantId, x.InvoiceType.ToString(),
                     x.PeriodStart, x.PeriodEnd, x.IssueDate, x.DueDate,
-                    x.TotalAmount, x.Status.ToString(), x.CreatedAt))
+                    x.TotalAmount, x.DueDate<today&&x.Status!=InvoiceStatus.Paid&&x.Status!=InvoiceStatus.Cancelled&&x.Status!=InvoiceStatus.Draft?InvoiceStatus.Overdue.ToString():x.Status.ToString(), x.CreatedAt))
                 .ToListAsync(cancellationToken);
 
         return Ok(ToPage(items, page, pageSize, total));
@@ -263,6 +266,19 @@ public sealed class AdminOperationsController(AppDbContext db) : ControllerBase
                 .ToListAsync(cancellationToken);
 
         return Ok(ToPage(items, page, pageSize, total));
+    }
+
+    [HttpGet("move-outs")]
+    public async Task<IActionResult> GetMoveOuts([FromQuery] MoveOutStatus? status,[FromQuery] string? keyword,int page=1,int pageSize=20,CancellationToken cancellationToken=default)
+    {
+        if(!ValidPage(page,pageSize)||(status.HasValue&&!Enum.IsDefined(status.Value))||keyword is {Length:>100})return BadRequest(new{message="Bộ lọc trả nhà không hợp lệ."});
+        var query=db.MoveOutRequests.AsNoTracking();
+        if(status==MoveOutStatus.Approved)query=query.Where(x=>x.Status==MoveOutStatus.Approved||x.Status==MoveOutStatus.InspectionScheduled);
+        else if(status.HasValue)query=query.Where(x=>x.Status==status.Value);
+        if(!string.IsNullOrWhiteSpace(keyword)){var term=keyword.Trim();query=query.Where(x=>x.Contract.ContractCode.Contains(term)||x.Contract.Property.Title.Contains(term)||x.Tenant.FullName.Contains(term)||x.Landlord.FullName.Contains(term));}
+        var total=await query.CountAsync(cancellationToken);
+        var items=await query.OrderByDescending(x=>x.CreatedAt).ThenByDescending(x=>x.Id).Skip((page-1)*pageSize).Take(pageSize).Select(x=>new{x.Id,x.Contract.ContractCode,PropertyTitle=x.Contract.Property.Title,TenantName=x.Tenant.FullName,LandlordName=x.Landlord.FullName,x.RequestedMoveOutDate,Status=x.Status.ToString(),x.Reason,x.TenantNotes,x.LandlordNotes,x.InspectionNotes,x.DepositPaid,x.RentDue,x.RentPaid,x.OtherDue,x.OtherPaid,x.ExtraCharges,x.RefundAmount,x.AdditionalAmount,x.SettlementNotes,x.LandlordConfirmedAt,x.TenantConfirmedAt,x.CompletedAt,x.CreatedAt}).ToListAsync(cancellationToken);
+        return Ok(ToPage(items,page,pageSize,total));
     }
 
     private static bool ValidPage(int page, int pageSize) =>

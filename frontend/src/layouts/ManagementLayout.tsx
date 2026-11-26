@@ -34,7 +34,15 @@ export function ManagementLayout({ children }: { children: ReactNode }) {
     { type: 'divider' },
     { key: '/admin/users', icon: <TeamOutlined />, label: <Link to="/admin/users">Quản lý người dùng</Link> },
     { key: '/admin/moderation', icon: <FileSearchOutlined />, label: <Link to="/admin/moderation">Tin đăng & kiểm duyệt</Link> },
-    { key: '/admin/operations', icon: <BarChartOutlined />, label: <Link to="/admin/operations">Vận hành & giao dịch</Link> }
+    { type:'divider' },
+    { key:'bookings',icon:<CalendarOutlined/>,label:<Link to="/admin/operations?tab=bookings">Yêu cầu thuê</Link>},
+    { key:'contracts',icon:<FileTextOutlined/>,label:<Link to="/admin/operations?tab=contracts">Hợp đồng</Link>},
+    { key:'move-outs',icon:<HomeOutlined/>,label:<Link to="/admin/operations?tab=move-outs">Trả nhà</Link>},
+    { key:'invoices',icon:<FileTextOutlined/>,label:<Link to="/admin/operations?tab=invoices">Hóa đơn</Link>},
+    { key:'payments',icon:<CreditCardOutlined/>,label:<Link to="/admin/operations?tab=payments">Thanh toán</Link>},
+    { type:'divider' },
+    { key:'reviews',icon:<MessageOutlined/>,label:<Link to="/admin/operations?tab=reviews">Đánh giá</Link>},
+    { key:'activity',icon:<BarChartOutlined/>,label:<Link to="/admin/operations?tab=activity">Nhật ký kiểm duyệt</Link>}
   ] : [
     { key: '/landlord', icon: <DashboardOutlined />, label: <Link to="/landlord">Tổng quan</Link> },
     { type: 'divider' },
@@ -82,7 +90,7 @@ export function ManagementLayout({ children }: { children: ReactNode }) {
           className="management-menu"
           mode="inline"
           items={menuItems}
-          selectedKeys={[selectedKey]}
+          selectedKeys={[isAdminArea&&selectedKey==='/admin/operations'?(new URLSearchParams(location.search).get('tab')||'bookings'):selectedKey]}
           inlineCollapsed={collapsed}
         />
         <div className="management-sider-bottom">

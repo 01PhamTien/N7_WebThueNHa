@@ -1379,3 +1379,13 @@ body { background: var(--canvas); color: var(--ink); }
 .ld-filters {overflow-x:auto;margin-bottom:8px;}
 @media(max-width:1050px){.ld-main-grid{grid-template-columns:minmax(0,1fr);}}
 @media(max-width:650px){.ld-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.ld-tasks{grid-template-columns:minmax(0,1fr);}.ld-totals{grid-template-columns:minmax(0,1fr);}.landlord-dashboard .ant-card-body{padding:12px;}.ld-record{align-items:flex-start;}.ld-record .ant-tag{align-self:flex-start;}.ld-trend-row{grid-template-columns:52px minmax(30px,1fr) auto;gap:6px;}.ld-kpis .ant-statistic-content{font-size:17px;}}
+
+.admin-dashboard .ld-main-grid{grid-template-columns:minmax(0,3fr) minmax(0,2fr);}
+.admin-trend{display:grid;gap:10px;margin-bottom:14px;}
+.admin-trend-row{display:grid;grid-template-columns:64px minmax(40px,1fr) minmax(110px,auto);gap:12px;align-items:center;font-size:12px;}
+.admin-trend-row .ant-progress{margin:0;display:block;line-height:1;}
+.admin-trend-row>div:last-child{display:flex;flex-direction:column;text-align:right;}
+.admin-operations .management-table-card{box-shadow:none;border:0;}
+.admin-operations .management-table-card>.ant-card-body{padding:0;}
+@media(max-width:1050px){.admin-dashboard .ld-main-grid{grid-template-columns:minmax(0,1fr);}}
+@media(max-width:650px){.admin-trend-row{grid-template-columns:52px minmax(30px,1fr) auto;gap:6px;}}

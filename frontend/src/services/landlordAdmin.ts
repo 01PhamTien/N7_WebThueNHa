@@ -281,6 +281,8 @@ export interface AdminDashboardDto {
   successfulPaymentAmount: number;
   totalReviews: number;
   totalModerationActions: number;
+  roleCounts:Array<{role:string;count:number}>; newUsersThisMonth:number; awaitingSignature:number; endingSoon:number; pendingMoveOuts:number; openMoveOutCount:number; handoverDue:number; awaitingSettlement:number; completedMoveOuts:number; receivedThisMonth:number; refundedThisMonth:number; outstandingAmount:number; overdueAmount:number;
+  trend:Array<{label:string;received:number;refunded:number}>; moderationQueue:Array<{id:string;title:string;landlordName:string;createdAt:string}>;
 }
 
 export interface AdminPaymentListDto {
@@ -303,6 +305,9 @@ export interface AdminPaymentListDto {
   createdAt: string;
 }
 
+export interface AdminMoveOutDto {
+ id:string;contractCode:string;propertyTitle:string;tenantName:string;landlordName:string;requestedMoveOutDate:string;status:string;reason:string;tenantNotes?:string;landlordNotes?:string;inspectionNotes?:string;depositPaid?:number;rentDue?:number;rentPaid?:number;otherDue?:number;otherPaid?:number;extraCharges?:number;refundAmount?:number;additionalAmount?:number;settlementNotes?:string;landlordConfirmedAt?:string;tenantConfirmedAt?:string;completedAt?:string;createdAt:string;
+}
 export interface AdminReviewDto {
   id: string;
   contractId: string;
@@ -387,6 +392,7 @@ export interface ChatPageParams extends PageParams {
 }
 
 export const landlordAdminApi = {
+  adminMoveOuts: (params: PageParams & {status?:string;keyword?:string}={})=>api.get<PagedResult<AdminMoveOutDto>>('/api/admin/operations/move-outs',{params:{page:1,pageSize:10,...params}}),
   adminDashboard: () => api.get<AdminDashboardDto>('/api/admin/dashboard'),
   adminBookings: (params: PageParams & { status?: string; keyword?: string } = {}) =>
     api.get<PagedResult<BookingDto>>('/api/admin/operations/bookings', { params: { page: 1, pageSize: 10, ...params } }),
@@ -463,7 +469,7 @@ export const landlordAdminApi = {
     api.get<Blob>('/api/chat/attachments/' + attachmentId, { responseType: 'blob' }),
   markChatRead: (id: string) => api.patch<void>('/api/chat/conversations/' + id + '/read'),
 
-  adminUsers: (params: PageParams & { keyword?: string; isActive?: boolean } = {}) =>
+  adminUsers: (params: PageParams & { keyword?: string; isActive?: boolean; role?:string } = {}) =>
     api.get<PagedResult<AdminUserDto>>('/api/admin/users', { params: { page: 1, pageSize: 10, ...params } }),
   adminUser: (id: string) => api.get<AdminUserDto>('/api/admin/users/' + id),
   updateUserStatus: (id: string, isActive: boolean) =>
