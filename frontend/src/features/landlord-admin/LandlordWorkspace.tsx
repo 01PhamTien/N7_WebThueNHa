@@ -31,51 +31,65 @@ function invoiceDueHint(dueDate: string, status: string) {
 export function LandlordDashboard() {
   const financial=useRequest(()=>api.landlordFinancialSummary(12),[]);
   const bookings=useRequest(()=>api.incomingBookings({page:1,pageSize:5,status:'Pending'}),[]);
-  const signing=useRequest(()=>api.contracts({page:1,pageSize:1,status:'AwaitingSignature'}),[]);
-  const overdue=useRequest(()=>api.invoices({page:1,pageSize:5,status:'Overdue'}),[]);
   const pending=useRequest(()=>api.incomingPayments({page:1,pageSize:5,status:'Pending'}),[]);
   const [months,setMonths]=useState(6);
+  const [category,setCategory]=useState('moveout');
+  const refresh=()=>{financial.refresh();bookings.refresh();pending.refresh();};
+  useEffect(()=>{const reload=()=>{if(document.visibilityState==='visible'){financial.refresh();bookings.refresh();pending.refresh();}};window.addEventListener('focus',reload);return()=>window.removeEventListener('focus',reload);},[financial.refresh,bookings.refresh,pending.refresh]);
   const data=financial.data;
-  const trend=(data?.trend||[]).slice(-months).reverse();
+  const trend=(data?.trend||[]).slice(-months);
   const max=Math.max(1,...trend.map(x=>x.received));
-  const error=[financial,bookings,signing,overdue,pending].map(x=>x.error).filter(Boolean).join(' · ');
+  const error=[financial,bookings,pending].map(x=>x.error).filter(Boolean).join(' · ');
   const tasks=[
-    {label:'Yêu cầu thuê chờ xử lý',count:bookings.data?.totalCount??bookings.data?.totalItems,href:'/landlord/bookings',color:'gold'},
-    {label:'Hợp đồng chờ ký',count:signing.data?.totalItems,href:'/landlord/contracts',color:'blue'},
-    {label:'Thanh toán chờ xác nhận',count:pending.data?.totalItems,href:'/landlord/payments',color:'blue'},
-    {label:'Hóa đơn quá hạn',count:overdue.data?.totalItems,href:'/landlord/invoices',color:'red'},
+    {label:'Yêu cầu trả nhà mới',count:data?.pendingMoveOuts,href:'/landlord/move-outs',color:'gold'},
+    {label:'Bàn giao đến hạn',count:data?.handoverDue,href:'/landlord/move-outs',color:'orange'},
+    {label:'Biên bản chờ chủ nhà ký',count:data?.waitingMoveOutSignature,href:'/landlord/move-outs',color:'blue'},
+    {label:'Yêu cầu thuê mới',count:data?.pendingRequests,href:'/landlord/bookings',color:'gold'},
+    {label:'Hợp đồng chờ ký',count:data?.signingCount,href:'/landlord/contracts',color:'blue'},
+    {label:'Thanh toán chờ duyệt',count:data?.pendingPayments,href:'/landlord/payments',color:'blue'},
+    {label:'Hóa đơn quá hạn',count:data?.overdueCount,href:'/landlord/invoices',color:'red'},
     {label:'Hợp đồng sắp hết hạn (30 ngày)',count:data?.endingSoon,href:'/landlord/contracts',color:'orange'}
   ];
-  const recent=[
-    ...(bookings.data?.items||[]).map(x=>({id:x.id,title:x.propertyTitle,description:x.tenantName,kind:'Yêu cầu thuê',createdAt:x.createdAt,href:'/landlord/bookings'})),
-    ...(pending.data?.items||[]).map(x=>({id:x.id,title:x.propertyTitle,description:x.payerName+' · '+money(x.amount),kind:'Thanh toán',createdAt:x.createdAt,href:'/landlord/payments'})),
-    ...(overdue.data?.items||[]).map(x=>({id:x.id,title:x.propertyTitle,description:x.invoiceCode,kind:'Hóa đơn quá hạn',createdAt:x.createdAt,href:'/landlord/invoices'}))
-  ].sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt)||b.id.localeCompare(a.id)).slice(0,5);
-  return <Page title="Tổng quan chủ nhà" description="Theo dõi hoạt động cho thuê và tài chính tại một nơi.">
-    <ErrorLine error={error}/>
-    <Row gutter={[12,12]}>
-      <Col xs={12} lg={6}><Card><Statistic title="Tin đăng" value={data?.propertyCount??'—'} loading={financial.busy}/><Typography.Link href="/landlord/properties">Quản lý</Typography.Link></Card></Col>
-      <Col xs={12} lg={6}><Card><Statistic title="Hợp đồng hiệu lực" value={data?.activeContracts??'—'} loading={financial.busy}/><Typography.Link href="/landlord/contracts">Quản lý</Typography.Link></Card></Col>
-      <Col xs={12} lg={6}><Card><Statistic title="Tiền thu tháng này" value={data?money(data.receivedThisMonth):'—'} loading={financial.busy}/><Typography.Text type="secondary">Bao gồm tiền cọc</Typography.Text></Card></Col>
-      <Col xs={12} lg={6}><Card><Statistic title="Công nợ còn phải thu" value={data?money(data.outstandingAmount):'—'} loading={financial.busy}/><Typography.Text type="secondary">Quá hạn: {data?money(data.overdueAmount):'—'}</Typography.Text></Card></Col>
-    </Row>
-    <Row gutter={[16,16]} style={{marginTop:16}}>
-      <Col xs={24} xl={14}><Card title="Doanh thu theo tháng" extra={<Segmented value={months} onChange={v=>setMonths(Number(v))} options={[{label:'6 tháng',value:6},{label:'12 tháng',value:12}]}/>}>
-        {financial.busy?<Loading/>:!data?<Empty description="Chưa tải được số liệu"/>:<>
-          <Row gutter={[12,12]} style={{marginBottom:16}}>
-            <Col xs={24} sm={12}><Statistic title="Tiền thuê đã thu (lũy kế)" value={money(data.rentReceived)}/></Col>
-            <Col xs={24} sm={12}><Statistic title="Tiền cọc đã nhận (lũy kế)" value={money(data.depositReceived)}/></Col>
-          </Row>
-          {trend.map(item=><div key={item.label} style={{marginBottom:8}}><Space style={{width:'100%',justifyContent:'space-between'}}><Typography.Text>{item.label}</Typography.Text><Typography.Text strong>{money(item.received)}</Typography.Text></Space><Progress percent={Math.round(item.received/max*100)} showInfo={false}/></div>)}
-          <Typography.Text type="secondary">Giao dịch thành công, không gồm tiền cọc. Tháng mới nhất ở trên.</Typography.Text>
-        </>}
-      </Card></Col>
-      <Col xs={24} xl={10}><Card title="Việc cần xử lý">
-        {tasks.map(t=><div key={t.label} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'12px 0',borderBottom:'1px solid #e8e8e8'}}><Typography.Link href={t.href}>{t.label}</Typography.Link><Tag color={t.count?t.color:'default'}>{t.count??'—'}</Tag></div>)}
-      </Card><Card title="Hồ sơ cần xử lý mới nhất" style={{marginTop:16}}>
-        {bookings.busy||pending.busy||overdue.busy?<Loading/>:recent.length===0?<Empty description="Không có hồ sơ cần xử lý"/>:recent.map(x=><div key={x.kind+x.id} style={{display:'flex',justifyContent:'space-between',gap:12,padding:'10px 0',borderBottom:'1px solid #e8e8e8'}}><div><Typography.Link href={x.href}>{x.title}</Typography.Link><div><Typography.Text type="secondary">{x.description}</Typography.Text></div></div><Tag>{x.kind}</Tag></div>)}
-      </Card></Col>
-    </Row>
+  const moveOutLabel=(x:NonNullable<typeof data>['moveOutItems'][number])=>x.status==='Pending'?'Chờ duyệt':x.status==='AwaitingSettlement'?(x.landlordConfirmedAt?'Chờ người thuê ký':'Chờ chủ nhà ký'):'Chờ bàn giao';
+  const groups:Record<string,{href:string;busy:boolean;rows:Array<{id:string;title:string;detail:string;tag:string;color:string}>}>={
+    moveout:{href:'/landlord/move-outs',busy:financial.busy,rows:(data?.moveOutItems||[]).map(x=>({id:x.id,title:x.propertyTitle,detail:x.tenantName+' · '+dateText(x.requestedMoveOutDate),tag:moveOutLabel(x),color:x.status==='Pending'?'gold':'blue'}))},
+    booking:{href:'/landlord/bookings',busy:bookings.busy,rows:(bookings.data?.items||[]).map(x=>({id:x.id,title:x.propertyTitle,detail:x.tenantName,tag:'Chờ duyệt',color:'gold'}))},
+    payment:{href:'/landlord/payments',busy:pending.busy,rows:(pending.data?.items||[]).map(x=>({id:x.id,title:x.propertyTitle,detail:x.payerName+' · '+money(x.amount),tag:'Chờ xác nhận',color:'blue'}))},
+    overdue:{href:'/landlord/invoices',busy:financial.busy,rows:(data?.overdueItems||[]).map(x=>({id:x.id,title:x.propertyTitle,detail:x.invoiceCode+' · '+money(Math.max(0,x.totalAmount-x.paid))+' · Hạn '+dateText(x.dueDate),tag:'Quá hạn',color:'red'}))}
+  };
+  const group=groups[category];
+  const kpis=[
+    {label:'Tổng tin đăng',value:data?.propertyCount,sub:data?data.rentedPropertyCount+' căn đang thuê':'—',href:'/landlord/properties'},
+    {label:'Hợp đồng hiệu lực',value:data?.activeContracts,sub:data?data.endingSoon+' sắp hết hạn':'—',href:'/landlord/contracts'},
+    {label:'Thu thực tế tháng này',value:data?money(data.receivedThisMonth):undefined,sub:'Bao gồm tiền cọc',href:'/landlord/payments'},
+    {label:'Tiền hoàn tháng này',value:data?money(data.refundedThisMonth):undefined,sub:'Quyết toán đã hoàn tất',href:'/landlord/move-outs'},
+    {label:'Dòng tiền ròng tháng này',value:data?money(data.netReceivedThisMonth):undefined,sub:'Tiền thu trừ tiền hoàn',href:'/landlord/payments'},
+    {label:'Công nợ còn phải thu',value:data?money(data.outstandingAmount):undefined,sub:data?'Quá hạn: '+money(data.overdueAmount):'—',href:'/landlord/invoices'}
+  ];
+  return <Page title="Tổng quan chủ nhà" description="Quản lý nhà cho thuê, công việc và dòng tiền trong một màn hình.">
+    <div className="landlord-dashboard">
+      <ErrorLine error={error}/>
+      <div className="ld-toolbar"><Typography.Text type="secondary">Số liệu theo tài khoản chủ nhà</Typography.Text><Button onClick={refresh} loading={financial.busy||bookings.busy||pending.busy}>Làm mới</Button></div>
+      <div className="ld-kpis">{kpis.map(k=><Card key={k.label} size="small"><Statistic title={k.label} value={k.value??'—'} loading={financial.busy}/><Typography.Link href={k.href}>{k.sub}</Typography.Link></Card>)}</div>
+      <Card title="Việc cần xử lý" className="ld-panel"><div className="ld-tasks">{tasks.map(t=><a key={t.label} href={t.href} className="ld-task"><span>{t.label}</span><Tag color={t.count?t.color:'default'}>{t.count??'—'}</Tag></a>)}</div></Card>
+      <div className="ld-main-grid">
+        <Card title="Tiền thu theo tháng" className="ld-panel" extra={<Segmented value={months} onChange={v=>setMonths(Number(v))} options={[{label:'6 tháng',value:6},{label:'12 tháng',value:12}]}/>}>
+          {financial.busy?<Loading/>:!data?<Empty description="Chưa tải được số liệu"/>:<>
+            <div className="ld-totals"><Statistic title="Tiền thuê đã thu" value={money(data.rentReceived)}/><Statistic title="Tiền cọc đã nhận" value={money(data.depositReceived)}/><Statistic title="Tiền đã hoàn" value={money(data.refundedAllTime)}/></div>
+            <div className="ld-trend">{trend.map(item=><div className="ld-trend-row" key={item.label}><Typography.Text>{item.label}</Typography.Text><Progress percent={Math.round(item.received/max*100)} showInfo={false}/><Typography.Text strong>{money(item.received)}</Typography.Text></div>)}</div>
+            <Typography.Text type="secondary">Tiền thu thành công, không gồm tiền cọc; chưa trừ tiền hoàn. Lũy kế tính toàn bộ lịch sử.</Typography.Text>
+          </>}
+        </Card>
+        <Card title="Theo dõi trả nhà" className="ld-panel" extra={<Typography.Link href="/landlord/move-outs">Quản lý</Typography.Link>}>
+          <div className="ld-tasks ld-single">{[{label:'Yêu cầu đang xử lý',count:data?.openMoveOutCount},{label:'Bàn giao sắp tới',count:data?.upcomingHandovers},{label:'Bàn giao đến hạn',count:data?.handoverDue},{label:'Chờ người thuê ký',count:data?.waitingTenantSignature},{label:'Chờ chủ nhà ký',count:data?.waitingMoveOutSignature}].map(t=><div className="ld-task" key={t.label}><span>{t.label}</span><Tag>{t.count??'—'}</Tag></div>)}</div>
+          <div className="ld-due"><Typography.Text type="secondary">Công nợ đến hạn trong 7 ngày</Typography.Text><Typography.Title level={4} style={{margin:0}}>{data?money(data.dueSoonAmount):'—'}</Typography.Title></div>
+        </Card>
+      </div>
+      <Card title="Hồ sơ cần xử lý" className="ld-panel" extra={<Typography.Link href={group.href}>Xem tất cả</Typography.Link>}>
+        <div className="ld-filters"><Segmented value={category} onChange={v=>setCategory(String(v))} options={[{label:'Trả nhà',value:'moveout'},{label:'Đơn thuê',value:'booking'},{label:'Thanh toán',value:'payment'},{label:'Quá hạn',value:'overdue'}]}/></div>
+        {group.busy?<Loading/>:group.rows.length===0?<Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có hồ sơ cần xử lý"/>:<div className="ld-records">{group.rows.map(x=><div className="ld-record" key={x.id}><div className="ld-record-text"><Typography.Link href={group.href}>{x.title}</Typography.Link><Typography.Text type="secondary">{x.detail}</Typography.Text></div><Tag color={x.color}>{x.tag}</Tag></div>)}</div>}
+      </Card>
+    </div>
   </Page>;
 }
 

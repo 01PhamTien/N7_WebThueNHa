@@ -1351,3 +1351,31 @@ body { background: var(--canvas); color: var(--ink); }
  .auth-layout { gap:22px; }
  .auth-page { padding-top:22px; }
 }
+
+/* Landlord dashboard: independent content-height cards, no stretched nested rows. */
+.landlord-dashboard {display:grid;gap:16px;min-width:0;}
+.landlord-dashboard .ant-card {height:auto;min-width:0;}
+.landlord-dashboard .ant-card-body {padding:16px 20px;}
+.ld-toolbar {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.ld-kpis {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+.ld-kpis .ant-statistic-title {font-size:12px;}
+.ld-kpis .ant-statistic-content {font-size:clamp(18px,2vw,26px);font-weight:750;overflow-wrap:anywhere;}
+.ld-kpis .ant-typography {font-size:12px;}
+.ld-main-grid {display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;align-items:start;}
+.ld-tasks {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;}
+.ld-single {grid-template-columns:minmax(0,1fr);}
+.ld-task,.ld-record {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #edf1ee;min-width:0;}
+.ld-task span:first-child {min-width:0;}
+.ld-task .ant-tag,.ld-record .ant-tag {margin:0;flex-shrink:0;align-self:center;line-height:22px;}
+.ld-record-text {display:flex;flex-direction:column;min-width:0;gap:3px;overflow-wrap:anywhere;}
+.ld-record:last-child,.ld-task:last-child {border-bottom:0;}
+.ld-totals {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px;}
+.ld-totals .ant-statistic-content {font-size:clamp(15px,1.5vw,21px);overflow-wrap:anywhere;}
+.ld-trend {display:grid;gap:9px;margin-bottom:14px;}
+.ld-trend-row {display:grid;grid-template-columns:62px minmax(40px,1fr) minmax(90px,auto);gap:10px;align-items:center;font-size:12px;}
+.ld-trend-row .ant-progress {margin:0;}
+.ld-trend-row > :last-child {text-align:right;}
+.ld-due {margin-top:16px;padding-top:12px;border-top:1px solid #edf1ee;}
+.ld-filters {overflow-x:auto;margin-bottom:8px;}
+@media(max-width:1050px){.ld-main-grid{grid-template-columns:minmax(0,1fr);}}
+@media(max-width:650px){.ld-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.ld-tasks{grid-template-columns:minmax(0,1fr);}.ld-totals{grid-template-columns:minmax(0,1fr);}.landlord-dashboard .ant-card-body{padding:12px;}.ld-record{align-items:flex-start;}.ld-record .ant-tag{align-self:flex-start;}.ld-trend-row{grid-template-columns:52px minmax(30px,1fr) auto;gap:6px;}.ld-kpis .ant-statistic-content{font-size:17px;}}

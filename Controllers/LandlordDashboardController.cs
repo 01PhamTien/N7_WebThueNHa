@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Web2_ThueNha.Data;
 using Web2_ThueNha.Models;
+using Web2_ThueNha.Models.Contracts;
 
 namespace Web2_ThueNha.Controllers;
 
@@ -28,7 +29,7 @@ public sealed class LandlordDashboardController(AppDbContext db) : ControllerBas
         var rangeStart = monthStart.AddMonths(-(months - 1));
         var payments = db.Payments.AsNoTracking()
             .Where(x => x.Invoice.Contract.LandlordId == landlordId &&
-                x.Status == PaymentStatus.Succeeded && x.PaidAt.HasValue);
+                x.Status == PaymentStatus.Succeeded && x.PaidAt.HasValue && x.PaidAt <= DateTime.UtcNow);
 
         var receivedAllTime = await payments.SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0m;
         var receivedThisMonth = await payments
@@ -48,26 +49,20 @@ public sealed class LandlordDashboardController(AppDbContext db) : ControllerBas
         var refundedAllTime=await refunds.SumAsync(x=>x.RefundAmount,cancellationToken)??0m;
         var refundedThisMonth=await refunds.Where(x=>x.CompletedAt>=monthStart.ToDateTime(TimeOnly.MinValue).AddHours(-7)).SumAsync(x=>x.RefundAmount,cancellationToken)??0m;
         var invoices = db.Invoices.AsNoTracking()
-            .Where(x => x.Contract.LandlordId == landlordId && x.Status != InvoiceStatus.Cancelled);
-        var overdueCount = await invoices.CountAsync(x =>
-            x.DueDate < today && x.Status != InvoiceStatus.Paid, cancellationToken);
-        var overdueAmount = await invoices
-            .Where(x => x.DueDate < today && x.Status != InvoiceStatus.Paid)
-            .Select(x => new { x.TotalAmount, Paid = x.Payments
-                .Where(p => p.Status == PaymentStatus.Succeeded)
-                .Sum(p => (decimal?)p.Amount) ?? 0m })
-            .SumAsync(x => (decimal?)(x.TotalAmount - x.Paid), cancellationToken) ?? 0m;
-        var outstandingAmount = await invoices
-            .Where(x => x.Status != InvoiceStatus.Paid)
-            .Select(x => new { x.TotalAmount, Paid = x.Payments
-                .Where(p => p.Status == PaymentStatus.Succeeded)
-                .Sum(p => (decimal?)p.Amount) ?? 0m })
-            .SumAsync(x => (decimal?)(x.TotalAmount - x.Paid), cancellationToken) ?? 0m;
-
+            .Where(x => x.Contract.LandlordId == landlordId && x.Status != InvoiceStatus.Cancelled && x.Status != InvoiceStatus.Draft);
+        // Materialize per-invoice balances to avoid SQL Server SUM over correlated aggregate.
+        var openBalances = await invoices.Where(x=>x.Status!=InvoiceStatus.Paid)
+            .Select(x=>new {x.DueDate,x.TotalAmount,Paid=x.Payments.Where(p=>p.Status==PaymentStatus.Succeeded).Sum(p=>(decimal?)p.Amount)??0m})
+            .ToListAsync(cancellationToken);
+        var balances=openBalances.Select(x=>new {x.DueDate,Amount=Math.Max(0m,x.TotalAmount-x.Paid)}).Where(x=>x.Amount>0).ToList();
+        var overdueCount=balances.Count(x=>x.DueDate<today);
+        var overdueAmount=balances.Where(x=>x.DueDate<today).Sum(x=>x.Amount);
+        var outstandingAmount=balances.Sum(x=>x.Amount);
+        var dueSoonAmount=balances.Where(x=>x.DueDate>=today&&x.DueDate<=today.AddDays(7)).Sum(x=>x.Amount);
         var trendRows = await payments
             .Where(x => x.PaidAt >= rangeStart.ToDateTime(TimeOnly.MinValue).AddHours(-7) &&
                 x.Invoice.InvoiceType != InvoiceType.Deposit)
-            .GroupBy(x => new { x.PaidAt!.Value.Year, x.PaidAt.Value.Month })
+            .GroupBy(x => new { x.PaidAt!.Value.AddHours(7).Year, x.PaidAt.Value.AddHours(7).Month })
             .Select(g => new
             {
                 g.Key.Year,
@@ -104,6 +99,19 @@ public sealed class LandlordDashboardController(AppDbContext db) : ControllerBas
         var pendingRequests = await db.Bookings.CountAsync(x =>
             x.Property.LandlordId == landlordId && x.Status == BookingStatus.Pending, cancellationToken);
 
+        var openMoveOuts=db.MoveOutRequests.AsNoTracking().Where(x=>x.LandlordId==landlordId&&x.Status!=MoveOutStatus.Completed&&x.Status!=MoveOutStatus.Cancelled&&x.Status!=MoveOutStatus.Rejected);
+        var pendingMoveOuts=await openMoveOuts.CountAsync(x=>x.Status==MoveOutStatus.Pending,cancellationToken);
+        var handoverDue=await openMoveOuts.CountAsync(x=>(x.Status==MoveOutStatus.Approved||x.Status==MoveOutStatus.InspectionScheduled)&&x.RequestedMoveOutDate<=today,cancellationToken);
+        var waitingMoveOutSignature=await openMoveOuts.CountAsync(x=>x.Status==MoveOutStatus.AwaitingSettlement&&x.LandlordConfirmedAt==null,cancellationToken);
+        var openMoveOutCount=await openMoveOuts.CountAsync(cancellationToken);
+        var upcomingHandovers=await openMoveOuts.CountAsync(x=>(x.Status==MoveOutStatus.Approved||x.Status==MoveOutStatus.InspectionScheduled)&&x.RequestedMoveOutDate>today,cancellationToken);
+        var waitingTenantSignature=await openMoveOuts.CountAsync(x=>x.Status==MoveOutStatus.AwaitingSettlement&&x.LandlordConfirmedAt!=null&&x.TenantConfirmedAt==null,cancellationToken);
+        var moveOutItems=await openMoveOuts.OrderByDescending(x=>x.Status==MoveOutStatus.Pending).ThenBy(x=>x.RequestedMoveOutDate).ThenByDescending(x=>x.CreatedAt).Take(5)
+            .Select(x=>new {x.Id,PropertyTitle=x.Contract.Property.Title,x.Contract.ContractCode,x.RequestedMoveOutDate,Status=x.Status.ToString(),TenantName=x.Tenant.FullName,x.LandlordConfirmedAt,x.TenantConfirmedAt}).ToListAsync(cancellationToken);
+        var rentedPropertyCount=await db.RentalContracts.Where(x=>x.LandlordId==landlordId&&x.Status==RentalContractStatus.Active&&x.StartDate<=today&&(x.EndDate>today||db.MoveOutRequests.Any(m=>m.ContractId==x.Id&&m.Status!=MoveOutStatus.Completed&&m.Status!=MoveOutStatus.Cancelled&&m.Status!=MoveOutStatus.Rejected))).Select(x=>x.PropertyId).Distinct().CountAsync(cancellationToken);
+        var signingCount=await db.RentalContracts.CountAsync(x=>x.LandlordId==landlordId&&x.Status==RentalContractStatus.AwaitingSignature,cancellationToken);
+        var overdueItems=await invoices.Where(x=>x.Status!=InvoiceStatus.Paid&&x.DueDate<today).OrderBy(x=>x.DueDate).ThenBy(x=>x.Id).Take(5)
+            .Select(x=>new {x.Id,x.InvoiceCode,PropertyTitle=x.Contract.Property.Title,x.DueDate,x.TotalAmount,Paid=x.Payments.Where(p=>p.Status==PaymentStatus.Succeeded).Sum(p=>(decimal?)p.Amount)??0m}).ToListAsync(cancellationToken);
         return Ok(new
         {
             months,
@@ -124,6 +132,7 @@ public sealed class LandlordDashboardController(AppDbContext db) : ControllerBas
             propertyCount,
             activeContracts,
             endingSoon,
+            rentedPropertyCount, signingCount, dueSoonAmount, pendingMoveOuts, handoverDue, waitingMoveOutSignature, waitingTenantSignature, upcomingHandovers, openMoveOutCount, moveOutItems, overdueItems,
             trend
         });
     }

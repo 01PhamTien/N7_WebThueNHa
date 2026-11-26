@@ -151,6 +151,10 @@ export interface LandlordFinancialSummaryDto {
   outstandingAmount: number; overdueAmount: number; overdueCount: number;
   pendingPayments: number; pendingRequests: number; propertyCount: number;
   activeContracts: number; endingSoon: number;
+  refundedAllTime:number; refundedThisMonth:number; netReceivedAllTime:number; netReceivedThisMonth:number;
+  rentedPropertyCount:number; signingCount:number; dueSoonAmount:number; pendingMoveOuts:number; handoverDue:number; waitingMoveOutSignature:number; waitingTenantSignature:number; upcomingHandovers:number; openMoveOutCount:number;
+  moveOutItems:Array<{id:string;propertyTitle:string;contractCode:string;requestedMoveOutDate:string;status:string;tenantName:string;landlordConfirmedAt?:string|null;tenantConfirmedAt?:string|null}>;
+  overdueItems:Array<{id:string;invoiceCode:string;propertyTitle:string;dueDate:string;totalAmount:number;paid:number}>;
   trend: Array<{year:number;month:number;label:string;received:number;rent:number;other:number}>;
 }
 
