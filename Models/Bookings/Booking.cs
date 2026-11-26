@@ -7,6 +7,7 @@ namespace Web2_ThueNha.Models.Bookings;
 public class Booking
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public long SequenceNumber { get; set; }
     public Guid PropertyId { get; set; }
     public Guid TenantId { get; set; }
     public DateOnly StartDate { get; set; }
