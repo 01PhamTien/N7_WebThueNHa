@@ -68,6 +68,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             e.ToTable("Properties");
             e.HasKey(x => x.Id);
+            e.Property(x => x.SequenceNumber).HasDefaultValueSql("NEXT VALUE FOR [PropertiesSequence]").ValueGeneratedOnAdd();
+            e.HasIndex(x => x.SequenceNumber).IsUnique();
             e.Property(x => x.Title).HasMaxLength(200).IsRequired();
             e.Property(x => x.Description).HasMaxLength(4000);
             e.Property(x => x.PricePerMonth).HasPrecision(18, 2);
@@ -139,6 +141,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             e.ToTable("Bookings");
             e.HasKey(x => x.Id);
+            e.Property(x => x.SequenceNumber).HasDefaultValueSql("NEXT VALUE FOR [BookingsSequence]").ValueGeneratedOnAdd();
+            e.HasIndex(x => x.SequenceNumber).IsUnique();
             e.Property(x => x.ProposedPrice).HasPrecision(18, 2);
             e.Property(x => x.Message).HasMaxLength(1000);
             e.Property(x => x.RejectionReason).HasMaxLength(1000);
@@ -151,6 +155,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             e.ToTable("RentalContracts");
             e.HasKey(x => x.Id);
+            e.Property(x => x.SequenceNumber).HasDefaultValueSql("NEXT VALUE FOR [RentalContractsSequence]").ValueGeneratedOnAdd();
+            e.HasIndex(x => x.SequenceNumber).IsUnique();
             e.Property(x => x.ContractCode).HasMaxLength(50).IsRequired();
             e.HasIndex(x => x.ContractCode).IsUnique();
             e.Property(x => x.MonthlyRent).HasPrecision(18, 2);
@@ -167,6 +173,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             e.ToTable("Invoices");
             e.HasKey(x => x.Id);
+            e.Property(x => x.SequenceNumber).HasDefaultValueSql("NEXT VALUE FOR [InvoicesSequence]").ValueGeneratedOnAdd();
+            e.HasIndex(x => x.SequenceNumber).IsUnique();
             e.Property(x => x.InvoiceCode).HasMaxLength(50).IsRequired();
             e.HasIndex(x => x.InvoiceCode).IsUnique();
             e.HasIndex(x => new { x.ContractId, x.InvoiceType })
@@ -196,6 +204,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             e.ToTable("Payments");
             e.HasKey(x => x.Id);
+            e.Property(x => x.SequenceNumber).HasDefaultValueSql("NEXT VALUE FOR [PaymentsSequence]").ValueGeneratedOnAdd();
+            e.HasIndex(x => x.SequenceNumber).IsUnique();
             e.Property(x => x.Amount).HasPrecision(18, 2);
             e.Property(x => x.PaymentProvider).HasMaxLength(100);
             e.Property(x => x.TransactionCode).HasMaxLength(150);
