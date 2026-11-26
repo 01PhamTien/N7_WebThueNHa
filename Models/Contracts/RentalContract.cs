@@ -8,6 +8,7 @@ namespace Web2_ThueNha.Models.Contracts;
 public class RentalContract
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public long SequenceNumber { get; set; }
     public Guid BookingId { get; set; }
     public Guid PropertyId { get; set; }
     public Guid LandlordId { get; set; }
