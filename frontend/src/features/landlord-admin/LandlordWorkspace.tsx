@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { TOKEN_KEY, errorText } from '../../services/api';
 import { landlordAdminApi as api } from '../../services/landlordAdmin';
-import type { LandlordFinancialSummaryDto, AdminPaymentListDto, BookingDto, ChatAttachmentDto, ChatMessageDto, ContractDto, ContractDetailDto, ConversationDto, InvoiceDetailDto, InvoiceListDto, PaymentDto, PropertyDto, PropertyImageDto, PropertyRequest, CreateInvoiceRequest, NotificationDto } from '../../services/landlordAdmin';
+import type { AdminPaymentListDto, BookingDto, ChatAttachmentDto, ChatMessageDto, ContractDto, ContractDetailDto, ConversationDto, InvoiceDetailDto, InvoiceListDto, PaymentDto, PropertyDto, PropertyImageDto, PropertyRequest, CreateInvoiceRequest, NotificationDto } from '../../services/landlordAdmin';
 import { Page, Loading, EmptyState } from '../../components/Shared';
 import { bookingStatusLabels, contractStatusLabels, invoiceStatusLabels, invoiceTypeLabels, listingStatusLabels, moderationStatusLabels, paymentStatusLabels, money, dateText, Status, ErrorLine, Paging, useRequest } from './workspaceShared';
 
@@ -29,95 +29,51 @@ function invoiceDueHint(dueDate: string, status: string) {
 }
 
 export function LandlordDashboard() {
-  const properties=useRequest(()=>api.myProperties({page:1,pageSize:1}),[]);
-  const bookings=useRequest(()=>api.incomingBookings({page:1,pageSize:5,status:'Pending'}),[]);
-  const activeContracts=useRequest(()=>api.contracts({page:1,pageSize:1,status:'Active'}),[]);
-  const signingContracts=useRequest(()=>api.contracts({page:1,pageSize:5,status:'AwaitingSignature'}),[]);
-  const overdueInvoices=useRequest(()=>api.invoices({page:1,pageSize:5,status:'Overdue'}),[]);
-  const pendingPayments=useRequest(()=>api.incomingPayments({page:1,pageSize:5,status:'Pending'}),[]);
-  const notifications=useRequest(()=>api.unreadCount(),[]);
-  const conversations=useRequest(()=>api.conversations({page:1,pageSize:30}),[]);
   const financial=useRequest(()=>api.landlordFinancialSummary(12),[]);
-  const busy=properties.busy||bookings.busy||activeContracts.busy||signingContracts.busy||overdueInvoices.busy||pendingPayments.busy||notifications.busy||conversations.busy||financial.busy;
-  const error=[properties,bookings,activeContracts,signingContracts,overdueInvoices,pendingPayments,notifications,conversations,financial].map(x=>x.error).filter(Boolean).join(' · ');
-  const unreadChats=(conversations.data?.items||[]).reduce((sum,item)=>sum+item.unreadCount,0);
-  const stats=[
-    {label:'Tổng tin đăng',value:properties.data?.totalCount??0,href:'/landlord/properties',hint:'Toàn bộ bất động sản'},
-    {label:'Yêu cầu thuê chờ xử lý',value:bookings.data?.totalCount??0,href:'/landlord/bookings',hint:'Cần phản hồi người thuê'},
-    {label:'Hợp đồng đang hiệu lực',value:activeContracts.data?.totalItems??0,href:'/landlord/contracts',hint:'Đang có khách thuê'},
-    {label:'Chờ ký hợp đồng',value:signingContracts.data?.totalItems??0,href:'/landlord/contracts',hint:'Hoàn tất chữ ký hai bên'},
-    {label:'Hóa đơn quá hạn',value:overdueInvoices.data?.totalItems??0,href:'/landlord/invoices',hint:'Theo dõi và nhắc thanh toán'},
-    {label:'Thanh toán chờ xác nhận',value:pendingPayments.data?.totalItems??0,href:'/landlord/payments',hint:'Kiểm tra giao dịch đến'},
-    {label:'Thông báo chưa đọc',value:notifications.data?.unreadCount??0,href:'/landlord/notifications',hint:'Cập nhật hoạt động'},
-    {label:'Tin nhắn chưa đọc',value:unreadChats,href:'/landlord/chat',hint:'Trao đổi với người thuê'}
+  const bookings=useRequest(()=>api.incomingBookings({page:1,pageSize:5,status:'Pending'}),[]);
+  const signing=useRequest(()=>api.contracts({page:1,pageSize:1,status:'AwaitingSignature'}),[]);
+  const overdue=useRequest(()=>api.invoices({page:1,pageSize:5,status:'Overdue'}),[]);
+  const pending=useRequest(()=>api.incomingPayments({page:1,pageSize:5,status:'Pending'}),[]);
+  const [months,setMonths]=useState(6);
+  const data=financial.data;
+  const trend=(data?.trend||[]).slice(-months).reverse();
+  const max=Math.max(1,...trend.map(x=>x.received));
+  const error=[financial,bookings,signing,overdue,pending].map(x=>x.error).filter(Boolean).join(' · ');
+  const tasks=[
+    {label:'Yêu cầu thuê chờ xử lý',count:bookings.data?.totalCount??bookings.data?.totalItems,href:'/landlord/bookings',color:'gold'},
+    {label:'Hợp đồng chờ ký',count:signing.data?.totalItems,href:'/landlord/contracts',color:'blue'},
+    {label:'Thanh toán chờ xác nhận',count:pending.data?.totalItems,href:'/landlord/payments',color:'blue'},
+    {label:'Hóa đơn quá hạn',count:overdue.data?.totalItems,href:'/landlord/invoices',color:'red'},
+    {label:'Hợp đồng sắp hết hạn (30 ngày)',count:data?.endingSoon,href:'/landlord/contracts',color:'orange'}
   ];
-  const recentActions=[
-    {title:'Yêu cầu thuê mới',description:'Xem hồ sơ và chấp nhận hoặc từ chối yêu cầu.',count:bookings.data?.totalCount??0,href:'/landlord/bookings',color:'gold'},
-    {title:'Hợp đồng cần chữ ký',description:'Kiểm tra điều khoản và hoàn tất ký kết.',count:signingContracts.data?.totalItems??0,href:'/landlord/contracts',color:'blue'},
-    {title:'Thanh toán cần kiểm tra',description:'Đối chiếu giao dịch, xác nhận tiền mặt hoặc chuyển khoản thủ công.',count:pendingPayments.data?.totalItems??0,href:'/landlord/payments',color:'processing'},
-    {title:'Hóa đơn quá hạn',description:'Theo dõi công nợ và liên hệ người thuê.',count:overdueInvoices.data?.totalItems??0,href:'/landlord/invoices',color:'red'}
-  ];
-  return <Page title="Tổng quan chủ nhà" description="Bảng điều hành hoạt động cho thuê: tài sản, yêu cầu thuê, hợp đồng, công nợ và chăm sóc người thuê.">
+  const recent=[
+    ...(bookings.data?.items||[]).map(x=>({id:x.id,title:x.propertyTitle,description:x.tenantName,kind:'Yêu cầu thuê',createdAt:x.createdAt,href:'/landlord/bookings'})),
+    ...(pending.data?.items||[]).map(x=>({id:x.id,title:x.propertyTitle,description:x.payerName+' · '+money(x.amount),kind:'Thanh toán',createdAt:x.createdAt,href:'/landlord/payments'})),
+    ...(overdue.data?.items||[]).map(x=>({id:x.id,title:x.propertyTitle,description:x.invoiceCode,kind:'Hóa đơn quá hạn',createdAt:x.createdAt,href:'/landlord/invoices'}))
+  ].sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt)||b.id.localeCompare(a.id)).slice(0,5);
+  return <Page title="Tổng quan chủ nhà" description="Theo dõi hoạt động cho thuê và tài chính tại một nơi.">
     <ErrorLine error={error}/>
-    <Row gutter={[16,16]}>{stats.map(item=><Col xs={12} md={6} xl={6} key={item.label}><Card className="management-stat-card" hoverable><a href={item.href} style={{display:'block',color:'inherit'}}><Statistic title={item.label} value={item.value} loading={busy}/><Typography.Text type="secondary">{item.hint}</Typography.Text></a></Card></Col>)}</Row>
-    <Row gutter={[16,16]} style={{marginTop:20}}>
-      <Col xs={24} xl={14}>
-        <Card title="Doanh thu và dòng tiền" extra={<Typography.Text type="secondary">12 tháng gần nhất · giao dịch thành công</Typography.Text>}>
-          <Row gutter={[16,16]}>
-            <Col xs={12} md={6}><Statistic title="Đã thu tháng này" value={financial.data?.receivedThisMonth??0} formatter={v=>money(Number(v))}/></Col>
-            <Col xs={12} md={6}><Statistic title="Tổng đã thu" value={financial.data?.receivedAllTime??0} formatter={v=>money(Number(v))}/></Col>
-            <Col xs={12} md={6}><Statistic title="Tiền thuê đã thu" value={financial.data?.rentReceived??0} formatter={v=>money(Number(v))}/></Col>
-            <Col xs={12} md={6}><Statistic title="Tiền cọc đã nhận" value={financial.data?.depositReceived??0} formatter={v=>money(Number(v))}/></Col>
-          </Row>
-          <Row gutter={[16,16]} style={{marginTop:20}}>
-            <Col xs={24} md={12}><Statistic title="Công nợ còn phải thu" value={financial.data?.outstandingAmount??0} formatter={v=>money(Number(v))}/></Col>
-            <Col xs={24} md={12}><Statistic title="Nợ quá hạn" value={financial.data?.overdueAmount??0} valueStyle={{color:'#cf1322'}} formatter={v=>money(Number(v))}/></Col>
-          </Row>
-          <Typography.Title level={5} style={{marginTop:24}}>Doanh thu theo tháng</Typography.Title>
-          {(financial.data?.trend||[]).map(item=>{
-            const max=Math.max(1,...(financial.data?.trend||[]).map(x=>x.received));
-            return <div key={item.label} style={{marginBottom:10}}>
-              <Space style={{width:'100%',justifyContent:'space-between'}}><Typography.Text>{item.label}</Typography.Text><Typography.Text strong>{money(item.received)}</Typography.Text></Space>
-              <Progress percent={Math.round(item.received/max*100)} showInfo={false} strokeColor="#1677ff"/>
-              <Typography.Text type="secondary" style={{fontSize:12}}>Tiền thuê {money(item.rent)} · Khoản khác {money(item.other)}</Typography.Text>
-            </div>;
-          })}
-          <Typography.Text type="secondary">Tiền cọc được thống kê riêng, không cộng vào doanh thu cho thuê. Chỉ tính khoản thanh toán đã xác nhận thành công.</Typography.Text>
-        </Card>
-      </Col>
-      <Col xs={24} xl={10}>
-        <Card title="Sức khỏe hoạt động">
-          <Row gutter={[12,20]}>
-            <Col span={12}><Statistic title="Bất động sản" value={financial.data?.propertyCount??0}/></Col>
-            <Col span={12}><Statistic title="Đang có hợp đồng" value={financial.data?.activeContracts??0}/></Col>
-            <Col span={12}><Statistic title="Sắp hết hạn (30 ngày)" value={financial.data?.endingSoon??0}/></Col>
-            <Col span={12}><Statistic title="Yêu cầu thuê mới" value={financial.data?.pendingRequests??0}/></Col>
-            <Col span={12}><Statistic title="Giao dịch chờ duyệt" value={financial.data?.pendingPayments??0}/></Col>
-            <Col span={12}><Statistic title="Hóa đơn quá hạn" value={financial.data?.overdueCount??0}/></Col>
-          </Row>
-          <Alert style={{marginTop:20}} type="info" showIcon message="Cách đọc số liệu" description="Doanh thu là khoản đã thu thành công từ tiền thuê và khoản phát sinh. Tiền cọc là khoản giữ đảm bảo nên được theo dõi riêng; công nợ tính theo phần hóa đơn chưa thanh toán."/>
-        </Card>
-      </Col>
+    <Row gutter={[12,12]}>
+      <Col xs={12} lg={6}><Card><Statistic title="Tin đăng" value={data?.propertyCount??'—'} loading={financial.busy}/><Typography.Link href="/landlord/properties">Quản lý</Typography.Link></Card></Col>
+      <Col xs={12} lg={6}><Card><Statistic title="Hợp đồng hiệu lực" value={data?.activeContracts??'—'} loading={financial.busy}/><Typography.Link href="/landlord/contracts">Quản lý</Typography.Link></Card></Col>
+      <Col xs={12} lg={6}><Card><Statistic title="Tiền thu tháng này" value={data?money(data.receivedThisMonth):'—'} loading={financial.busy}/><Typography.Text type="secondary">Bao gồm tiền cọc</Typography.Text></Card></Col>
+      <Col xs={12} lg={6}><Card><Statistic title="Công nợ còn phải thu" value={data?money(data.outstandingAmount):'—'} loading={financial.busy}/><Typography.Text type="secondary">Quá hạn: {data?money(data.overdueAmount):'—'}</Typography.Text></Card></Col>
     </Row>
-    <Row gutter={[16,16]} style={{marginTop:20}}>
-      <Col xs={24} xl={14}><Card title="Việc cần xử lý" extra={<Typography.Link href="/landlord/bookings">Mở trung tâm quản lý</Typography.Link>}>
-        <List dataSource={recentActions} renderItem={item=><List.Item actions={[<Button key="open" size="small" href={item.href}>Xử lý</Button>]}><List.Item.Meta title={<Space>{item.title}<Tag color={item.color}>{item.count}</Tag></Space>} description={item.description}/></List.Item>}/>
+    <Row gutter={[16,16]} style={{marginTop:16}}>
+      <Col xs={24} xl={14}><Card title="Doanh thu theo tháng" extra={<Segmented value={months} onChange={v=>setMonths(Number(v))} options={[{label:'6 tháng',value:6},{label:'12 tháng',value:12}]}/>}>
+        {financial.busy?<Loading/>:!data?<Empty description="Chưa tải được số liệu"/>:<>
+          <Row gutter={[12,12]} style={{marginBottom:16}}>
+            <Col xs={24} sm={12}><Statistic title="Tiền thuê đã thu (lũy kế)" value={money(data.rentReceived)}/></Col>
+            <Col xs={24} sm={12}><Statistic title="Tiền cọc đã nhận (lũy kế)" value={money(data.depositReceived)}/></Col>
+          </Row>
+          {trend.map(item=><div key={item.label} style={{marginBottom:8}}><Space style={{width:'100%',justifyContent:'space-between'}}><Typography.Text>{item.label}</Typography.Text><Typography.Text strong>{money(item.received)}</Typography.Text></Space><Progress percent={Math.round(item.received/max*100)} showInfo={false}/></div>)}
+          <Typography.Text type="secondary">Giao dịch thành công, không gồm tiền cọc. Tháng mới nhất ở trên.</Typography.Text>
+        </>}
       </Card></Col>
-      <Col xs={24} xl={10}><Card title="Lối tắt quản lý"><List dataSource={[
-        {title:'Tin đăng & phòng cho thuê',description:'Tạo, cập nhật ảnh, giá và trạng thái tin.',href:'/landlord/properties'},
-        {title:'Yêu cầu thuê',description:'Duyệt khách và tạo hợp đồng.',href:'/landlord/bookings'},
-        {title:'Hợp đồng thuê',description:'Theo dõi thời hạn, chữ ký và điều khoản.',href:'/landlord/contracts'},
-        {title:'Hóa đơn & công nợ',description:'Lịch hóa đơn, hạn thanh toán và quá hạn.',href:'/landlord/invoices'},
-        {title:'Quản lý thanh toán',description:'Đối chiếu giao dịch và xác nhận thủ công.',href:'/landlord/payments'},
-        {title:'Tin nhắn & thông báo',description:'Chăm sóc người thuê và cập nhật mới.',href:'/landlord/chat'}
-      ]} renderItem={item=><List.Item><List.Item.Meta title={<Typography.Link href={item.href}>{item.title}</Typography.Link>} description={item.description}/></List.Item>}/></Card></Col>
-    </Row>
-    <Row gutter={[16,16]} style={{marginTop:20}}>
-      <Col xs={24} lg={12}><Card title="Yêu cầu thuê mới" extra={<Typography.Link href="/landlord/bookings">Xem tất cả</Typography.Link>}>
-        <List loading={bookings.busy} dataSource={bookings.data?.items||[]} locale={{emptyText:<Empty description="Chưa có yêu cầu thuê chờ xử lý"/>}} renderItem={item=><List.Item actions={[<Button key="detail" size="small" href="/landlord/bookings">Mở</Button>]}><List.Item.Meta title={item.propertyTitle} description={<span>{item.tenantName} · {dateText(item.startDate)} – {dateText(item.endDate)}</span>}/><Typography.Text strong>{money(item.estimatedRent)}</Typography.Text></List.Item>}/>
-      </Card></Col>
-      <Col xs={24} lg={12}><Card title="Hóa đơn quá hạn" extra={<Typography.Link href="/landlord/invoices">Xem công nợ</Typography.Link>}>
-        <List loading={overdueInvoices.busy} dataSource={overdueInvoices.data?.items||[]} locale={{emptyText:<Empty description="Không có hóa đơn quá hạn"/>}} renderItem={item=><List.Item actions={[<Button key="detail" size="small" href="/landlord/invoices">Chi tiết</Button>]}><List.Item.Meta title={item.propertyTitle} description={<span>{item.invoiceCode} · Hạn {dateText(item.dueDate)}</span>}/><Typography.Text type="danger" strong>{money(item.totalAmount)}</Typography.Text></List.Item>}/>
+      <Col xs={24} xl={10}><Card title="Việc cần xử lý">
+        {tasks.map(t=><div key={t.label} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'12px 0',borderBottom:'1px solid #e8e8e8'}}><Typography.Link href={t.href}>{t.label}</Typography.Link><Tag color={t.count?t.color:'default'}>{t.count??'—'}</Tag></div>)}
+      </Card><Card title="Hồ sơ cần xử lý mới nhất" style={{marginTop:16}}>
+        {bookings.busy||pending.busy||overdue.busy?<Loading/>:recent.length===0?<Empty description="Không có hồ sơ cần xử lý"/>:recent.map(x=><div key={x.kind+x.id} style={{display:'flex',justifyContent:'space-between',gap:12,padding:'10px 0',borderBottom:'1px solid #e8e8e8'}}><div><Typography.Link href={x.href}>{x.title}</Typography.Link><div><Typography.Text type="secondary">{x.description}</Typography.Text></div></div><Tag>{x.kind}</Tag></div>)}
       </Card></Col>
     </Row>
   </Page>;
@@ -179,7 +135,6 @@ export function LandlordBookings() {
     {title:'Căn nhà',dataIndex:'propertyTitle'},
     {title:'Người thuê',dataIndex:'tenantName',render:(v,r)=><Space orientation="vertical" size={0}>{v}<Typography.Text type="secondary">{r.tenantEmail}</Typography.Text></Space>},
     {title:'Thời gian thuê',render:(_,r)=>'Từ '+r.startDate+' đến trước '+r.endDate},
-    {title:'Ngày gửi yêu cầu',dataIndex:'createdAt',render:(v:string)=>new Date(v).toLocaleString('vi-VN')},
     {title:'Giá niêm yết/tháng',dataIndex:'monthlyRent',render:money},
     {title:'Ước tính kỳ thuê',dataIndex:'estimatedRent',render:money},
     {title:'Trạng thái',dataIndex:'status',render:(v:number)=><Status value={v} label={bookingStatusLabels[v] || String(v)}/>},
@@ -211,7 +166,6 @@ export function LandlordContracts() {
     {title:'Căn nhà',dataIndex:'propertyTitle'},
     {title:'Người thuê',dataIndex:'tenantName'},
     {title:'Thời hạn',render:(_,r)=>'Từ '+r.startDate+' đến trước '+r.endDate},
-    {title:'Ngày tạo',dataIndex:'createdAt',render:(v:string)=>new Date(v).toLocaleString('vi-VN')},
     {title:'Tiền thuê',dataIndex:'monthlyRent',render:money},
     {title:'Ước tính cả kỳ',dataIndex:'estimatedRent',render:money},
     {title:'Trạng thái',dataIndex:'status',render:(v:string,r)=><Space orientation="vertical" size={2}><Status value={v} label={contractStatusLabels[v] || v}/>{v==='AwaitingSignature'&&<Typography.Text type="secondary">{r.landlordSignedAt?'Đã ký · Chờ khách thuê ký':r.tenantSignedAt?'Khách đã ký · Chờ bạn ký':'Chờ hai bên ký'}</Typography.Text>}</Space>},
@@ -285,7 +239,6 @@ export function LandlordPayments() {
     {title:'Mã giao dịch',dataIndex:'transactionCode',render:(v:string|null)=><Typography.Text copyable={!!v}>{v||'Chưa có'}</Typography.Text>},
     {title:'Số tiền',dataIndex:'amount',render:money},
     {title:'Trạng thái',dataIndex:'status',render:(v:string)=><Status value={v} label={paymentStatusLabels[v]||v}/>},
-    {title:'Thời điểm',dataIndex:'createdAt',render:(v:string)=>new Date(v).toLocaleString('vi-VN')},
     {title:'Thao tác',render:(_,r)=><Space>{r.status==='Pending'&&r.paymentProvider==='Manual'&&r.paymentMethod==='Cash'&&<>
       <Popconfirm title="Xác nhận đã nhận khoản tiền này?" description="Chỉ xác nhận sau khi đã kiểm tra tiền thực nhận." okText="Đã nhận tiền" onConfirm={async()=>{setBusyId(r.id);try{await api.confirmPayment(r.id);message.success('Đã xác nhận thanh toán');refresh();}catch(e){message.error(errorText(e));}finally{setBusyId(null);}}}>
         <Button size="small" type="primary" loading={busyId===r.id}>Xác nhận</Button>
@@ -310,7 +263,7 @@ export function LandlordPayments() {
 export function LandlordInvoices() {
   const [page,setPage]=useState(1); const [status,setStatus]=useState<string|undefined>(); const [type,setType]=useState<string|undefined>(); const [keyword,setKeyword]=useState(''); const q=useRequest(()=>api.invoices({page,pageSize:10,status,type,keyword:keyword||undefined}),[page,status,type,keyword]); const [detail,setDetail]=useState<InvoiceDetailDto|null>(null); const [contract,setContract]=useState(''); const [form]=Form.useForm<InvoiceFormValues>(); const {message,modal}=AntApp.useApp();
   const columns:ColumnsType<InvoiceListDto>=[
-    {title:'Hóa đơn',dataIndex:'invoiceCode'}, {title:'Căn nhà',dataIndex:'propertyTitle'}, {title:'Loại',dataIndex:'invoiceType',render:(v:string)=><span>{invoiceTypeLabels[v] || v}</span>}, {title:'Kỳ thuê',render:(_:unknown,r:InvoiceListDto)=>r.periodStart&&r.periodEnd?dateText(r.periodStart)+' – trước '+dateText(r.periodEnd):'—'}, {title:'Ngày tạo',dataIndex:'createdAt',render:(v:string)=>new Date(v).toLocaleString('vi-VN')}, {title:'Hạn thanh toán',dataIndex:'dueDate',render:(v:string,r:InvoiceListDto)=><Space orientation="vertical" size={2}><span>{dateText(v)}</span>{invoiceDueHint(v,r.status)}</Space>}, {title:'Tổng tiền',dataIndex:'totalAmount',render:money}, {title:'Trạng thái',dataIndex:'status',render:(v:string)=><Status value={v} label={invoiceStatusLabels[v] || v}/>},
+    {title:'Hóa đơn',dataIndex:'invoiceCode'}, {title:'Căn nhà',dataIndex:'propertyTitle'}, {title:'Loại',dataIndex:'invoiceType',render:(v:string)=><span>{invoiceTypeLabels[v] || v}</span>}, {title:'Kỳ thuê',render:(_:unknown,r:InvoiceListDto)=>r.periodStart&&r.periodEnd?dateText(r.periodStart)+' – trước '+dateText(r.periodEnd):'—'}, {title:'Hạn thanh toán',dataIndex:'dueDate',render:(v:string,r:InvoiceListDto)=><Space orientation="vertical" size={2}><span>{dateText(v)}</span>{invoiceDueHint(v,r.status)}</Space>}, {title:'Tổng tiền',dataIndex:'totalAmount',render:money}, {title:'Trạng thái',dataIndex:'status',render:(v:string)=><Status value={v} label={invoiceStatusLabels[v] || v}/>},
     {title:'Thao tác',render:(_,r)=><Button size="small" onClick={async()=>{try{setDetail((await api.invoice(r.id)).data);}catch(e){message.error(errorText(e));}}}>Chi tiết & thanh toán</Button>}
   ];
   return <Page title="Hóa đơn và thanh toán"><ErrorLine error={q.error}/><Space wrap style={{marginBottom:16}}><Input.Search value={keyword} onChange={e=>{setPage(1);setKeyword(e.target.value);}} placeholder="Tìm mã hóa đơn, hợp đồng hoặc căn nhà" style={{width:300}}/><Select allowClear placeholder="Lọc trạng thái" style={{width:180}} value={status} onChange={v=>{setPage(1);setStatus(v);}} options={Object.entries(invoiceStatusLabels).map(([value,label])=>({value,label}))}/><Select allowClear placeholder="Lọc loại hóa đơn" style={{width:210}} value={type} onChange={v=>{setPage(1);setType(v);}} options={Object.entries(invoiceTypeLabels).map(([value,label])=>({value,label}))}/><Input value={contract} onChange={e=>setContract(e.target.value)} placeholder="Contract ID (UUID)" style={{width:260}}/><Button type="primary" onClick={()=>{form.resetFields();form.setFieldsValue({invoiceType:1,issueDate:dayjs().format('YYYY-MM-DD')});modal.confirm({title:'Tạo hóa đơn cho hợp đồng',content:<Form form={form} layout="vertical"><Form.Item name="invoiceType" label="Loại hóa đơn" rules={[{required:true}]}><Select options={[{value:0,label:'Tiền cọc'},{value:1,label:'Tiền thuê hàng tháng'},{value:2,label:'Khác'}]}/></Form.Item><Form.Item name="issueDate" label="Ngày phát hành (YYYY-MM-DD)" rules={[{required:true},{pattern:/^\d{4}-\d{2}-\d{2}$/,message:'Ngày phải theo định dạng YYYY-MM-DD.'}]}><Input placeholder="2026-11-25"/></Form.Item><Form.Item name="dueDate" label="Hạn thanh toán (YYYY-MM-DD)" dependencies={['issueDate']} rules={[{required:true},{pattern:/^\d{4}-\d{2}-\d{2}$/,message:'Ngày phải theo định dạng YYYY-MM-DD.'},{validator:(_,v)=>{const issue=form.getFieldValue('issueDate');return !issue||!v||Date.parse(v)>=Date.parse(issue)?Promise.resolve():Promise.reject(new Error('Hạn thanh toán không được trước ngày phát hành.'));}}]}><Input placeholder="2026-12-05"/></Form.Item><Form.Item name="periodStart" label="Ngày bắt đầu kỳ thuê" dependencies={['invoiceType']} rules={[{validator:(_,v)=>{const required=form.getFieldValue('invoiceType')===1;const end=form.getFieldValue('periodEnd');if(!v)return required||end?Promise.reject(new Error('Vui lòng nhập ngày bắt đầu kỳ.')):Promise.resolve();return /^\d{4}-\d{2}-\d{2}$/.test(v)?Promise.resolve():Promise.reject(new Error('Ngày phải theo định dạng YYYY-MM-DD.'));}}]}><Input placeholder="2026-12-01"/></Form.Item><Form.Item name="periodEnd" label="Ngày kết thúc kỳ thuê (không tính ngày này)" dependencies={['invoiceType','periodStart']} rules={[{validator:(_,v)=>{const required=form.getFieldValue('invoiceType')===1;const start=form.getFieldValue('periodStart');if(!v)return required||start?Promise.reject(new Error('Vui lòng nhập ngày kết thúc kỳ.')):Promise.resolve();return /^\d{4}-\d{2}-\d{2}$/.test(v)&&!!start&&Date.parse(v)>Date.parse(start)?Promise.resolve():Promise.reject(new Error('Ngày kết thúc kỳ phải hợp lệ và sau ngày bắt đầu.'));}}]}><Input placeholder="2026-12-31"/></Form.Item><Form.Item noStyle shouldUpdate={(previous,current)=>previous.invoiceType!==current.invoiceType}>{({getFieldValue})=>getFieldValue('invoiceType')===1?<Alert type="info" showIcon message="Tiền thuê được hệ thống tự tính" description="Hệ thống lấy đơn giá từ hợp đồng. Tháng tròn tính theo giá tháng; ngày lẻ tính bằng giá tháng chia 30 nhân số ngày. Phí điện, nước và khoản phát sinh lập hóa đơn loại Khác."/>:<><Form.Item name="description" label="Nội dung dòng hóa đơn" rules={[{required:true},{max:300}]}><Input placeholder="Ví dụ: Tiền điện, tiền nước..."/></Form.Item><Form.Item name="quantity" label="Số lượng" rules={[{required:true,type:'number',min:0.01}]}><InputNumber min={0.01} max={1000000} style={{width:'100%'}}/></Form.Item><Form.Item name="unitPrice" label="Đơn giá" rules={[{required:true,type:'number',min:0.01}]}><InputNumber min={0.01} max={999999999} style={{width:'100%'}}/></Form.Item></>}</Form.Item></Form>,onOk:async()=>{try{const v=await form.validateFields();if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(contract.trim()))throw new Error('Contract ID phải là UUID hợp lệ.');const payload:CreateInvoiceRequest={invoiceType:v.invoiceType,issueDate:v.issueDate,dueDate:v.dueDate,periodStart:v.periodStart||null,periodEnd:v.periodEnd||null,items:v.invoiceType===1?[]:[{description:v.description,quantity:v.quantity,unitPrice:v.unitPrice}]};await api.createInvoice(contract.trim(),payload);message.success('Đã tạo hóa đơn');q.refresh();}catch(e){message.error(errorText(e));throw e;}}});}}>Tạo hóa đơn</Button></Space><Card>{q.busy?<Loading/>:<Table rowKey="id" columns={columns} dataSource={q.data?.items||[]} pagination={false}/>}<Paging page={page} total={q.data?.totalItems||0} onChange={setPage}/></Card><Drawer title={'Hóa đơn '+(detail?.invoiceCode||'')} open={!!detail} onClose={()=>setDetail(null)} size="large" styles={{ wrapper: { width: 'min(620px, 100vw)' } }}>{detail&&<><Descriptions bordered column={1} items={[{key:'a',label:'Căn nhà',children:detail.propertyTitle},{key:'period',label:'Kỳ thuê',children:detail.periodStart&&detail.periodEnd?dateText(detail.periodStart)+' – trước '+dateText(detail.periodEnd):'—'},{key:'due',label:'Hạn thanh toán',children:<Space>{dateText(detail.dueDate)}{invoiceDueHint(detail.dueDate,detail.status)}</Space>},{key:'b',label:'Tổng tiền',children:money(detail.totalAmount)},{key:'c',label:'Trạng thái',children:<Status value={detail.status} label={invoiceStatusLabels[detail.status]||detail.status}/>}]}/><Typography.Title level={5}>Chi tiết dòng hóa đơn</Typography.Title><List dataSource={detail.items} locale={{emptyText:<Empty description="Không có dòng chi tiết"/>}} renderItem={item=><List.Item><List.Item.Meta title={item.description} description={'Số lượng: '+item.quantity+' · Đơn giá: '+money(item.unitPrice)}/>{money(item.amount)}</List.Item>}/><Typography.Title level={5}>Các khoản thanh toán</Typography.Title><List dataSource={detail.payments||[]} locale={{emptyText:<Empty description="Chưa có thanh toán"/>}} renderItem={(p:PaymentDto)=><List.Item actions={p.paymentProvider==='Manual'&&p.status==='Pending'?[<Button size="small" type="primary" onClick={async()=>{try{await api.confirmPayment(p.id);setDetail((await api.invoice(detail.id)).data);message.success('Đã xác nhận thanh toán');}catch(e){message.error(errorText(e));}}}>Xác nhận</Button>,<Button danger size="small" onClick={()=>modal.confirm({title:'Từ chối thanh toán thủ công',content:<Input.TextArea id={'payment-reason-'+p.id} placeholder="Lý do từ chối" rows={3} maxLength={1000}/>,onOk:async()=>{const reason=(document.getElementById('payment-reason-'+p.id) as HTMLTextAreaElement)?.value||'';if(!reason.trim()){message.error('Vui lòng nhập lý do từ chối.');throw new Error('Thiếu lý do');}try{await api.rejectPayment(p.id,reason);setDetail((await api.invoice(detail.id)).data);message.success('Đã từ chối');}catch(e){message.error(errorText(e));throw e;}}})}>Từ chối</Button>]:[]}><List.Item.Meta title={<Space>{p.paymentMethod==='Cash'?'Tiền mặt':p.paymentMethod==='BankTransfer'?'Chuyển khoản':p.paymentMethod}<Status value={p.status} label={paymentStatusLabels[p.status]||p.status}/>{p.paymentProvider==='SePay'&&<Tag color="blue">SePay · IPN</Tag>}</Space>} description={p.transactionCode||p.failureReason||p.paymentProvider||'—'}/>{money(p.amount)}</List.Item>}/></>}{detail?.payments.some(p=>p.paymentProvider==='SePay')&&<Alert style={{marginTop:12}} type="info" showIcon message="Thanh toán SePay được cập nhật qua IPN/Bank Webhook, không xác nhận thủ công."/>}</Drawer></Page>;

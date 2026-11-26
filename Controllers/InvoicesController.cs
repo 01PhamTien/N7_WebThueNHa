@@ -72,7 +72,6 @@ public sealed class InvoicesController(AppDbContext db, IPaymentService paymentS
             ? new List<InvoiceListItem>()
             : await query
                 .OrderByDescending(x => x.CreatedAt)
-                .ThenBy(x => x.DueDate)
                 .ThenByDescending(x => x.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -191,5 +190,5 @@ public sealed class InvoicesController(AppDbContext db, IPaymentService paymentS
             invoice.CreatedAt,
             invoice.Items.Select(x => new InvoiceItemResponse(
                 x.Id, x.Description, x.Quantity, x.UnitPrice, x.Amount)).ToList(),
-            invoice.Payments.OrderBy(x => x.CreatedAt).Select(PaymentService.ToResponse).ToList());
+            invoice.Payments.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id).Select(PaymentService.ToResponse).ToList());
 }
