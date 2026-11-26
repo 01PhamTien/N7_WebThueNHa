@@ -138,10 +138,8 @@ export function LandlordBookings() {
     const timer=window.setInterval(refresh,15000);
     return ()=>{window.removeEventListener('focus',refresh);window.clearInterval(timer);};
   },[q.refresh]);
-  const orderedBookings=[...(q.data?.items||[])].sort((a,b)=>{
-    const utc=(v:string)=>Date.parse(/(?:Z|[+-]\d{2}:\d{2})$/i.test(v)?v:v+'Z');
-    return utc(b.createdAt)-utc(a.createdAt)||b.id.localeCompare(a.id);
-  });
+  // Preserve the SQL CreatedAt DESC order, including timestamp precision and pagination.
+  const orderedBookings=q.data?.items||[];
   const columns:ColumnsType<BookingDto>=[
     {title:'Căn nhà',dataIndex:'propertyTitle'},
     {title:'Người thuê',dataIndex:'tenantName',render:(v,r)=><Space orientation="vertical" size={0}>{v}<Typography.Text type="secondary">{r.tenantEmail}</Typography.Text></Space>},
