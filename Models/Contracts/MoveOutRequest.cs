@@ -18,9 +18,14 @@ public sealed class MoveOutRequest
  public MoveOutStatus Status {get;set;}=MoveOutStatus.Pending;
  public DateTime? HandoverAt {get;set;}
  public string? InspectionNotes {get;set;}
- public string? PhotoLinks {get;set;}
  public decimal? ElectricReading {get;set;}
  public decimal? WaterReading {get;set;}
+ public decimal? RentDue {get;set;}
+ public decimal? RentPaid {get;set;}
+ public decimal? OtherDue {get;set;}
+ public decimal? OtherPaid {get;set;}
+ public decimal? RefundAmount {get;set;}
+ public decimal? AdditionalAmount {get;set;}
  public decimal? DepositPaid {get;set;}
  public decimal? Outstanding {get;set;}
  public decimal? ExtraCharges {get;set;}

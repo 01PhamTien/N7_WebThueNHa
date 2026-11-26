@@ -77,6 +77,7 @@ public sealed class BookingsController : ControllerBase
         var hasAcceptedConflict = await _db.Bookings.AnyAsync(x =>
             x.PropertyId == request.PropertyId &&
             x.Status == BookingStatus.Accepted &&
+            (x.RentalContract == null || (x.RentalContract.Status != RentalContractStatus.Completed && x.RentalContract.Status != RentalContractStatus.Terminated && x.RentalContract.Status != RentalContractStatus.Cancelled)) &&
             x.StartDate < request.EndDate &&
             x.EndDate > request.StartDate, cancellationToken);
 
@@ -258,6 +259,7 @@ public sealed class BookingsController : ControllerBase
             x.Id != booking.Id &&
             x.PropertyId == booking.PropertyId &&
             x.Status == BookingStatus.Accepted &&
+            (x.RentalContract == null || (x.RentalContract.Status != RentalContractStatus.Completed && x.RentalContract.Status != RentalContractStatus.Terminated && x.RentalContract.Status != RentalContractStatus.Cancelled)) &&
             x.StartDate < booking.EndDate &&
             x.EndDate > booking.StartDate, cancellationToken);
 

@@ -19,7 +19,7 @@ public sealed class MoveOutController(AppDbContext db):ControllerBase
   if(!UserId(out var uid))return Unauthorized();
   var isLandlord=User.IsInRole("Landlord");
   var q=db.MoveOutRequests.AsNoTracking().Where(x=>isLandlord?x.LandlordId==uid:x.TenantId==uid);
-  var rows=await q.OrderByDescending(x=>x.CreatedAt).ThenByDescending(x=>x.Id).Select(x=>new {x.Id,x.ContractId,x.Contract.ContractCode,PropertyTitle=x.Contract.Property.Title,x.RequestedMoveOutDate,x.Reason,x.TenantNotes,x.LandlordNotes,Status=x.Status.ToString(),x.CreatedAt,x.CompletedAt,x.HandoverAt,x.InspectionNotes,x.PhotoLinks,x.ElectricReading,x.WaterReading,x.DepositPaid,x.Outstanding,x.ExtraCharges,x.SettlementNotes,x.TenantConfirmedAt,x.LandlordConfirmedAt,x.TransferReference,TenantName=x.Tenant.FullName,LandlordName=x.Landlord.FullName}).ToListAsync(ct);
+  var rows=await q.OrderByDescending(x=>x.CreatedAt).ThenByDescending(x=>x.Id).Select(x=>new {x.Id,x.ContractId,x.Contract.ContractCode,PropertyTitle=x.Contract.Property.Title,x.RequestedMoveOutDate,x.Reason,x.TenantNotes,x.LandlordNotes,Status=x.Status.ToString(),x.CreatedAt,x.CompletedAt,x.HandoverAt,x.InspectionNotes,x.RentDue,x.RentPaid,x.OtherDue,x.OtherPaid,x.RefundAmount,x.AdditionalAmount,x.ElectricReading,x.WaterReading,x.DepositPaid,x.Outstanding,x.ExtraCharges,x.SettlementNotes,x.TenantConfirmedAt,x.LandlordConfirmedAt,x.TransferReference,TenantName=x.Tenant.FullName,LandlordName=x.Landlord.FullName}).ToListAsync(ct);
   return Ok(rows);
  }
  [HttpPost]
@@ -74,6 +74,18 @@ public sealed class MoveOutController(AppDbContext db):ControllerBase
   if(body.HandoverAt<=DateTime.UtcNow||DateOnly.FromDateTime(body.HandoverAt.AddHours(7))<row.Contract.StartDate)return BadRequest(new{message="Ngày bàn giao phải hợp lệ và ở tương lai."});
   row.HandoverAt=body.HandoverAt;row.Status=MoveOutStatus.InspectionScheduled;row.UpdatedAt=DateTime.UtcNow;Notify(row.TenantId,row,"Đã hẹn lịch bàn giao");await db.SaveChangesAsync(ct);return Ok();
  }
+ static decimal Paid(Web2_ThueNha.Models.Payments.Invoice i)=>i.Payments.Where(p=>p.Status==PaymentStatus.Succeeded).Sum(p=>p.Amount);
+ static (decimal RentDue,decimal RentPaid,decimal OtherDue,decimal OtherPaid,decimal DepositPaid,decimal Balance) Calculate(MoveOutRequest row,List<Web2_ThueNha.Models.Payments.Invoice> invoices,decimal extras)
+ {
+  var end=DateOnly.FromDateTime(row.HandoverAt!.Value.AddHours(7));
+  if(end>row.Contract.EndDate)end=row.Contract.EndDate;
+  var rentDue=end<=row.Contract.StartDate?row.Contract.MonthlyRent:RentalPricing.Calculate(row.Contract.MonthlyRent,row.Contract.StartDate,end).TotalAmount;
+  var rentPaid=invoices.Where(i=>i.InvoiceType==InvoiceType.MonthlyRent).Sum(Paid);
+  var otherDue=invoices.Where(i=>i.InvoiceType==InvoiceType.Other&&i.Status!=InvoiceStatus.Cancelled&&i.Status!=InvoiceStatus.Draft).Sum(i=>i.TotalAmount);
+  var otherPaid=invoices.Where(i=>i.InvoiceType==InvoiceType.Other).Sum(Paid);
+  var deposit=invoices.Where(i=>i.InvoiceType==InvoiceType.Deposit).Sum(Paid);
+  return (rentDue,rentPaid,otherDue,otherPaid,deposit,deposit+rentPaid+otherPaid-rentDue-otherDue-extras);
+ }
  [HttpPost("{id:guid}/settlement")]
  [Authorize(Roles="Landlord")]
  public async Task<IActionResult> Settlement(Guid id,SettlementBody body,CancellationToken ct)
@@ -84,16 +96,14 @@ public sealed class MoveOutController(AppDbContext db):ControllerBase
   if(row is null)return NotFound();
   if(row.Status is not (MoveOutStatus.InspectionScheduled or MoveOutStatus.AwaitingSettlement)||row.LandlordConfirmedAt!=null)return Conflict(new{message="Không thể sửa quyết toán ở trạng thái này."});
   if(row.HandoverAt is null||row.HandoverAt>DateTime.UtcNow)return Conflict(new{message="Chưa đến giờ bàn giao."});
-  if(string.IsNullOrWhiteSpace(body.InspectionNotes)||body.InspectionNotes.Length>4000||body.PhotoLinks?.Length>4000||body.SettlementNotes?.Length>4000||body.ExtraCharges<0||body.ExtraCharges>999999999||body.ElectricReading<0||body.WaterReading<0||body.ElectricReading>999999999||body.WaterReading>999999999||body.ExtraCharges>0&&string.IsNullOrWhiteSpace(body.SettlementNotes))return BadRequest(new{message="Kiểm tra nội dung biên bản và chi phí."});
-  var invoices=await db.Invoices.Include(x=>x.Payments).Where(x=>x.ContractId==row.ContractId&&x.Status!=InvoiceStatus.Cancelled&&x.Status!=InvoiceStatus.Draft).ToListAsync(ct);
-  if(invoices.SelectMany(x=>x.Payments).Any(x=>x.Status==PaymentStatus.Pending))return Conflict(new{message="Cần xử lý các giao dịch đang chờ trước khi quyết toán."});
-  decimal Paid(Web2_ThueNha.Models.Payments.Invoice i)=>i.Payments.Where(p=>p.Status==PaymentStatus.Succeeded).Sum(p=>p.Amount);
-  var date=DateOnly.FromDateTime(row.HandoverAt.Value.AddHours(7));
-  var future=invoices.Where(i=>i.InvoiceType==InvoiceType.MonthlyRent&&i.PeriodStart>=date).ToList();
-  if(future.Any(i=>Paid(i)>0))return Conflict(new{message="Có kỳ thuê tương lai đã thanh toán. Cần đối soát thủ công trước khi trả nhà."});
-  row.DepositPaid=invoices.Where(i=>i.InvoiceType==InvoiceType.Deposit).Sum(Paid);
-  row.Outstanding=invoices.Where(i=>i.InvoiceType!=InvoiceType.Deposit&&!future.Contains(i)).Sum(i=>Math.Max(0,i.TotalAmount-Paid(i)));
-  row.InspectionNotes=body.InspectionNotes.Trim();row.PhotoLinks=body.PhotoLinks;row.ElectricReading=body.ElectricReading;row.WaterReading=body.WaterReading;row.ExtraCharges=body.ExtraCharges;row.SettlementNotes=body.SettlementNotes;
+  if(string.IsNullOrWhiteSpace(body.InspectionNotes)||body.InspectionNotes.Length>4000||body.SettlementNotes?.Length>4000||body.ExtraCharges<0||body.ExtraCharges>999999999||body.ElectricReading<0||body.WaterReading<0||body.ElectricReading>999999999||body.WaterReading>999999999||body.ExtraCharges>0&&string.IsNullOrWhiteSpace(body.SettlementNotes))return BadRequest(new{message="Kiểm tra nội dung biên bản và chi phí."});
+  var invoices=await db.Invoices.Include(x=>x.Payments).Where(x=>x.ContractId==row.ContractId).ToListAsync(ct);
+  if(invoices.SelectMany(x=>x.Payments).Any(x=>x.Status==PaymentStatus.Pending))return Conflict(new{message="Cần xử lý giao dịch đang chờ trước khi quyết toán."});
+  var totals=Calculate(row,invoices,body.ExtraCharges);
+  row.DepositPaid=totals.DepositPaid;row.RentDue=totals.RentDue;row.RentPaid=totals.RentPaid;row.OtherDue=totals.OtherDue;row.OtherPaid=totals.OtherPaid;
+  row.Outstanding=Math.Max(0,totals.RentDue+totals.OtherDue-totals.RentPaid-totals.OtherPaid);
+  row.RefundAmount=Math.Max(0,totals.Balance);row.AdditionalAmount=Math.Max(0,-totals.Balance);
+  row.InspectionNotes=body.InspectionNotes.Trim();row.ElectricReading=body.ElectricReading;row.WaterReading=body.WaterReading;row.ExtraCharges=body.ExtraCharges;row.SettlementNotes=body.SettlementNotes;
   row.TenantConfirmedAt=null;row.LandlordConfirmedAt=null;row.TransferReference=null;row.Status=MoveOutStatus.AwaitingSettlement;row.UpdatedAt=DateTime.UtcNow;Notify(row.TenantId,row,"Biên bản và quyết toán chờ xác nhận");await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);return Ok();
  }
  [HttpPost("{id:guid}/confirm")]
@@ -113,16 +123,23 @@ public sealed class MoveOutController(AppDbContext db):ControllerBase
   else if(uid==row.TenantId&&User.IsInRole("Tenant"))
   {
    if(row.LandlordConfirmedAt is null)return Conflict(new{message="Chờ chủ nhà xác nhận đã quyết toán thực tế."});
-   var invoices=await db.Invoices.Include(x=>x.Payments).Where(x=>x.ContractId==row.ContractId&&x.Status!=InvoiceStatus.Cancelled&&x.Status!=InvoiceStatus.Draft).ToListAsync(ct);
-   decimal Paid(Web2_ThueNha.Models.Payments.Invoice i)=>i.Payments.Where(p=>p.Status==PaymentStatus.Succeeded).Sum(p=>p.Amount);
+   var invoices=await db.Invoices.Include(x=>x.Payments).Where(x=>x.ContractId==row.ContractId).ToListAsync(ct);
    var date=DateOnly.FromDateTime(row.HandoverAt.Value.AddHours(7));
-   var future=invoices.Where(i=>i.InvoiceType==InvoiceType.MonthlyRent&&i.PeriodStart>=date).ToList();
-   if(invoices.SelectMany(i=>i.Payments).Any(p=>p.Status==PaymentStatus.Pending)||future.Any(i=>Paid(i)>0)||row.DepositPaid!=invoices.Where(i=>i.InvoiceType==InvoiceType.Deposit).Sum(Paid)||row.Outstanding!=invoices.Where(i=>i.InvoiceType!=InvoiceType.Deposit&&!future.Contains(i)).Sum(i=>Math.Max(0,i.TotalAmount-Paid(i))))return Conflict(new{message="Số liệu hóa đơn đã thay đổi. Chủ nhà cần mở lại quyết toán."});
-   // Keep actual payment history; cancel only unpaid future rent. Existing debt remains visible.
-   foreach(var i in future)i.Status=InvoiceStatus.Cancelled;
+   var totals=Calculate(row,invoices,row.ExtraCharges??0);
+   if(invoices.SelectMany(i=>i.Payments).Any(p=>p.Status==PaymentStatus.Pending)||row.DepositPaid!=totals.DepositPaid||row.RentDue!=totals.RentDue||row.RentPaid!=totals.RentPaid||row.OtherDue!=totals.OtherDue||row.OtherPaid!=totals.OtherPaid||row.RefundAmount!=Math.Max(0,totals.Balance)||row.AdditionalAmount!=Math.Max(0,-totals.Balance))return Conflict(new{message="Số liệu đã thay đổi. Chủ nhà cần mở lại quyết toán."});
+   // Original receipts remain immutable. Outstanding invoices are superseded by the final settlement record.
+   foreach(var invoice in invoices.Where(i=>i.Status!=InvoiceStatus.Paid&&i.Status!=InvoiceStatus.Cancelled))invoice.Status=InvoiceStatus.Cancelled;
+   if(row.AdditionalAmount>0)
+   {
+    var amount=row.AdditionalAmount.Value;
+    var invoice=new Web2_ThueNha.Models.Payments.Invoice{ContractId=row.ContractId,InvoiceCode="SET-"+row.Id.ToString("N"),InvoiceType=InvoiceType.Other,IssueDate=Today(),DueDate=Today(),TotalAmount=amount,Status=InvoiceStatus.Paid};
+    invoice.Items.Add(new Web2_ThueNha.Models.Payments.InvoiceItem{Description="Chênh lệch quyết toán trả nhà đã được hai bên xác nhận",Quantity=1,UnitPrice=amount,Amount=amount});
+    invoice.Payments.Add(new Web2_ThueNha.Models.Payments.Payment{PayerId=row.TenantId,Amount=amount,PaymentMethod=PaymentMethod.Other,PaymentProvider="MoveOutSettlement",TransactionCode="SET-"+row.Id.ToString("N"),Status=PaymentStatus.Succeeded,PaidAt=DateTime.UtcNow,ReviewedById=row.LandlordId,ReviewedAt=DateTime.UtcNow});
+    db.Invoices.Add(invoice);
+   }
    row.TenantConfirmedAt=DateTime.UtcNow;row.CompletedAt=DateTime.UtcNow;row.Status=MoveOutStatus.Completed;
    row.Contract.Status=date<row.Contract.EndDate?RentalContractStatus.Terminated:RentalContractStatus.Completed;
-   row.Contract.Booking.Status=BookingStatus.Cancelled;row.Contract.Booking.UpdatedAt=DateTime.UtcNow;
+   row.Contract.Booking.UpdatedAt=DateTime.UtcNow;
    Notify(row.LandlordId,row,"Đã hoàn tất bàn giao nhà");Notify(row.TenantId,row,"Đã hoàn tất trả nhà");
   }
   else return Forbid();
@@ -144,5 +161,5 @@ public sealed record CreateMoveOutRequest(Guid ContractId,DateOnly RequestedMove
 public sealed record LandlordMoveOutResponse(bool Approve,string? Notes);
 
 public sealed record ScheduleBody(DateTime HandoverAt);
-public sealed record SettlementBody(string InspectionNotes,string? PhotoLinks,decimal? ElectricReading,decimal? WaterReading,decimal ExtraCharges,string? SettlementNotes);
+public sealed record SettlementBody(string InspectionNotes,decimal? ElectricReading,decimal? WaterReading,decimal ExtraCharges,string? SettlementNotes);
 public sealed record ConfirmationBody(string? Reference);

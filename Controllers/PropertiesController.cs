@@ -502,6 +502,7 @@ public sealed class PropertiesController(AppDbContext db, IPropertyQueryReposito
             x.EndDate > today, cancellationToken);
         var acceptedFuture = await db.Bookings.AnyAsync(x =>
             x.PropertyId == property.Id && x.Status == BookingStatus.Accepted &&
+            (x.RentalContract == null || (x.RentalContract.Status != RentalContractStatus.Completed && x.RentalContract.Status != RentalContractStatus.Terminated && x.RentalContract.Status != RentalContractStatus.Cancelled)) &&
             x.StartDate > today && x.EndDate > today, cancellationToken);
         var rentalStatus = active ? "Rented" : acceptedFuture ? "Reserved" : pending ? "PendingRequest" : "Available";
         return ToResponse(property, rentalStatus);

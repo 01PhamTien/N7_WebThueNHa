@@ -227,9 +227,14 @@ namespace Web2_ThueNha.Migrations
                     b.Property<DateTime?>("CompletedAt").HasColumnType("datetime2");
                     b.Property<DateTime?>("HandoverAt").HasColumnType("datetime2");
                     b.Property<string>("InspectionNotes").HasColumnType("nvarchar(max)");
-                    b.Property<string>("PhotoLinks").HasColumnType("nvarchar(max)");
                     b.Property<decimal?>("ElectricReading").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
                     b.Property<decimal?>("WaterReading").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
+                    b.Property<decimal?>("RentDue").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
+                    b.Property<decimal?>("RentPaid").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
+                    b.Property<decimal?>("OtherDue").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
+                    b.Property<decimal?>("OtherPaid").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
+                    b.Property<decimal?>("RefundAmount").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
+                    b.Property<decimal?>("AdditionalAmount").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
                     b.Property<decimal?>("DepositPaid").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
                     b.Property<decimal?>("Outstanding").HasPrecision(18, 2).HasColumnType("decimal(18,2)");
                     b.Property<decimal?>("ExtraCharges").HasPrecision(18, 2).HasColumnType("decimal(18,2)");

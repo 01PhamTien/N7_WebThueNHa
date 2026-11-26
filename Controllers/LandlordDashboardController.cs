@@ -44,6 +44,9 @@ public sealed class LandlordDashboardController(AppDbContext db) : ControllerBas
             .Where(x => x.Invoice.InvoiceType == InvoiceType.Other)
             .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0m;
 
+        var refunds = db.MoveOutRequests.AsNoTracking().Where(x=>x.LandlordId==landlordId && x.Status==Web2_ThueNha.Models.Contracts.MoveOutStatus.Completed);
+        var refundedAllTime=await refunds.SumAsync(x=>x.RefundAmount,cancellationToken)??0m;
+        var refundedThisMonth=await refunds.Where(x=>x.CompletedAt>=monthStart.ToDateTime(TimeOnly.MinValue).AddHours(-7)).SumAsync(x=>x.RefundAmount,cancellationToken)??0m;
         var invoices = db.Invoices.AsNoTracking()
             .Where(x => x.Contract.LandlordId == landlordId && x.Status != InvoiceStatus.Cancelled);
         var overdueCount = await invoices.CountAsync(x =>
@@ -106,6 +109,10 @@ public sealed class LandlordDashboardController(AppDbContext db) : ControllerBas
             months,
             receivedAllTime,
             receivedThisMonth,
+            refundedAllTime,
+            refundedThisMonth,
+            netReceivedAllTime=receivedAllTime-refundedAllTime,
+            netReceivedThisMonth=receivedThisMonth-refundedThisMonth,
             rentReceived,
             depositReceived,
             otherReceived,

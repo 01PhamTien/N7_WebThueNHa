@@ -265,6 +265,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.LandlordNotes).HasMaxLength(2000);
             e.Property(x => x.ElectricReading).HasPrecision(18, 2);
             e.Property(x => x.WaterReading).HasPrecision(18, 2);
+            e.Property(x => x.RentDue).HasPrecision(18, 2);
+            e.Property(x => x.RentPaid).HasPrecision(18, 2);
+            e.Property(x => x.OtherDue).HasPrecision(18, 2);
+            e.Property(x => x.OtherPaid).HasPrecision(18, 2);
+            e.Property(x => x.RefundAmount).HasPrecision(18, 2);
+            e.Property(x => x.AdditionalAmount).HasPrecision(18, 2);
             e.Property(x => x.DepositPaid).HasPrecision(18, 2);
             e.Property(x => x.Outstanding).HasPrecision(18, 2);
             e.Property(x => x.ExtraCharges).HasPrecision(18, 2);
