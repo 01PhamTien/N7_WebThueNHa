@@ -31,7 +31,7 @@ export function MoveOutPage({landlord=false}:{landlord?:boolean}){
   </Card>
   <Modal title="Gửi yêu cầu trả nhà" open={open} onCancel={()=>setOpen(false)} onOk={()=>void submit()} confirmLoading={busy} okText="Gửi yêu cầu">
    <Form form={form} layout="vertical">
-    <Form.Item name="contractId" label="Hợp đồng đang hiệu lực" rules={[{required:true,message:'Chọn hợp đồng'}]}><SelectContract contracts={contracts}/></Form.Item>
+    <Form.Item name="contractId" label="Hợp đồng đang hiệu lực" rules={[{required:true,message:'Chọn hợp đồng'}]}><Select options={contracts.map(x=>({value:x.id,label:x.contractCode+' · '+x.propertyTitle}))} placeholder="Chọn hợp đồng"/></Form.Item>
     <Form.Item name="date" label="Ngày dự kiến trả nhà" rules={[{required:true,message:'Chọn ngày trả nhà'}]}><DatePicker style={{width:'100%'}} minDate={dayjs()} format="DD/MM/YYYY"/></Form.Item>
     <Form.Item name="reason" label="Lý do trả nhà" rules={[{required:true,min:3,max:1000}]}><Input.TextArea rows={3} maxLength={1000}/></Form.Item>
     <Form.Item name="notes" label="Ghi chú thêm"><Input.TextArea rows={2} maxLength={2000}/></Form.Item>
@@ -39,4 +39,3 @@ export function MoveOutPage({landlord=false}:{landlord?:boolean}){
   </Modal>
  </Page>;
 }
-function SelectContract({contracts}:{contracts:any[]}){return <Select options={contracts.map(x=>({value:x.id,label:x.contractCode+' · '+x.propertyTitle}))} placeholder="Chọn hợp đồng"/>}
