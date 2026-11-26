@@ -277,7 +277,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.HasKey(x => x.Id);
             e.Property(x => x.Comment).HasMaxLength(2000);
             e.HasOne(x => x.Contract).WithOne(x => x.Review).HasForeignKey<Review>(x => x.ContractId).OnDelete(DeleteBehavior.Restrict);
-            e.HasIndex(x => x.ContractId).IsUnique();
         });
 
         modelBuilder.Entity<Notification>(e =>
