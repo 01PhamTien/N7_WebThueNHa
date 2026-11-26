@@ -94,7 +94,7 @@ public sealed class MoveOutController(AppDbContext db):ControllerBase
   await using var tx=await db.Database.BeginTransactionAsync(IsolationLevel.Serializable,ct);
   var row=await db.MoveOutRequests.Include(x=>x.Contract).SingleOrDefaultAsync(x=>x.Id==id&&x.LandlordId==uid,ct);
   if(row is null)return NotFound();
-  if(row.Status is not (MoveOutStatus.InspectionScheduled or MoveOutStatus.AwaitingSettlement)||row.LandlordConfirmedAt!=null)return Conflict(new{message="Không thể sửa quyết toán ở trạng thái này."});
+  if(row.Status is not (MoveOutStatus.InspectionScheduled or MoveOutStatus.AwaitingSettlement)||row.LandlordConfirmedAt!=null||row.TenantConfirmedAt!=null)return Conflict(new{message="Không thể sửa biên bản đã ký. Hãy mở lại quyết toán trước."});
   if(row.HandoverAt is null||row.HandoverAt>DateTime.UtcNow)return Conflict(new{message="Chưa đến giờ bàn giao."});
   if(string.IsNullOrWhiteSpace(body.InspectionNotes)||body.InspectionNotes.Length>4000||body.SettlementNotes?.Length>4000||body.ExtraCharges<0||body.ExtraCharges>999999999||body.ElectricReading<0||body.WaterReading<0||body.ElectricReading>999999999||body.WaterReading>999999999||body.ExtraCharges>0&&string.IsNullOrWhiteSpace(body.SettlementNotes))return BadRequest(new{message="Kiểm tra nội dung biên bản và chi phí."});
   var invoices=await db.Invoices.Include(x=>x.Payments).Where(x=>x.ContractId==row.ContractId).ToListAsync(ct);
@@ -114,19 +114,23 @@ public sealed class MoveOutController(AppDbContext db):ControllerBase
   var row=await db.MoveOutRequests.Include(x=>x.Contract).ThenInclude(x=>x.Booking).SingleOrDefaultAsync(x=>x.Id==id&&(x.TenantId==uid||x.LandlordId==uid),ct);
   if(row is null)return NotFound();
   if(row.Status!=MoveOutStatus.AwaitingSettlement||row.Contract.Status!=RentalContractStatus.Active||row.HandoverAt is null)return Conflict(new{message="Chưa thể xác nhận bàn giao."});
-  if(uid==row.LandlordId&&User.IsInRole("Landlord"))
+  var isOwner=uid==row.LandlordId&&User.IsInRole("Landlord");
+  var isRenter=uid==row.TenantId&&User.IsInRole("Tenant");
+  if(!isOwner&&!isRenter)return Forbid();
+  if(!body.Accepted)return BadRequest(new{message="Bạn cần đồng ý với biên bản bàn giao và xác nhận quyết toán thực tế."});
+  if(isOwner&&row.LandlordConfirmedAt!=null||!isOwner&&row.TenantConfirmedAt!=null)return Conflict(new{message="Bạn đã ký xác nhận."});
+  var invoices=await db.Invoices.Include(x=>x.Payments).Where(x=>x.ContractId==row.ContractId).ToListAsync(ct);
+  var date=DateOnly.FromDateTime(row.HandoverAt.Value.AddHours(7));
+  var totals=Calculate(row,invoices,row.ExtraCharges??0);
+  if(invoices.SelectMany(i=>i.Payments).Any(p=>p.Status==PaymentStatus.Pending)||row.DepositPaid!=totals.DepositPaid||row.RentDue!=totals.RentDue||row.RentPaid!=totals.RentPaid||row.OtherDue!=totals.OtherDue||row.OtherPaid!=totals.OtherPaid||row.RefundAmount!=Math.Max(0,totals.Balance)||row.AdditionalAmount!=Math.Max(0,-totals.Balance))return Conflict(new{message="Số liệu đã thay đổi. Chủ nhà cần mở lại và lập lại quyết toán."});
+  if(isOwner)
   {
-   if(row.LandlordConfirmedAt!=null)return Conflict(new{message="Chủ nhà đã xác nhận."});
-   if(string.IsNullOrWhiteSpace(body.Reference)||body.Reference.Length>1000)return BadRequest(new{message="Nhập chứng từ hoặc ghi chú đã hoàn/thu tiền thực tế (hoặc không phát sinh)."});
-   row.TransferReference=body.Reference.Trim();row.LandlordConfirmedAt=DateTime.UtcNow;Notify(row.TenantId,row,"Chủ nhà đã xác nhận quyết toán, chờ bạn xác nhận");
+   if((row.RefundAmount>0||row.AdditionalAmount>0)&&string.IsNullOrWhiteSpace(body.Reference)||body.Reference?.Length>1000)return BadRequest(new{message="Nhập chứng từ hoặc ghi chú giao dịch thực tế."});
+   row.TransferReference=body.Reference?.Trim();row.LandlordConfirmedAt=DateTime.UtcNow;
   }
-  else if(uid==row.TenantId&&User.IsInRole("Tenant"))
+  else row.TenantConfirmedAt=DateTime.UtcNow;
+  if(row.LandlordConfirmedAt!=null&&row.TenantConfirmedAt!=null)
   {
-   if(row.LandlordConfirmedAt is null)return Conflict(new{message="Chờ chủ nhà xác nhận đã quyết toán thực tế."});
-   var invoices=await db.Invoices.Include(x=>x.Payments).Where(x=>x.ContractId==row.ContractId).ToListAsync(ct);
-   var date=DateOnly.FromDateTime(row.HandoverAt.Value.AddHours(7));
-   var totals=Calculate(row,invoices,row.ExtraCharges??0);
-   if(invoices.SelectMany(i=>i.Payments).Any(p=>p.Status==PaymentStatus.Pending)||row.DepositPaid!=totals.DepositPaid||row.RentDue!=totals.RentDue||row.RentPaid!=totals.RentPaid||row.OtherDue!=totals.OtherDue||row.OtherPaid!=totals.OtherPaid||row.RefundAmount!=Math.Max(0,totals.Balance)||row.AdditionalAmount!=Math.Max(0,-totals.Balance))return Conflict(new{message="Số liệu đã thay đổi. Chủ nhà cần mở lại quyết toán."});
    // Original receipts remain immutable. Outstanding invoices are superseded by the final settlement record.
    foreach(var invoice in invoices.Where(i=>i.Status!=InvoiceStatus.Paid&&i.Status!=InvoiceStatus.Cancelled))invoice.Status=InvoiceStatus.Cancelled;
    if(row.AdditionalAmount>0)
@@ -137,12 +141,12 @@ public sealed class MoveOutController(AppDbContext db):ControllerBase
     invoice.Payments.Add(new Web2_ThueNha.Models.Payments.Payment{PayerId=row.TenantId,Amount=amount,PaymentMethod=PaymentMethod.Other,PaymentProvider="MoveOutSettlement",TransactionCode="SET-"+row.Id.ToString("N"),Status=PaymentStatus.Succeeded,PaidAt=DateTime.UtcNow,ReviewedById=row.LandlordId,ReviewedAt=DateTime.UtcNow});
     db.Invoices.Add(invoice);
    }
-   row.TenantConfirmedAt=DateTime.UtcNow;row.CompletedAt=DateTime.UtcNow;row.Status=MoveOutStatus.Completed;
+   row.CompletedAt=DateTime.UtcNow;row.Status=MoveOutStatus.Completed;
    row.Contract.Status=date<row.Contract.EndDate?RentalContractStatus.Terminated:RentalContractStatus.Completed;
    row.Contract.Booking.UpdatedAt=DateTime.UtcNow;
    Notify(row.LandlordId,row,"Đã hoàn tất bàn giao nhà");Notify(row.TenantId,row,"Đã hoàn tất trả nhà");
   }
-  else return Forbid();
+  else Notify(isOwner?row.TenantId:row.LandlordId,row,"Bên còn lại đã ký biên bản trả nhà");
   row.UpdatedAt=DateTime.UtcNow;await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);return Ok(new{status=row.Status.ToString()});
  }
  [HttpPost("{id:guid}/reopen")]
@@ -162,4 +166,4 @@ public sealed record LandlordMoveOutResponse(bool Approve,string? Notes);
 
 public sealed record ScheduleBody(DateTime HandoverAt);
 public sealed record SettlementBody(string InspectionNotes,decimal? ElectricReading,decimal? WaterReading,decimal ExtraCharges,string? SettlementNotes);
-public sealed record ConfirmationBody(string? Reference);
+public sealed record ConfirmationBody(string? Reference,bool Accepted);
