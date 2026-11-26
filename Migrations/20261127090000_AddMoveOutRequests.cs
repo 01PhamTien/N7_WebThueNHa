@@ -20,9 +20,9 @@ public partial class AddMoveOutRequests:Migration
    Status=table.Column<int>(type:"int",nullable:false)
   },constraints:table=>{
    table.PrimaryKey("PK_MoveOutRequests",x=>x.Id);
-   table.ForeignKey("FK_MoveOutRequests_RentalContracts_ContractId","MoveOutRequests","RentalContracts","Id",onDelete:ReferentialAction.Restrict);
-   table.ForeignKey("FK_MoveOutRequests_Users_TenantId","MoveOutRequests","Users","Id",onDelete:ReferentialAction.Restrict);
-   table.ForeignKey("FK_MoveOutRequests_Users_LandlordId","MoveOutRequests","Users","Id",onDelete:ReferentialAction.Restrict);
+   table.ForeignKey(name:"FK_MoveOutRequests_RentalContracts_ContractId",column:x=>x.ContractId,principalTable:"RentalContracts",principalColumn:"Id",onDelete:ReferentialAction.Restrict);
+   table.ForeignKey(name:"FK_MoveOutRequests_Users_TenantId",column:x=>x.TenantId,principalTable:"Users",principalColumn:"Id",onDelete:ReferentialAction.Restrict);
+   table.ForeignKey(name:"FK_MoveOutRequests_Users_LandlordId",column:x=>x.LandlordId,principalTable:"Users",principalColumn:"Id",onDelete:ReferentialAction.Restrict);
   });
   m.CreateIndex("IX_MoveOutRequests_ContractId","MoveOutRequests","ContractId");
   m.CreateIndex("IX_MoveOutRequests_TenantId_CreatedAt","MoveOutRequests",new[]{"TenantId","CreatedAt"});
