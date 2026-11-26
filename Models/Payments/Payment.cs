@@ -5,6 +5,7 @@ namespace Web2_ThueNha.Models.Payments;
 public class Payment
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public long SequenceNumber { get; set; }
     public Guid InvoiceId { get; set; }
     public Guid PayerId { get; set; }
     public decimal Amount { get; set; }
