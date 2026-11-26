@@ -423,6 +423,55 @@ public static class DemoDataSeeder
         db.Payments.AddRange(payments.Where(x => !existingPaymentIds.Contains(x.Id)));
         await db.SaveChangesAsync(cancellationToken);
 
+        // Historical financial demo data: only deterministic demo contracts, never real transactions.
+        // Re-date original demo receipts to their actual invoice periods once, preserving amounts/status.
+        var demoContractIds=contracts.Select(x=>x.Id).ToArray();
+        var storedContracts=await db.RentalContracts.AsNoTracking().Where(x=>demoContractIds.Contains(x.Id)&&x.ContractCode.StartsWith("DEMO-HD-")).ToListAsync(cancellationToken);
+        var historicalContracts=storedContracts.Where(x=>x.Status==RentalContractStatus.Completed||x.Status==RentalContractStatus.Terminated).ToList();
+        var storedIds=storedContracts.Select(x=>x.Id).ToArray();
+        var demoReceipts=await db.Payments.Include(x=>x.Invoice).Where(x=>storedIds.Contains(x.Invoice.ContractId)&&x.PaymentProvider=="Demo"&&x.Status==PaymentStatus.Succeeded&&x.TransactionCode!=null&&x.TransactionCode.StartsWith("DEMO-TXN-")&&x.Invoice.InvoiceCode.StartsWith("DEMO-HD-")&&!x.Invoice.Payments.Any(p=>p.PaymentProvider!="Demo")).ToListAsync(cancellationToken);
+        var originalReceiptIds=payments.Select(x=>x.Id).ToHashSet();
+        foreach(var receipt in demoReceipts.Where(x=>originalReceiptIds.Contains(x.Id)))
+        {
+            var invoice=receipt.Invoice;
+            var contract=storedContracts.Single(x=>x.Id==invoice.ContractId);
+            // Existing demo payment dates were all clustered near seed startup. Use stable dates from stored invoice/contract.
+            var date=invoice.InvoiceType==InvoiceType.Deposit?contract.StartDate.AddDays(-3):invoice.PeriodStart?.AddDays(2)??invoice.IssueDate;
+            if(date>today)continue; // No historical payment for a future period.
+            var paidAt=DateTime.SpecifyKind(date.ToDateTime(new TimeOnly(9,0)),DateTimeKind.Utc);
+            if(paidAt>now)continue;
+            receipt.PaidAt=paidAt;
+            receipt.CreatedAt=paidAt.AddMinutes(-10);
+            // Keep the invoice's recorded creation/issue date no later than its seeded receipt.
+            if(invoice.CreatedAt>receipt.CreatedAt)invoice.CreatedAt=receipt.CreatedAt;
+            if(invoice.IssueDate>date)invoice.IssueDate=date;
+            if(invoice.DueDate<invoice.IssueDate)invoice.DueDate=invoice.IssueDate;
+        }
+        await db.SaveChangesAsync(cancellationToken);
+        var historicalIds=historicalContracts.Select(x=>x.Id).ToArray();
+        var existingPeriods=await db.Invoices.AsNoTracking().Where(x=>historicalIds.Contains(x.ContractId)&&x.InvoiceType==InvoiceType.MonthlyRent).Select(x=>new{x.ContractId,x.PeriodStart,x.PeriodEnd}).ToListAsync(cancellationToken);
+        foreach(var contract in historicalContracts)
+        {
+            // Use whole calendar months fully contained in the historical lease.
+            // Never create overlapping rent invoices, even if the existing invoice is not a demo invoice.
+            var contractIndex=contracts.FindIndex(x=>x.Id==contract.Id)+1;
+            var month=new DateOnly(contract.StartDate.Year,contract.StartDate.Month,1);
+            if(month<contract.StartDate)month=month.AddMonths(1);
+            for(var n=0;n<24&&month.AddMonths(1)<=contract.EndDate&&month.AddMonths(1)<=today; n++,month=month.AddMonths(1))
+            {
+                var end=month.AddMonths(1);
+                if(existingPeriods.Any(x=>x.ContractId==contract.Id&&(!x.PeriodStart.HasValue||!x.PeriodEnd.HasValue||x.PeriodStart.Value<end&&x.PeriodEnd.Value>=month)))continue;
+                var key=contractIndex*100000+month.Year*12+month.Month;
+                var id=DemoId(0x50000002,key);
+                var paidAt=DateTime.SpecifyKind(month.AddDays(2).ToDateTime(new TimeOnly(9,0)),DateTimeKind.Utc);
+                var invoice=new Invoice{Id=id,ContractId=contract.Id,InvoiceCode="DEMO-HIST-"+key,InvoiceType=InvoiceType.MonthlyRent,PeriodStart=month,PeriodEnd=end.AddDays(-1),IssueDate=month,DueDate=month.AddDays(5),TotalAmount=contract.MonthlyRent,Status=InvoiceStatus.Paid,CreatedAt=paidAt.AddDays(-2)};
+                invoice.Items.Add(new InvoiceItem{Description="Tiền thuê nhà (dữ liệu demo lịch sử)",Quantity=1,UnitPrice=contract.MonthlyRent,Amount=contract.MonthlyRent});
+                db.Invoices.Add(invoice);
+                db.Payments.Add(new Payment{Id=DemoId(0x60000002,key),InvoiceId=id,PayerId=contract.TenantId,Amount=contract.MonthlyRent,PaymentMethod=PaymentMethod.BankTransfer,PaymentProvider="Demo",TransactionCode="DEMO-HIST-TXN-"+key,Status=PaymentStatus.Succeeded,CreatedAt=paidAt.AddMinutes(-10),PaidAt=paidAt});
+            }
+        }
+        await db.SaveChangesAsync(cancellationToken);
+
         var conversations = new List<Conversation>();
         var participants = new List<ConversationParticipant>();
         var messages = new List<Message>();

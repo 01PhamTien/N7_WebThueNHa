@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DependencyList } from 'react';
-import { Alert, Button, Space, Tag, Typography } from 'antd';
+import { Alert, Pagination, Tag } from 'antd';
 import { errorText } from '../../services/api';
 
 export const money = (v?: number) => (v ?? 0).toLocaleString('vi-VN') + ' đ';
@@ -58,6 +58,7 @@ export function useRequest<T>(load: () => Promise<{ data: T }>, deps: Dependency
 }
 export function ErrorLine({error}:{error:string}) { return error ? <Alert type="error" showIcon message={error} style={{marginBottom:16}}/> : null; }
 export function Paging({page,total,onChange}:{page:number;total:number;onChange:(p:number)=>void}) {
-  return <div style={{display:'flex',justifyContent:'flex-end',paddingTop:16}}><Space><Button disabled={page<=1} onClick={()=>onChange(page-1)}>Trước</Button><Typography.Text>Trang {page} · {total} mục</Typography.Text><Button disabled={page*10>=total} onClick={()=>onChange(page+1)}>Sau</Button></Space></div>;
+  const pages=Math.max(1,Math.ceil(total/10));
+  useEffect(()=>{if(page>pages&&total>0)onChange(pages);},[page,pages,total,onChange]);
+  return <div className="management-pagination"><Pagination current={page} total={total} pageSize={10} showSizeChanger={false} showQuickJumper={{goButton:'Đi'}} showLessItems responsive onChange={onChange} showTotal={(count,range)=>count?`${range[0]}–${range[1]} / ${count} mục`:'0 mục'}/></div>;
 }
-

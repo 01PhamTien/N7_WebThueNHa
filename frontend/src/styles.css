@@ -1389,3 +1389,8 @@ body { background: var(--canvas); color: var(--ink); }
 .admin-operations .management-table-card>.ant-card-body{padding:0;}
 @media(max-width:1050px){.admin-dashboard .ld-main-grid{grid-template-columns:minmax(0,1fr);}}
 @media(max-width:650px){.admin-trend-row{grid-template-columns:52px minmax(30px,1fr) auto;gap:6px;}}
+
+.management-pagination{display:flex;justify-content:flex-end;padding-top:16px;min-width:0;}
+.management-pagination .ant-pagination{display:flex;flex-wrap:wrap;align-items:center;gap:4px;}
+.management-pagination .ant-pagination-options-quick-jumper input{width:60px;}
+@media(max-width:650px){.management-pagination{justify-content:center;}.management-pagination .ant-pagination-total-text{width:100%;text-align:center;}}

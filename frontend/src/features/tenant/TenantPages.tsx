@@ -193,6 +193,7 @@ function PageFooter<T>({ state }: { state: TenantPageState<T> }) {
   return (
     <div className="tenant-pagination">
       <Pagination
+        showQuickJumper
         current={state.page}
         pageSize={PAGE_SIZE}
         total={total}
