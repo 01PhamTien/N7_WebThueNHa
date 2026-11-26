@@ -5,6 +5,7 @@ namespace Web2_ThueNha.Models.Properties;
 public class Property
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public long SequenceNumber { get; set; }
     public Guid LandlordId { get; set; }
     public int PropertyTypeId { get; set; }
     public string Title { get; set; } = string.Empty;
